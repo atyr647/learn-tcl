@@ -51,6 +51,62 @@ store::init $tmp/data
 check "corrupt file tolerated" {[dict get $::state xp] == 0}
 check "level math" {[store::level] == 1}
 
+puts "== persistence (restart / update / crash safety)"
+set pd $tmp/persist
+file delete -force $pd
+store::init $pd
+store::addXP 120
+dict set ::state lessons 1.1 [dict create stars 3 day 5]
+store::save
+store::addXP 30
+store::save
+check "two saves leave a backup of the previous one" {[file exists $pd/state.tcl.bak]}
+# simulate an app restart
+store::init $pd
+check "progress survives a restart" {[dict get $::state xp] == 150 && [dict exists $::state lessons 1.1]}
+# simulate a crash that left a half-written temp file
+set h [open $pd/state.tcl.tmp w]; puts -nonewline $h "{{{ half writ"; close $h
+store::init $pd
+check "a stray half-written temp file is ignored" {[dict get $::state xp] == 150}
+# simulate corruption of the main file
+set h [open $pd/state.tcl w]; puts -nonewline $h "garbage {{"; close $h
+store::init $pd
+check "corrupt main file recovers from the backup" {[dict get $::state xp] >= 120 && [dict exists $::state lessons 1.1]}
+check "the unreadable file is kept as .bad, not erased" {[file exists $pd/state.tcl.bad]}
+# an update that adds new keys / an older file without them
+set h [open $pd/state.tcl w]; puts -nonewline $h [list xp 77 settings {theme light goal 100} lessons {2.1 {stars 2 day 1}}]; close $h
+file delete -force $pd/state.tcl.bak
+store::init $pd
+check "older file gets new default keys (schema, cards...)" {[dict get $::state schema] == 1 && [dict exists $::state cards] && [dict get $::state xp] == 77}
+check "settings added in newer versions fall back to defaults" {[store::setting sound 1] == 1 && [store::setting theme x] eq "light"}
+# a NEWER version's file opened by an older one must not lose unknown data
+set h [open $pd/state.tcl w]; puts -nonewline $h [list xp 5 futureFeature {a 1 b 2} schema 9]; close $h
+store::init $pd
+store::addXP 1
+store::save
+store::init $pd
+check "unknown (future) keys are preserved across save/load" {[dict get $::state futureFeature] eq "a 1 b 2"}
+# directory choice: private internal storage first, temp last
+set old [array get ::env]
+set ::env(INTERNAL_STORAGE) $tmp/internal
+set ::env(HOME) $tmp/home
+set ::env(TMPDIR) $tmp/cache
+unset -nocomplain ::env(LEARNTCL_HOME)
+set cands [store::candidates]
+check "Android internal storage is the first choice" {[lindex $cands 0] eq "$tmp/internal/.learn-tcl"}
+check "the cache/temp dir is only a last resort" {[lsearch $cands "$tmp/cache/learn-tcl"] > [lsearch $cands "$tmp/home/.learn-tcl"]}
+check "chosen dir is writable and not the cache" {[string match "$tmp/internal*" [store::chooseDir]]}
+# migration: progress kept in an older location is adopted
+file delete -force $tmp/internal $tmp/home
+file mkdir $tmp/home/.learn-tcl
+set h [open $tmp/home/.learn-tcl/state.tcl w]; puts -nonewline $h [list xp 999]; close $h
+set ::env(INTERNAL_STORAGE) $tmp/internal2
+store::init
+check "progress from an older location is adopted" {[dict get $::state xp] == 999}
+array unset ::env
+array set ::env $old
+store::init $tmp/data
+
 puts "== sound effects"
 set ::env(LEARNTCL_NOSOUND) 1
 sfx::init $tmp/sfxtest

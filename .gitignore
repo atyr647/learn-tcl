@@ -1,3 +1,5 @@
 .learn-tcl/
 *.bad
 *.tmp
+*.keystore
+*.jks

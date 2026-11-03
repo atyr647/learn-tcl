@@ -55,8 +55,9 @@ android {
                                         /* don't bail out due to old SDK */
         //noinspection ExpiredTargetSdkVersion
         targetSdkVersion 30
-        versionCode 1
-        versionName "1.0"
+        // monotonically increasing so Android always accepts a new build as an update
+        versionCode project.hasProperty('vcode') ? project.property('vcode').toInteger() : 1
+        versionName project.hasProperty('vcode') ? "1.0." + project.property('vcode') : "1.0"
     }
 
     sourceSets {

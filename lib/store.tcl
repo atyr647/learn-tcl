@@ -9,50 +9,88 @@ namespace eval store {
         dict create xp 0 streak 0 best 0 lastday 0 \
             daily {} lessons {} cards {} exstats {} newToday {0 0} \
             settings {theme dark goal 50 unlockAll 0 textScale 1.0 sound 1 haptics 1} \
-            playground "" version 1
+            playground "" version 1 schema 1
+    }
+
+    # The directories we would store progress in, best first. On Android HOME and
+    # INTERNAL_STORAGE are the app's private internal files directory: it survives
+    # app updates and restarts, and is included in Android's automatic backup.
+    # The cache/temp directory is deliberately NOT used - the system may clear it.
+    proc candidates {} {
+        set c {}
+        if {[info exists ::env(LEARNTCL_HOME)]} { lappend c $::env(LEARNTCL_HOME) }
+        if {[info exists ::env(INTERNAL_STORAGE)]} { lappend c [file join $::env(INTERNAL_STORAGE) .learn-tcl] }
+        if {[info exists ::env(HOME)]} { lappend c [file join $::env(HOME) .learn-tcl] }
+        lappend c [file join [pwd] .learn-tcl]
+        if {[info exists ::env(TMPDIR)]} { lappend c [file join $::env(TMPDIR) learn-tcl] }
+        lappend c /tmp/learn-tcl
+        return [lsearch -all -inline -not -exact $c ""]
+    }
+
+    proc writable {d} {
+        expr {![catch {file mkdir $d; set f [file join $d .w]; set h [open $f w]; close $h; file delete $f}]}
     }
 
     # Pick the first writable directory from the candidates.
     proc chooseDir {} {
-        set cands {}
-        if {[info exists ::env(LEARNTCL_HOME)]} { lappend cands $::env(LEARNTCL_HOME) }
-        if {[llength [info commands borg]]} {
-            foreach what {files internal} {
-                if {![catch {borg specialdir $what} d]} { lappend cands $d }
-            }
-        }
-        if {[info exists ::env(HOME)]}   { lappend cands [file join $::env(HOME) .learn-tcl] }
-        if {[info exists ::env(TMPDIR)]} { lappend cands [file join $::env(TMPDIR) learn-tcl] }
-        lappend cands [file join [pwd] .learn-tcl] /tmp/learn-tcl
-        foreach d $cands {
-            if {![catch {file mkdir $d; set f [file join $d .w]; set h [open $f w]; close $h; file delete $f}]} {
-                return [file normalize $d]
-            }
+        foreach d [candidates] {
+            if {[writable $d]} { return [file normalize $d] }
         }
         return ""
+    }
+
+    # If an earlier version kept progress somewhere else, bring it across.
+    proc adopt {dir} {
+        if {[file exists [file join $dir state.tcl]]} return
+        foreach d [candidates] {
+            set src [file join $d state.tcl]
+            if {[file normalize $d] ne [file normalize $dir] && [file exists $src]} {
+                catch {file copy -force $src [file join $dir state.tcl]}
+                return
+            }
+        }
+    }
+
+    # Read and validate a state file; returns the dict or raises an error.
+    proc readFile {f} {
+        set h [open $f r]
+        fconfigure $h -encoding utf-8
+        set data [read $h]
+        close $h
+        if {![string is list -strict $data] || [llength $data] % 2 || [llength $data] == 0} { error "bad state file" }
+        return $data
     }
 
     proc init {{d ""}} {
         variable path
         variable dir
-        variable state
         set dir [expr {$d ne "" ? $d : [chooseDir]}]
         set ::state [defaults]
         if {$dir eq ""} { return }
         catch {file mkdir $dir}
         set path [file join $dir state.tcl]
-        if {[file exists $path]} {
-            if {[catch {
-                set f [open $path r]; set data [read $f]; close $f
-                set loaded $data
-                if {![string is list -strict $loaded] || [llength $loaded] % 2} { error "bad" }
-                # merge so that new keys added in later versions get defaults
-                dict for {k v} $loaded { dict set ::state $k $v }
-            }]} {
-                catch {file rename -force $path $path.bad}
-                set ::state [defaults]
-            }
+        if {$d eq ""} { adopt $dir }
+        set loaded ""
+        foreach f [list $path $path.bak] {
+            if {![file exists $f]} continue
+            if {![catch {readFile $f} data]} { set loaded $data; break }
+            # keep the unreadable file for inspection rather than overwrite it
+            catch {file copy -force $f $f.bad}
         }
+        if {$loaded ne ""} {
+            # merge so that keys added in later versions get their defaults
+            dict for {k v} $loaded { dict set ::state $k $v }
+            migrate
+        }
+    }
+
+    # Upgrade older state layouts in place. Unknown keys are always preserved, so
+    # installing an older version over a newer one never loses data.
+    proc migrate {} {
+        set v [dict get $::state schema]
+        if {![string is integer -strict $v]} { set v 0 }
+        # schema 0 -> 1: nothing to rewrite; just stamp the version
+        if {$v < 1} { dict set ::state schema 1 }
     }
 
     proc save {} {
@@ -66,6 +104,8 @@ namespace eval store {
             fconfigure $f -encoding utf-8
             puts -nonewline $f $::state
             close $f
+            # keep the previous good copy, then swap the new file in atomically
+            if {[file exists $path]} { catch {file copy -force $path $path.bak} }
             file rename -force $tmp $path
         }
     }

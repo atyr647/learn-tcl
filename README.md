@@ -13,7 +13,7 @@ and is itself written **entirely in Tcl/Tk** (about 3,000 lines of Tcl plus the 
 * Smooth, anti-aliased visuals: icons, rounded corners and progress rings are rasterised at runtime (`lib/aa.tcl`), because plain Tk canvas shapes are jagged
 * **Unit tests / test-out**: score 80% on a 10-question unit test to skip ahead; **text-size setting**, **tablet/landscape** column layout, Android **back button** support, forgiving typed answers, WCAG-checked colours in both themes
 * **Sound effects and haptics** (synthesised in Tcl - no audio files): right/wrong answers, lesson and unit completion fanfares (bigger for 3 stars), daily goal, level up, flashcards, taps; each can be switched off in Profile
-* XP, streaks, daily goal, levels, stars, light and dark themes; progress saved on the device
+* XP, streaks, daily goal, levels, stars, light and dark themes; progress saved after every answer in the device's private storage (survives restarts and app updates; crash-safe with a backup copy)
 * **Trustworthy content**: an automated test runs every code example in the course and checks the output shown
 
 How the design follows learning science: [docs/PLAN.md](docs/PLAN.md).

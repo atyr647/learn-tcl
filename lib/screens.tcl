@@ -741,7 +741,7 @@ proc app::playRun {} {
     ui::output $::app::pgOut.o [sandbox::display $r]
     pack $::app::pgOut.o -fill x
     ui::dragify $::app::pgOut
-    if {[dict get $r ok]} { store::touchStreak }
+    if {[dict get $r ok]} { store::touchStreak; store::save }
 }
 proc app::playClear {} { $::app::pgText delete 1.0 end; focus $::app::pgText }
 proc app::playLoad {code} { $::app::pgText delete 1.0 end; $::app::pgText insert 1.0 $code; ui::_editorColor $::app::pgText }
@@ -879,7 +879,7 @@ proc app::screenProfile {} {
     ui::button $body.diag "Run performance test" app::diag -style secondary -height [ui::px 11]
     pack $body.diag -fill x -padx $pad -pady [list [ui::px 3] 0]
     sectionTitle $body "About"
-    ui::rich $body.ab "Learn Tcl is written entirely in Tcl/Tk. Every code example in the course is executed by an automated test, so what you learn is what really runs.\n\nStore: [expr {$store::path eq {} ? {not saved (read-only device?)} : $store::path}]" -fg $::T(muted) -font f.small
+    ui::rich $body.ab "Learn Tcl is written entirely in Tcl/Tk. Every code example in the course is executed by an automated test, so what you learn is what really runs.\n\nYour progress is saved on this device, in the app's private storage, after every answer. It survives restarts and app updates, and is only removed if you uninstall the app or clear its data.\n\nSaved at: [expr {$store::path eq {} ? {nowhere - storage is not writable!} : $store::path}]" -fg $::T(muted) -font f.small
     pack $body.ab -fill x -padx $pad
     frame $body.pad -bg $::T(bg) -height [ui::px 10]
     pack $body.pad

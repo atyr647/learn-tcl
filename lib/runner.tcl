@@ -230,7 +230,7 @@ proc run::doCheck {} {
     $S(scroll) yview moveto 1
     set sc [winfo parent $S(scroll)]
     if {[winfo exists $sc.flat]} { flat::refresh $sc; catch {$sc.flat yview moveto 1} }
-    if {$S(mode) eq "lesson" || $S(mode) eq "practice"} { store::save }
+    store::save
     syncButton
     after 150 run::syncButton
 }
