@@ -34,10 +34,12 @@ proc flat::supported {w} {
 proc flat::freeze {sc} {
     variable hot
     variable enabled
-    if {!$enabled || ![winfo exists $sc.c.f]} { return 0 }
+    if {!$enabled || ![winfo exists $sc.c.f]} { drop $sc; return 0 }
     update idletasks
     set root $sc.c.f
-    if {![supported $root]} { return 0 }
+    # Screens with live controls (text boxes, editors) cannot be flattened. The
+    # previous snapshot MUST go, or it would stay on top of the new live screen.
+    if {![supported $root]} { drop $sc; return 0 }
     set F $sc.flat
     set hot($sc) {}
     if {[winfo exists $F]} {
@@ -250,5 +252,16 @@ proc flat::dirtyOf {w} {
     while {$p ne "." && $p ne ""} {
         if {[winfo exists $p.c.f] && [winfo exists $p.flat]} { dirty $p; return }
         set p [winfo parent $p]
+    }
+}
+
+# Remove the snapshot overlay so the live widgets underneath are visible.
+proc flat::drop {sc} {
+    variable hot
+    unset -nocomplain hot($sc)
+    foreach t [array names ::flat::boundTags] { unset -nocomplain ::flat::boundTags($t) }
+    if {[winfo exists $sc.flat]} {
+        unset -nocomplain ::ui::scrollers($sc.flat)
+        destroy $sc.flat
     }
 }

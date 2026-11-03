@@ -88,6 +88,10 @@ proc playLesson {id shotPrefix} {
         set kind [solveCurrent $first]
         if {$first} { set wrongDone 1 }
         pump
+        # an exercise with live controls must not be hidden under a stale snapshot
+        set hasOverlay [winfo exists .v.s.flat]
+        if {$kind in {type code} && $hasOverlay} { fail "$id: stale snapshot overlay covers a live $kind exercise" }
+        if {$kind ni {type code} && !$hasOverlay} { fail "$id: $kind exercise should be flattened" }
         if {$shotPrefix ne "" && [lsearch $seenKinds $kind] < 0} { shot ${shotPrefix}_${kind}_q }
         if {!$run::S(ready)} { fail "$id: exercise not ready after answering ($kind)"; run::setReady 1 }
         run::onCheckTap   ;# Check
