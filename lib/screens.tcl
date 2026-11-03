@@ -7,6 +7,7 @@ namespace eval app {
 proc app::init {} {
     variable view
     store::init
+    aa::init [expr {$store::dir ne "" ? $store::dir : "/tmp"}]
     theme::apply [store::setting theme dark]
     . configure -bg $::T(bg)
     wm title . "Learn Tcl"
@@ -51,6 +52,7 @@ proc app::clear {} {
 
 proc app::go {where args} {
     variable tab
+    after 1500 aa::flush
     switch $where {
         home     { set tab home;    screenHome }
         practice { set tab practice; screenPractice }
@@ -118,6 +120,10 @@ set app::confettiJob ""
 
 # ============================================================== HOME
 proc app::screenHome {} {
+    if {$::app::expanded == 0} {
+        set nl [nextLesson]
+        set ::app::expanded [expr {$nl eq "" ? 1 : [dict get [content::get $nl] unit]}]
+    }
     set body [tabScreen home]
     set pad [ui::px 4]
     # header
@@ -209,17 +215,35 @@ proc app::screenHome {} {
         ui::rich $f.d [dict get $u blurb] -bg $bg -fg $::T(muted) -font f.small
         pack $f.k $f.t -fill x
         pack $f.d -fill x
-        ui::button $f.t$n [expr {$done == [llength $ids] ? "Retake unit test" : "Unit test / test out"}] [list app::startUnitTest $n] \
-            -style secondary -height [ui::px 9.5] -font f.smallb -bg $bg
-        pack $f.t$n -fill x -pady [list [ui::px 2] 0]
-        path $body.p$n $ids $col
-        pack $body.p$n -fill x -padx $pad
+        set open [expr {$n == $::app::expanded}]
+        label $f.x -text [expr {$open ? "Tap to collapse" : "Tap to open"}] -font f.small -fg $::T(muted) -bg $bg -anchor w
+        pack $f.x -fill x -pady [list [ui::px 1] 0]
+        foreach wdg [list $body.u$n $f $f.k $f.t $f.d $f.x] {
+            bind $wdg <ButtonRelease-1> [list app::toggleUnit $n]
+        }
+        if {$open} {
+            ui::button $f.t$n [expr {$done == [llength $ids] ? "Retake unit test" : "Unit test / test out"}] [list app::startUnitTest $n] \
+                -style secondary -height [ui::px 9.5] -font f.smallb -bg $bg
+            pack $f.t$n -fill x -pady [list [ui::px 2] 0]
+            path $body.p$n $ids $col
+            pack $body.p$n -fill x -padx $pad
+        }
     }
     frame $body.pad -bg $::T(bg) -height [ui::px 8]
     pack $body.pad
     ui::dragify $::app::view
 }
 
+# Only one unit's lessons are drawn at a time - far fewer widgets to render.
+set app::expanded 0
+proc app::toggleUnit {n} {
+    if {$::ui::drag(moved)} return
+    set c $::app::view.s.c
+    set y [expr {[winfo exists $c] ? [lindex [$c yview] 0] : 0}]
+    set ::app::expanded [expr {$n == $::app::expanded ? -1 : $n}]
+    screenHome
+    after idle [list catch [list $c yview moveto $y]]
+}
 proc app::isUnlocked {id} {
     if {[store::setting unlockAll 0]} { return 1 }
     set o [content::ids]
@@ -414,25 +438,25 @@ proc app::confetti {c} {
     array unset cfp
     set W [winfo width $c]; set H [winfo height $c]
     set cols [list $::T(primary) $::T(success) $::T(warn) $::T(error) $::T(info)]
-    for {set i 0} {$i < 38} {incr i} {
+    for {set i 0} {$i < 22} {incr i} {
         set x [expr {rand() * $W}]; set y [expr {-rand() * $H * .8}]
         set s [expr {[ui::px 1.0] + rand() * [ui::px 1.4]}]
         set id [$c create rectangle $x $y [expr {$x + $s * 1.6}] [expr {$y + $s}] \
             -fill [lindex $cols [expr {int(rand() * 5)}]] -outline "" -tags conf]
         set cfp($id) [list [expr {(rand() - .5) * 2.4}] [expr {1.6 + rand() * 2.6}]]
     }
-    set ::app::confettiJob [after 16 [list app::confettiStep $c 0 $H]]
+    set ::app::confettiJob [after 40 [list app::confettiStep $c 0 $H]]
 }
 proc app::confettiStep {c n H} {
     variable cfp
     if {![winfo exists $c]} return
-    if {$n > 80} { $c delete conf; return }
+    if {$n > 34} { $c delete conf; return }
     foreach id [$c find withtag conf] {
         lassign $cfp($id) dx dy
-        $c move $id $dx $dy
+        $c move $id [expr {$dx*2.2}] [expr {$dy*2.2}]
         if {[lindex [$c coords $id] 1] > $H} { $c delete $id }
     }
-    set ::app::confettiJob [after 16 [list app::confettiStep $c [expr {$n+1}] $H]]
+    set ::app::confettiJob [after 40 [list app::confettiStep $c [expr {$n+1}] $H]]
 }
 
 # ============================================================== PRACTICE

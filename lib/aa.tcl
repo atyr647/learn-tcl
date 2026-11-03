@@ -7,6 +7,54 @@
 namespace eval aa {
     variable cache
     array set cache {}
+    variable disk          ;# key -> base64 PNG, persisted between launches
+    array set disk {}
+    variable diskFile ""
+    variable dirty 0
+    variable lastPng ""
+}
+
+# Rasterising in pure Tcl is slow on a phone, so every image is saved and reused
+# on the next launch.
+proc aa::init {dir} {
+    variable disk
+    variable diskFile
+    set diskFile [file join $dir aacache.tcl]
+    if {[file exists $diskFile]} {
+        catch {
+            set f [open $diskFile r]; set d [read $f]; close $f
+            if {[llength $d] % 2 == 0} { array set disk $d }
+        }
+    }
+}
+proc aa::flush {} {
+    variable disk
+    variable diskFile
+    variable dirty
+    if {!$dirty || $diskFile eq ""} return
+    set dirty 0
+    catch {
+        set f [open $diskFile.tmp w]
+        puts -nonewline $f [array get disk]
+        close $f
+        file rename -force $diskFile.tmp $diskFile
+    }
+}
+# returns 1 and fills cache($key) if the image exists on disk
+proc aa::fromDisk {key} {
+    variable cache
+    variable disk
+    if {![info exists disk($key)]} { return 0 }
+    if {[catch {set cache($key) [::image create photo -data $disk($key) -format png]}]} { return 0 }
+    return 1
+}
+proc aa::keep {key img} {
+    variable disk
+    variable dirty
+    variable lastPng
+    set disk($key) [binary encode base64 -maxlen 0 $lastPng]
+    set dirty 1
+    return $img
 }
 
 proc aa::chunk {type data} {
@@ -21,6 +69,7 @@ proc aa::mkimg {w h rows} {
     append png [chunk IHDR [binary format IIccccc $w $h 8 6 0 0 0]]
     append png [chunk IDAT [zlib compress $raw]]
     append png [chunk IEND ""]
+    set ::aa::lastPng $png
     ::image create photo -data $png -format png
 }
 # 1-pixel soft edge: d is signed distance in pixels (negative = inside)
@@ -35,6 +84,7 @@ proc aa::corner {color r which} {
     variable cache
     set key "c:$color:$r:$which"
     if {[info exists cache($key)]} { return $cache($key) }
+    if {[fromDisk $key]} { return $cache($key) }
     lassign [rgb $color] cr cg cb
     set cx [expr {$which in {tl bl} ? $r : 0}]
     set cy [expr {$which in {tl tr} ? $r : 0}]
@@ -47,7 +97,7 @@ proc aa::corner {color r which} {
         }
         lappend rows [binary format c* $v]
     }
-    set cache($key) [mkimg $r $r $rows]
+    set cache($key) [keep $key [mkimg $r $r $rows]]
 }
 
 # Filled rounded rectangle: 4 AA corners + 3 plain rectangles.
@@ -90,6 +140,7 @@ proc aa::disc {color d} {
     variable cache
     set key "d:$color:$d"
     if {[info exists cache($key)]} { return $cache($key) }
+    if {[fromDisk $key]} { return $cache($key) }
     lassign [rgb $color] cr cg cb
     set R [expr {$d / 2.0}]
     set rows {}
@@ -101,7 +152,7 @@ proc aa::disc {color d} {
         }
         lappend rows [binary format c* $v]
     }
-    set cache($key) [mkimg $d $d $rows]
+    set cache($key) [keep $key [mkimg $d $d $rows]]
 }
 
 # A ring of thickness t in a square of side d: track colour all the way round,
@@ -111,6 +162,7 @@ proc aa::ring {d t frac color track} {
     set frac [expr {round($frac * 100) / 100.0}]
     set key "r:$d:$t:$frac:$color:$track"
     if {[info exists cache($key)]} { return $cache($key) }
+    if {[fromDisk $key]} { return $cache($key) }
     lassign [rgb $color] pr pg pb
     lassign [rgb $track] tr_ tg tb
     set R [expr {$d / 2.0 - $t / 2.0}]
@@ -146,7 +198,7 @@ proc aa::ring {d t frac color track} {
         }
         lappend rows [binary format c* $v]
     }
-    set cache($key) [mkimg $d $d $rows]
+    set cache($key) [keep $key [mkimg $d $d $rows]]
 }
 
 # ---- icons: unions/differences of simple shapes on a 24x24 grid -----------------------
@@ -230,6 +282,7 @@ proc aa::icon {name px color} {
     variable cache
     set key "i:$name:$px:$color"
     if {[info exists cache($key)]} { return $cache($key) }
+    if {[fromDisk $key]} { return $cache($key) }
     lassign [rgb $color] cr cg cb
     set ops [spec $name]
     set sc [expr {$px / 24.0}]
@@ -246,5 +299,5 @@ proc aa::icon {name px color} {
         }
         lappend rows [binary format c* $v]
     }
-    set cache($key) [mkimg $px $px $rows]
+    set cache($key) [keep $key [mkimg $px $px $rows]]
 }

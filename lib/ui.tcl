@@ -527,42 +527,71 @@ proc ui::_findScroller {w} {
     }
     return ""
 }
-proc ui::_dragStart {W X Y} {
+proc ui::_dragStart {W X Y {isDrag 0}} {
     variable drag
-    set drag(moved) 0
+    set drag(moved) $isDrag
     set drag(down) 1
     set drag(y) $Y
     set drag(sy) $Y
     set drag(vel) 0
+    set drag(acc) 0
+    set drag(t) [clock milliseconds]
     set drag(canvas) [_findScroller $W]
     if {[info exists drag(anim)]} { after cancel $drag(anim); unset drag(anim) }
 }
+# Motion events are coalesced: we only remember how far the finger moved and
+# apply it once per idle cycle, so a slow renderer never builds a backlog.
 proc ui::_dragMove {X Y} {
     variable drag
     if {!$drag(down) || $drag(canvas) eq "" || ![winfo exists $drag(canvas)]} return
     if {abs($Y - $drag(sy)) > [px 2.5]} { set drag(moved) 1 }
     if {!$drag(moved)} return
+    set now [clock milliseconds]
     set dy [expr {$Y - $drag(y)}]
+    set dt [expr {max(1, $now - $drag(t))}]
     set drag(y) $Y
-    set drag(vel) [expr {$drag(vel) * .5 + $dy * .5}]
-    $drag(canvas) yview scroll [expr {-$dy}] units
+    set drag(t) $now
+    set drag(vel) [expr {$drag(vel) * .6 + ($dy / double($dt)) * .4}]   ;# px per ms
+    set drag(acc) [expr {$drag(acc) + $dy}]
+    if {![info exists drag(job)]} { set drag(job) [after idle ui::_dragApply] }
+}
+proc ui::_dragApply {} {
+    variable drag
+    unset -nocomplain drag(job)
+    if {$drag(canvas) eq "" || ![winfo exists $drag(canvas)]} return
+    set d $drag(acc)
+    set drag(acc) 0
+    if {$d != 0} { $drag(canvas) yview scroll [expr {-$d}] units }
 }
 proc ui::_dragEnd {} {
     variable drag
     set drag(down) 0
-    if {$drag(moved) && abs($drag(vel)) > 2 && $drag(canvas) ne ""} { _inertia }
+    if {[info exists drag(job)]} { after cancel $drag(job); unset drag(job); _dragApply }
+    if {$drag(moved) && abs($drag(vel)) > 0.15 && $drag(canvas) ne ""} {
+        set drag(t) [clock milliseconds]
+        set drag(anim) [after 30 ui::_inertia]
+    }
 }
+# time-based so it feels the same whatever the frame rate
 proc ui::_inertia {} {
     variable drag
-    if {$drag(canvas) eq "" || ![winfo exists $drag(canvas)]} return
-    set drag(vel) [expr {$drag(vel) * .93}]
-    if {abs($drag(vel)) < 0.6} return
-    $drag(canvas) yview scroll [expr {int(-$drag(vel))}] units
-    set drag(anim) [after 16 ui::_inertia]
+    unset -nocomplain drag(anim)
+    if {$drag(down) || $drag(canvas) eq "" || ![winfo exists $drag(canvas)]} return
+    set now [clock milliseconds]
+    set dt [expr {min(100, $now - $drag(t))}]
+    set drag(t) $now
+    set drag(vel) [expr {$drag(vel) * pow(0.994, $dt)}]
+    if {abs($drag(vel)) < 0.03} return
+    $drag(canvas) yview scroll [expr {int(round(-$drag(vel) * $dt))}] units
+    set drag(anim) [after 30 ui::_inertia]
 }
 bind Drag <ButtonPress-1>   {ui::_dragStart %W %X %Y}
 bind Drag <B1-Motion>       {ui::_dragMove %X %Y}
 bind Drag <ButtonRelease-1> {ui::_dragEnd}
+# AndroWish/SDL turns a touch-drag into a MIDDLE-button drag
+bind Drag <ButtonPress-2>   {ui::_dragStart %W %X %Y 1}
+bind Drag <B2-Motion>       {ui::_dragMove %X %Y}
+bind Drag <ButtonRelease-2> {ui::_dragEnd}
 
 # ---- flow layout for chips ----------------------------------------------
 proc ui::flow {w} {
