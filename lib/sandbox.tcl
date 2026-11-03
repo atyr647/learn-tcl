@@ -61,7 +61,24 @@ namespace eval sandbox {
                 }
                 uplevel 1 [list ::__gets $ch {*}$args]
             }
-            foreach c {exit exec socket load} {
+            # sockets: loopback only (127.0.0.1 / localhost), so lessons can use
+            # networking without ever reaching the outside world
+            rename socket ::__socket
+            proc socket {args} {
+                if {"-server" in $args} {
+                    set i [lsearch -exact $args -myaddr]
+                    if {$i < 0 || [lindex $args [expr {$i + 1}]] ne "127.0.0.1"} {
+                        error "in the sandbox a server must use -myaddr 127.0.0.1"
+                    }
+                } else {
+                    set host [lindex $args end-1]
+                    if {$host ni {127.0.0.1 localhost}} {
+                        error "in the sandbox sockets may only connect to 127.0.0.1"
+                    }
+                }
+                uplevel 1 [list ::__socket {*}$args]
+            }
+            foreach c {exit exec load} {
                 proc $c args "error \"$c is turned off inside the sandbox\""
             }
         }

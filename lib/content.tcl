@@ -41,6 +41,21 @@ namespace eval content {
         lappend order $id
     }
 
+    # Append exercises to an already-registered lesson (progress ids stay stable).
+    proc addEx {id args} {
+        variable L
+        set l $L($id)
+        set exs [dict get $l ex]
+        set k [llength $exs]
+        foreach e $args {
+            incr k
+            dict set e id $id.e$k
+            lappend exs $e
+        }
+        dict set l ex $exs
+        set L($id) $l
+    }
+
     proc ids {} { variable order; return $order }
     proc get {id} { variable L; return $L($id) }
     proc unitInfo {n} {
@@ -216,7 +231,9 @@ namespace eval content {
                 dict get $e q; dict get $e why
             }
             code {
-                set tests [dict get $e tests]
+                set tests [expr {[dict exists $e tests] ? [dict get $e tests] : {}}]
+                set wantOut [dict exists $e out]
+                if {[llength $tests] == 0 && !$wantOut} { error "code exercise needs tests or out" }
                 set thens {}
                 foreach {script exp} $tests { lappend thens $script }
                 set r [sandbox::run [dict get $e solution] -then $thens]
@@ -227,6 +244,9 @@ namespace eval content {
                     if {$got ne $exp} { error "solution fails test {$script}: got {$got} want {$exp}" }
                     incr i
                 }
+                if {$wantOut && [trimOut [dict get $r out]] ne [dict get $e out]} {
+                    error "solution prints {[trimOut [dict get $r out]]} want {[dict get $e out]}"
+                }
                 # the starter must NOT already pass
                 set r2 [sandbox::run [dict get $e starter] -then $thens]
                 if {[dict get $r2 ok]} {
@@ -235,6 +255,7 @@ namespace eval content {
                         if {[lindex [dict get $r2 thens] $i] ne $exp} { set allpass 0 }
                         incr i
                     }
+                    if {$wantOut && [trimOut [dict get $r2 out]] ne [dict get $e out]} { set allpass 0 }
                     if {$allpass} { error "starter already passes" }
                 }
                 dict get $e prompt; dict get $e why

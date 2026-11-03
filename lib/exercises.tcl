@@ -350,7 +350,7 @@ proc ex::checkCode {} {
     variable st
     set e $st(e)
     set code [$st(text) get 1.0 end-1c]
-    set tests [dict get $e tests]
+    set tests [expr {[dict exists $e tests] ? [dict get $e tests] : {}}]
     set thens {}
     foreach {s x} $tests { lappend thens $s }
     set r [sandbox::run $code -then $thens]
@@ -368,6 +368,13 @@ proc ex::checkCode {} {
             set detail "I ran `$s` and expected `$x` but got `$got`."
         }
         incr i
+    }
+    if {$ok && [dict exists $e out]} {
+        set got [string trimright [dict get $r out] "\n"]
+        if {$got ne [dict get $e out]} {
+            set ok 0
+            set detail "Your program printed:\n`$got`\nbut it should print:\n`[dict get $e out]`"
+        }
     }
     if {!$ok} {
         dict create ok 0 detail "$detail\nOne possible solution:" showcode [dict get $e solution]

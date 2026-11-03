@@ -51,6 +51,14 @@ store::init $tmp/data
 check "corrupt file tolerated" {[dict get $::state xp] == 0}
 check "level math" {[store::level] == 1}
 
+puts "== source hygiene"
+set nonascii {}
+foreach f [concat [glob -directory $root/lib *.tcl] [glob -directory $root/content *.tcl] $root/main.tcl] {
+    set h [open $f rb]; set d [read $h]; close $h
+    if {[regexp {[\x80-\xff]} $d]} { lappend nonascii [file tail $f] }
+}
+check "all source files are pure ASCII ($nonascii)" {[llength $nonascii] == 0}
+
 puts "== accessibility: WCAG contrast"
 proc lum {c} { scan $c "#%2x%2x%2x" r g b; set s 0
     foreach v [list $r $g $b] w {.2126 .7152 .0722} { set x [expr {$v/255.0}]; set x [expr {$x<=0.03928 ? $x/12.92 : pow(($x+0.055)/1.055,2.4)}]; set s [expr {$s+$w*$x}] }
@@ -67,7 +75,7 @@ foreach th {dark light} {
 theme::apply dark
 
 puts "== course content"
-foreach f [lsort [glob -directory $root/content u*.tcl]] { source -encoding utf-8 $f }
+foreach f [concat [lsort [glob -directory $root/content u*.tcl]] [lsort [glob -nocomplain -directory $root/content x*.tcl]]] { source -encoding utf-8 $f }
 set probs [content::check]
 foreach p $probs { puts "  FAIL  $p"; incr fails }
 set nl [llength [content::ids]]

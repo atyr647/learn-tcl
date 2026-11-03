@@ -22,7 +22,7 @@ Recall *and* recognition are both covered on purpose: multiple choice builds
 recognition and catches misconceptions cheaply; flashcards and typed answers
 force true recall.
 
-## 2. Curriculum (zero -> expert): 11 units, 38 lessons, 328 questions, 152 flashcards
+## 2. Curriculum (zero -> expert): 14 units, 59 lessons, 572 questions, 228 flashcards
 
 | Unit | Lessons |
 |---|---|
@@ -35,12 +35,16 @@ force true recall.
 | 7 Strings and patterns | the `string` toolkit - `format`/`scan` - regular expressions |
 | 8 Dictionaries and arrays | `dict` - nested data - arrays |
 | 9 Errors and files | `catch`/`try` - reading and writing files - a data pipeline + `clock` |
-| 10 Advanced Tcl | how Tcl reads code (`eval`, `subst`, `list`) - `upvar`/`uplevel` - `apply` and introspection - namespaces and ensembles |
+| 10 Advanced Tcl | how Tcl reads code - `upvar`/`uplevel` - `apply` and introspection - namespaces and ensembles |
 | 11 Expert Tcl | coroutines - TclOO - traces - events and timers - safe interpreters and packages - performance and style - Tk |
+| 12 Data, channels and testing | bytes, encodings and binary data - channels, pipes and sockets - testing your code |
+| 13 The advanced toolbox | regex in depth - text-processing toolbox - TclOO in depth - metaprogramming and DSLs - errors by design - Tcllib and the ecosystem - three Tk lessons (layout, events/canvas, structuring an app) |
+| 14 Read, debug and build | reading and debugging real code - capstone projects: to-do manager, word-frequency analyser, RPN calculator, config parser, TclOO bank, coroutine scheduler, state machine, tested string library |
 
-Each lesson: 3 short teaching pages (worked examples first), a 2-question
-warm-up from older lessons, 8-12 questions that fade from recognition to
-production, and 4 flashcards.
+Each lesson: ~3 short teaching pages (worked examples first), a 2-question
+warm-up from older lessons, 8-14 questions that fade from recognition to
+production (including write-the-code, find-the-bug and project-step exercises), and
+3-4 flashcards. Each unit also has a 10-question unit test (80% to pass / test out).
 
 ## 3. App architecture
 
