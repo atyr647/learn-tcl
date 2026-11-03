@@ -25,7 +25,7 @@ How the design follows learning science: [docs/PLAN.md](docs/PLAN.md).
 wish main.tcl
 ```
 
-**On an Android phone**: see [docs/ANDROID.md](docs/ANDROID.md). Short version: install
+**On an Android phone**: two routes - **Termux + Termux:X11** ([docs/TERMUX.md](docs/TERMUX.md), no extra runtime to hunt down) or **AndroWish** ([docs/ANDROID.md](docs/ANDROID.md)). Short version: install
 **AndroWish** (the Tcl/Tk runtime for Android) and open the single file
 [`dist/learn-tcl.tcl`](dist/learn-tcl.tcl).
 
