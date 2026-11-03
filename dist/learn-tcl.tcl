@@ -2970,6 +2970,10 @@ proc boot::main {} {
     set android [llength [info commands borg]]
     if {$android} {
         catch {wm attributes . -fullscreen 1}
+        # AndroWish normally runs touches through a state machine that delays
+        # button-release by ~0.7 s and turns fast drags into middle-button events.
+        # Mask 8 = keep only viewport translation: plain, immediate left-button touch.
+        catch {sdltk touchtranslate 8}
         update
         set W [expr {min([winfo screenwidth .], [winfo screenheight .])}]
     } else {
