@@ -4,7 +4,7 @@
 (SDL-based Tk for Android) with this course embedded, so nothing else needs installing.
 
 * Package `tk.tcl.wish`, app name **Learn Tcl**, 64-bit ARM only (virtually all phones since ~2017).
-* Android 4.0+ (minSdk 14); targets API 26.
+* Android 4.0+ (minSdk 14); targets API 30.
 * Signed with the standard Android *debug* key, so it installs by sideloading but is not a
   Play Store release. (Package name is AndroWish's, so it replaces an installed AndroWish.)
 * SHA-256 is in `dist/LearnTcl-arm64-debug.apk.sha256`.
