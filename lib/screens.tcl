@@ -855,6 +855,8 @@ proc app::screenProfile {} {
     ui::button $f.rs "Reset all progress" {ui::confirm "Reset everything?" "This erases your XP, streak, lesson progress and flashcards. It cannot be undone." "Erase it all" app::doReset} -style secondary -height [ui::px 11] -bg $::T(surface)
     pack $f.rs -fill x -pady [list [ui::px 3] 0]
 
+    ui::button $body.diag "Run performance test" app::diag -style secondary -height [ui::px 11]
+    pack $body.diag -fill x -padx $pad -pady [list [ui::px 3] 0]
     sectionTitle $body "About"
     ui::rich $body.ab "Learn Tcl is written entirely in Tcl/Tk. Every code example in the course is executed by an automated test, so what you learn is what really runs.\n\nStore: [expr {$store::path eq {} ? {not saved (read-only device?)} : $store::path}]" -fg $::T(muted) -font f.small
     pack $body.ab -fill x -padx $pad
@@ -890,3 +892,82 @@ proc app::setGoal {g} { store::setSetting goal $g; screenProfile }
 proc app::setTheme {t} { store::setSetting theme $t; theme::apply $t; screenProfile }
 proc app::setUnlock {v} { store::setSetting unlockAll $v; screenProfile }
 proc app::doReset {} { store::reset; theme::apply dark; app::go home }
+
+# ============================================================== PERFORMANCE TEST
+# Runs on the device and prints how long scrolling steps take, so slowness can be
+# measured rather than guessed.
+proc app::diag {} {
+    destroy .diag
+    frame .diag -bg $::T(bg)
+    place .diag -x 0 -y 0 -relwidth 1 -relheight 1
+    raise .diag
+    label .diag.t -text "Measuring..." -font f.h2 -fg $::T(text) -bg $::T(bg) -anchor w
+    pack .diag.t -fill x -padx [ui::px 4] -pady [ui::px 4]
+    canvas .diag.c -bg $::T(bg) -highlightthickness 0 -yscrollincrement 1 -scrollregion {0 0 1 30000}
+    pack .diag.c -fill both -expand 1
+    update
+    set c .diag.c
+    set lines {}
+    set cw [winfo width $c]; set ch [winfo height $c]
+    lappend lines "Tk [info patchlevel]   window [winfo width .]x[winfo height .]   canvas ${cw}x${ch}"
+    lappend lines "tk scaling [tk scaling]   U [format %.2f $ui::U]   fscale $ui::fscale"
+    foreach q {{sdltk size} {sdltk root} {sdltk viewport} {sdltk hasgl} {sdltk framebuffer} {sdltk accelbuffer 0}} {
+        if {![catch {{*}$q} v]} { lappend lines "[lindex $q 1]: $v" }
+    }
+    proc ::app::diagStep {c n} {
+        set t [clock microseconds]
+        for {set i 0} {$i < $n} {incr i} { $c yview scroll 23 units; update }
+        expr {([clock microseconds] - $t) / 1000.0 / $n}
+    }
+    proc ::app::diagStepV {c n} {
+        set t [clock microseconds]
+        for {set i 0} {$i < $n} {incr i} { $c yview scroll 23 units; update; catch {sdltk vsync} }
+        expr {([clock microseconds] - $t) / 1000.0 / $n}
+    }
+    set n 24
+    lappend lines [format "empty canvas:        %6.1f ms/step" [diagStep $c $n]]
+    $c yview moveto 0
+    lappend lines [format "empty + screen sync: %6.1f ms/step" [diagStepV $c $n]]
+    $c yview moveto 0
+    for {set i 0} {$i < 300} {incr i} {
+        $c create rectangle 10 [expr {$i*30}] [expr {$cw-10}] [expr {$i*30+22}] -fill $::T(surface2) -outline ""
+    }
+    update
+    lappend lines [format "300 rectangles:      %6.1f ms/step" [diagStep $c $n]]
+    $c delete all; $c yview moveto 0
+    for {set i 0} {$i < 300} {incr i} {
+        $c create text 20 [expr {$i*30}] -text "Scrolling test line $i" -anchor nw -fill $::T(text) -font f.body
+    }
+    update
+    lappend lines [format "300 text items:      %6.1f ms/step" [diagStep $c $n]]
+    $c delete all; $c yview moveto 0
+    set img [aa::icon star [ui::px 6] $::T(warn)]
+    for {set i 0} {$i < 300} {incr i} { $c create image [expr {20 + ($i % 8) * 40}] [expr {$i * 20}] -image $img -anchor nw }
+    update
+    lappend lines [format "300 AA images:       %6.1f ms/step" [diagStep $c $n]]
+    $c delete all
+    set t0 [clock milliseconds]
+    for {set i 0} {$i < 20} {incr i} { update }
+    lappend lines [format "20 idle updates:     %6.1f ms each" [expr {([clock milliseconds]-$t0)/20.0}]]
+    set t0 [clock milliseconds]
+    catch {destroy .diag.tmp}
+    set before [array size aa::cache]
+    foreach col {#ff0000 #00ff00 #0000ff} { aa::icon user [ui::px 6] $col }
+    lappend lines [format "3 icon renders:      %6.1f ms each (uncached)" [expr {([clock milliseconds]-$t0)/3.0}]]
+    # the real home page, flattened vs not
+    set flat::enabled 1
+    app::invalidate home
+    destroy .diag
+    set tab home
+    set t0 [clock milliseconds]
+    screenHome
+    update
+    lappend lines [format "build Home screen:   %6.0f ms" [expr {[clock milliseconds]-$t0}]]
+    set fc [curScroll].flat
+    if {[winfo exists $fc]} {
+        lappend lines [format "scroll Home (flat):  %6.1f ms/step  (%d items)" [diagStep $fc $n] [llength [$fc find all]]]
+    } else { lappend lines "Home was not flattened" }
+    set ::app::diagText [join $lines "\n"]
+    app::go profile
+    after 200 [list ui::confirm "Performance test" "Please screenshot this and send it to me.\n\n$::app::diagText" "Close" {}]
+}

@@ -7,6 +7,6 @@ source [lindex $argv 0]
 if {[llength [content::ids]] < 30} { puts "FAIL: content missing"; exit 1 }
 boot::main
 update
-if {![winfo exists .v.s]} { puts "FAIL: home screen not built"; exit 1 }
+if {![winfo exists .v.s_home]} { puts "FAIL: home screen not built"; exit 1 }
 puts "BUNDLE OK: [llength [content::ids]] lessons, no source files needed"
 exit 0
