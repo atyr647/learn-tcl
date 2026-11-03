@@ -24,7 +24,11 @@ Changes made to the stock tree:
 2. `src/tk/tcl/wish/AndroWishLauncher.java`: when launched with no file, run
    `/assets/learn-tcl.tcl` instead of opening the AndroWish console
    (patched file: `tools/apk/AndroWishLauncher.java.patched`).
-3. `res/values/strings.xml`: `app_name` = Learn Tcl.
+3. `src/org/libsdl/app/SDLActivity.java`: draw into a fixed lower-resolution surface
+   (short side ~640 px) that the GPU scales up, and normalise touch by the view size
+   (patched file: `tools/apk/SDLActivity.java.patched`). Tk's software drawing costs time
+   per pixel, so this cuts per-frame cost by roughly 3x on a 1080x2400 screen.
+3b. `res/values/strings.xml`: `app_name` = Learn Tcl.
 4. `jni/Application64.mk`: `APP_ABI := arm64-v8a` (faster build, smaller APK).
 5. `build.gradle`: `jcenter()` -> `mavenCentral()` (jcenter is retired).
 6. `ANDROID_HOME`, `ANDROID_NDK_HOME` set; `./gradlew assembleDebug --max-workers=1`.
