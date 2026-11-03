@@ -1,0 +1,123 @@
+/*
+ * AndroWishLauncher.java --
+ *
+ *	Application class to run a script in a "AndroWishScript" class.
+ *
+ * Copyright (c) 2013-24 Christian Werner <chw@ch-werner.de>
+ *
+ * See the file "license.terms" for information on usage and redistribution of
+ * this file, and for a DISCLAIMER OF ALL WARRANTIES.
+ */
+
+package tk.tcl.wish;
+
+import java.util.*;
+import android.os.*;
+import android.app.*;
+import android.app.ActivityManager.*;
+import android.content.*;
+import android.content.pm.*;
+import android.net.*;
+import android.util.*;
+
+public class AndroWishLauncher extends Activity {
+
+    private static final String TAG = "AndroWishLauncher";
+
+    @Override
+    public void onCreate(Bundle savedInstanceData) {
+	super.onCreate(savedInstanceData);
+	Log.v(TAG, "onCreate");
+	String arg = null;
+	Class cls = null;
+	Intent intent = getIntent();
+	if (!isTaskRoot() &&
+	    intent.getAction().equalsIgnoreCase(Intent.ACTION_MAIN) &&
+	    intent.hasCategory(Intent.CATEGORY_LAUNCHER)) {
+	    /*
+	     * Prevent start from installer since this badly interacts
+	     * later with launch from home screen.
+	     */
+	    finish();
+	    return;
+	}
+	if (intent.getAction().equalsIgnoreCase(Intent.ACTION_SEND)) {
+	    if (intent.hasExtra(Intent.EXTRA_STREAM)) {
+		Uri uri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
+		if (uri != null) {
+		    arg = uri.toString();
+		}
+	    }
+	} else if ((arg = intent.getStringExtra("arg")) == null) {
+	    if (intent.getData() == null ||
+		intent.getData().getPath() == null) {
+		/* Learn Tcl: no file given, so run the app bundled in assets */
+		arg = "/assets/learn-tcl.tcl";
+	    }
+	}
+	ActivityManager am =
+	    (ActivityManager) getSystemService(ACTIVITY_SERVICE);
+	List<RunningAppProcessInfo> procs = am.getRunningAppProcesses();
+	boolean[] flags = new boolean[4];
+	for (RunningAppProcessInfo pi : procs) {
+	    if ("tk.tcl.wish:S0".equals(pi.processName)) {
+		flags[0] = true;
+	    }
+	    if ("tk.tcl.wish:S1".equals(pi.processName)) {
+		flags[1] = true;
+	    }
+	    if ("tk.tcl.wish:S2".equals(pi.processName)) {
+		flags[2] = true;
+	    }
+	    if ("tk.tcl.wish:S3".equals(pi.processName)) {
+		flags[3] = true;
+	    }
+	}
+	if (!flags[0]) {
+	    cls = tk.tcl.wish.AndroWishScript0.class;
+	} else if (!flags[1]) {
+	    cls = tk.tcl.wish.AndroWishScript1.class;
+	} else if (!flags[2]) {
+	    cls = tk.tcl.wish.AndroWishScript2.class;
+	} else if (!flags[3]) {
+	    cls = tk.tcl.wish.AndroWishScript3.class;
+	}
+	if (cls != null) {
+	    Log.v(TAG, "*** new intent " + cls.toString());
+	    String argv = intent.getStringExtra("argv");
+	    intent = new Intent(Intent.ACTION_VIEW, intent.getData(),
+				this, cls);
+	    if (arg != null) {
+		intent.putExtra("arg", arg);
+	    }
+	    if (argv != null) {
+		intent.putExtra("argv", argv);
+	    }
+	    startActivity(intent);
+	} else {
+	    Log.v(TAG, "*** no class available");
+	}
+	finish();
+    }
+
+    @Override
+    protected void onPause() {
+	Log.v(TAG, "onPause()");
+	finish();
+	super.onPause();
+    }
+
+    @Override
+    protected void onResume() {
+	Log.v(TAG, "onResume()");
+	finish();
+	super.onResume();
+    }
+
+    @Override
+    protected void onDestroy() {
+	Log.v(TAG, "onDestroy()");
+	super.onDestroy();
+    }
+
+}
