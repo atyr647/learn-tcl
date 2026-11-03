@@ -154,6 +154,7 @@ proc ex::renderBlank {} {
     $t tag raise fill
     $t tag raise empty
     ui::dragify $st(cb)
+    flat::dirtyOf $st(body)
 }
 proc ex::bankTap {ci} {
     variable st
@@ -238,6 +239,7 @@ proc ex::renderOrder {} {
     # a frame that lost all its children keeps its old size - reset it
     if {[llength [winfo children $body.bank]] == 0} { $body.bank configure -width 1 -height 1 }
     ui::dragify $body
+    flat::dirtyOf $body
 }
 proc ex::_orderEmpty {w W H} {
     $w delete all
@@ -292,7 +294,7 @@ proc ex::buildType {body e} {
     set st(entry) $body.eb.e
     bind $st(entry) <KeyRelease> {ex::typeChanged}
     bind $st(entry) <Return> {run::onCheckTap}
-    bind $st(entry) <FocusIn> {catch {sdltk screenkeyboard 1}}
+    bind $st(entry) <FocusIn> {catch {sdltk textinput 1}}
     if {[dict exists $e hint]} {
         ui::rich $body.h "Hint: [dict get $e hint]" -fg $::T(muted) -font f.small
         pack $body.h -fill x -pady [ui::px 2]

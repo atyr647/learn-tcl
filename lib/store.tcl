@@ -3,6 +3,7 @@ namespace eval store {
     variable path ""
     variable dir ""
     variable dirty 0
+    variable ver 0               ;# bumped on every save; lets screens know they are stale
 
     proc defaults {} {
         dict create xp 0 streak 0 best 0 lastday 0 \
@@ -56,6 +57,8 @@ namespace eval store {
 
     proc save {} {
         variable path
+        variable ver
+        incr ver
         if {$path eq ""} return
         catch {
             set tmp $path.tmp

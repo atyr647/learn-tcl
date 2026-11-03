@@ -195,6 +195,7 @@ proc ui::optSet {w state} {
     if {![info exists btn($w)]} return
     dict set btn($w) state $state
     _optDraw $w
+    flat::dirtyOf $w
 }
 proc ui::_optPress {w} {
     variable btn
@@ -521,6 +522,7 @@ proc ui::dragify {w} {
 }
 proc ui::_findScroller {w} {
     variable scrollers
+    if {[info exists scrollers($w)]} { return $w }
     while {$w ne "" && $w ne "."} {
         foreach k [winfo children $w] { if {[info exists scrollers($k)]} { return $k } }
         set w [ui::par $w]
@@ -746,7 +748,7 @@ proc ui::editor {w text args} {
     pack $w.t -fill both -expand 1 -padx 1 -pady 1
     $w.t insert 1.0 $text
     bind $w.t <KeyRelease> [list ui::_editorColor $w.t]
-    bind $w.t <FocusIn> {catch {sdltk screenkeyboard 1}}
+    bind $w.t <FocusIn> {catch {sdltk textinput 1}}
     _editorColor $w.t
     return $w
 }

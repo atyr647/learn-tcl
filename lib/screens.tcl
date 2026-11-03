@@ -42,6 +42,7 @@ proc app::back {} {
 
 proc app::clear {} {
     variable view
+    array unset ::app::tabver
     . configure -bg $::T(bg)
     $view configure -bg $::T(bg)
     foreach k [winfo children $view] { destroy $k }
@@ -62,15 +63,37 @@ proc app::go {where args} {
 }
 
 # Scrollable screen with a bottom tab bar. Returns the body frame.
+# Tab screens are built once and kept; switching tabs just shows another one.
+# A screen is rebuilt only when saved state changed since it was built.
+variable app::tabver
+array set app::tabver {}
+proc app::invalidate {tab} { unset -nocomplain ::app::tabver($tab) }
+proc app::curScroll {} { return $::app::view.s_$::app::tab }
 proc app::tabScreen {active} {
     variable view
-    clear
-    frame $view.nav -bg $::T(surface)
-    pack $view.nav -side bottom -fill x
+    variable tabver
+    set fresh [expr {![winfo exists $view.nav]}]
+    if {$fresh} {
+        clear
+        array unset tabver
+        frame $view.nav -bg $::T(surface)
+        pack $view.nav -side bottom -fill x
+    }
+    catch {destroy $view.nav.c}
     navbar $view.nav.c $active
     pack $view.nav.c -fill x
-    set body [ui::scroll $view.s]
-    pack $view.s -fill both -expand 1
+    foreach w [winfo children $view] { if {[string match $view.s_* $w]} { pack forget $w } }
+    set sc $view.s_$active
+    if {[winfo exists $sc]} {
+        if {[info exists tabver($active)] && $tabver($active) == $::store::ver} {
+            pack $sc -fill both -expand 1
+            return ""            ;# cached and still current
+        }
+        destroy $sc
+    }
+    set tabver($active) $::store::ver
+    set body [ui::scroll $sc]
+    pack $sc -fill both -expand 1
     return $body
 }
 proc app::navbar {w active} {
@@ -125,6 +148,7 @@ proc app::screenHome {} {
         set ::app::expanded [expr {$nl eq "" ? 1 : [dict get [content::get $nl] unit]}]
     }
     set body [tabScreen home]
+    if {$body eq ""} return
     set pad [ui::px 4]
     # header
     frame $body.hd -bg $::T(bg)
@@ -232,17 +256,19 @@ proc app::screenHome {} {
     frame $body.pad -bg $::T(bg) -height [ui::px 8]
     pack $body.pad
     ui::dragify $::app::view
+    flat::freeze [curScroll]
 }
 
 # Only one unit's lessons are drawn at a time - far fewer widgets to render.
 set app::expanded 0
 proc app::toggleUnit {n} {
     if {$::ui::drag(moved)} return
-    set c $::app::view.s.c
+    set c [curScroll].c
     set y [expr {[winfo exists $c] ? [lindex [$c yview] 0] : 0}]
     set ::app::expanded [expr {$n == $::app::expanded ? -1 : $n}]
+    invalidate home
     screenHome
-    after idle [list catch [list $c yview moveto $y]]
+    after idle [list catch [list [curScroll].flat yview moveto $y]]
 }
 proc app::isUnlocked {id} {
     if {[store::setting unlockAll 0]} { return 1 }
@@ -415,6 +441,7 @@ proc app::result {sum} {
     ui::button $view.bot.h "Back to home" {app::go home} -style [expr {$mode eq "lesson" && [content::nextAfter [dict get $sum lesson]] ne "" ? "secondary" : "primary"}] -height [ui::px 13]
     pack $view.bot.h -fill x
     ui::dragify $view
+    flat::freeze $view.s
 }
 proc app::drawStars {c n W H} {
     $c delete all
@@ -485,6 +512,7 @@ proc app::actionTap {cmd enabled} {
 
 proc app::screenPractice {} {
     set body [tabScreen practice]
+    if {$body eq ""} return
     set pad [ui::px 4]
     label $body.t -text "Practice" -font f.title -fg $::T(text) -bg $::T(bg) -anchor w
     pack $body.t -fill x -padx $pad -pady [list [ui::px 4] [ui::px 1]]
@@ -523,6 +551,7 @@ proc app::screenPractice {} {
     frame $body.pad -bg $::T(bg) -height [ui::px 8]
     pack $body.pad
     ui::dragify $::app::view
+    flat::freeze [curScroll]
 }
 proc app::startPractice {n kinds} {
     set steps [run::practiceSteps $n $kinds]
@@ -599,6 +628,7 @@ proc review::show {} {
     ui::button $S(bot).show "Show answer" review::reveal -height [ui::px 13.5]
     pack $S(bot).show -fill x
     ui::dragify $S(body)
+    flat::freeze $::app::view.s
 }
 proc review::reveal {} {
     variable S
@@ -623,6 +653,8 @@ proc review::reveal {} {
     update idletasks
     ui::_scrollRegion $S(scroll)
     $S(scroll) yview moveto 1
+    flat::refresh $::app::view.s
+    catch {$::app::view.s.flat yview moveto 1}
 }
 proc review::grade {g} {
     variable S
@@ -656,6 +688,7 @@ proc review::finish {} {
 # ============================================================== PLAYGROUND
 proc app::screenPlay {} {
     set body [tabScreen play]
+    if {$body eq ""} return
     set pad [ui::px 4]
     label $body.t -text "Playground" -font f.title -fg $::T(text) -bg $::T(bg) -anchor w
     pack $body.t -fill x -padx $pad -pady [list [ui::px 4] [ui::px 1]]
@@ -717,6 +750,7 @@ set app::examples [list \
 # ============================================================== PROFILE
 proc app::screenProfile {} {
     set body [tabScreen profile]
+    if {$body eq ""} return
     set pad [ui::px 4]
     # identity
     frame $body.id -bg $::T(bg)
@@ -827,6 +861,7 @@ proc app::screenProfile {} {
     frame $body.pad -bg $::T(bg) -height [ui::px 10]
     pack $body.pad
     ui::dragify $::app::view
+    flat::freeze [curScroll]
 }
 proc app::drawWeek {c W H} {
     $c delete all

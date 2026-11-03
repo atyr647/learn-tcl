@@ -94,6 +94,7 @@ proc run::showStep {} {
     ui::dragify $S(body)
     update idletasks
     ui::_scrollRegion $S(scroll)
+    flat::freeze [winfo parent $S(scroll)]
 }
 
 proc run::showPage {b step} {
@@ -214,6 +215,8 @@ proc run::doCheck {} {
     update idletasks
     ui::_scrollRegion $S(scroll)
     $S(scroll) yview moveto 1
+    set sc [winfo parent $S(scroll)]
+    if {[winfo exists $sc.flat]} { flat::refresh $sc; catch {$sc.flat yview moveto 1} }
     if {$S(mode) eq "lesson" || $S(mode) eq "practice"} { store::save }
 }
 
