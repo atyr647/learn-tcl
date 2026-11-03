@@ -121,7 +121,6 @@ proc app::navDraw {w active W H} {
     }
 }
 proc app::navTap {w x} {
-    sfx::play tap
     set i [expr {int($x * 4.0 / [winfo width $w])}]
     app::go [lindex {home practice play profile} $i]
 }
@@ -355,7 +354,6 @@ proc app::pathDraw {c ids color W} {
 proc app::lessonTap {id} {
     if {$::ui::drag(moved)} return
     if {![isUnlocked $id]} {
-        sfx::play again
         ui::toast "Finish the lesson before it to unlock this one."
         return
     }
@@ -663,7 +661,7 @@ proc review::reveal {} {
 }
 proc review::grade {g} {
     variable S
-    sfx::play [lindex {again tap good good} $g]
+    sfx::play [lindex {again good good good} $g]
     set cid $S(cid)
     if {[srs::isNew $S(card)]} { srs::noteNewIntroduced }
     dict set ::state cards $cid [srs::grade $S(card) $g]
@@ -914,7 +912,7 @@ proc app::setHaptics {v} { store::setSetting haptics $v; if {$v} { sfx::play cor
 proc app::testSounds {} {
     ui::confirm "Sound check" [sfx::report] "OK" {}
     set t 0
-    foreach n {tap correct wrong complete perfect} {
+    foreach n {correct wrong complete perfect} {
         after $t [list sfx::play $n]
         incr t 700
     }

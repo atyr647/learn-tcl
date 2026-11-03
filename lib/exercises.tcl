@@ -77,7 +77,6 @@ proc ex::buildChoice {body e} {
 proc ex::pick {i} {
     variable st
     if {[info exists st(done)]} return
-    sfx::play tap
     foreach {k w} $st(opts) { ui::optSet $w [expr {$k == $i ? "selected" : "normal"}] }
     set st(sel) $i
     run::setReady 1
@@ -162,7 +161,6 @@ proc ex::bankTap {ci} {
     if {[info exists st(done)]} return
     set pos [lsearch -exact $st(slot) -1]
     if {$pos < 0} return
-    sfx::play tap
     lset st(slot) $pos $ci
     ui::optSet [dict get $st(chips) $ci] disabled
     place forget [dict get $st(chips) $ci]
@@ -174,7 +172,6 @@ proc ex::slotTap {i} {
     if {[info exists st(done)] || $::ui::drag(moved)} return
     set ci [lindex $st(slot) $i]
     if {$ci < 0} return
-    sfx::play tap
     lset st(slot) $i -1
     set c [dict get $st(chips) $ci]
     ui::optSet $c normal
@@ -252,7 +249,6 @@ proc ex::_orderEmpty {w W H} {
 proc ex::pick2 {i} {
     variable st
     if {[info exists st(done)]} return
-    sfx::play tap
     lappend st(picked) $i
     renderOrder
     run::setReady [expr {[llength $st(picked)] == [llength $st(lines)]}]
@@ -260,7 +256,6 @@ proc ex::pick2 {i} {
 proc ex::unpick {i} {
     variable st
     if {[info exists st(done)]} return
-    sfx::play tap
     set st(picked) [lsearch -all -inline -not -exact $st(picked) $i]
     renderOrder
     run::setReady 0
