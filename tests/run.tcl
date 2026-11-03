@@ -1,6 +1,6 @@
 # Headless tests: no Tk needed.   tclsh tests/run.tcl
 set root [file dirname [file dirname [file normalize [info script]]]]
-foreach f {util theme store srs sandbox content} { source -encoding utf-8 $root/lib/$f.tcl }
+foreach f {util theme store srs sandbox content sfx} { source -encoding utf-8 $root/lib/$f.tcl }
 set tmp [file join [expr {[info exists ::env(TMPDIR)] ? $::env(TMPDIR) : "/tmp"}] learn-tcl-test-[pid]]
 file mkdir $tmp
 sandbox::init $tmp
@@ -50,6 +50,29 @@ set f [open $tmp/data/state.tcl w]; puts $f "{{{ broken"; close $f
 store::init $tmp/data
 check "corrupt file tolerated" {[dict get $::state xp] == 0}
 check "level math" {[store::level] == 1}
+
+puts "== sound effects"
+set ::env(LEARNTCL_NOSOUND) 1
+sfx::init $tmp/sfxtest
+check "sound off in headless test mode" {$sfx::backend eq "none"}
+foreach n [lsort [array names sfx::defs]] {
+    set f [sfx::ensure $n]
+    set h [open $f rb]; set d [read $h]; close $h
+    binary scan $d a4ia4a4issiissa4i riff len wave fmt sz fmtc ch rate brate align bits dat dlen
+    binary scan [string range $d 44 end] s* pcm
+    set peak 0; foreach v $pcm { if {abs($v) > $peak} { set peak [expr {abs($v)}] } }
+    set dur [expr {[llength $pcm] / double($rate)}]
+    check "$n: valid mono 16-bit WAV ($riff/$wave, ${rate}Hz)" {$riff eq "RIFF" && $wave eq "WAVE" && $ch == 1 && $bits == 16 && $rate == 16000 && $dlen == 2 * [llength $pcm]}
+    check "$n: duration sane ([format %.2f $dur]s)" {$dur > 0.015 && $dur < 1.3}
+    check "$n: loudness sane ([expr {100 * $peak / 32767}]%, no clipping)" {$peak > 3000 && $peak < 22000}
+    check "$n: silent at both ends (no click)" {abs([lindex $pcm 0]) < 50 && abs([lindex $pcm end]) < 50}
+}
+# the external-player path really runs a player on the cached file
+set sfx::backend external
+set sfx::player /bin/true
+check "play via external backend works" {![catch {sfx::play correct}]}
+check "unknown effect is ignored" {![catch {sfx::play nosuchsound}]}
+set sfx::backend none
 
 puts "== source hygiene"
 set nonascii {}

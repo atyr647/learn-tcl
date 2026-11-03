@@ -131,6 +131,17 @@ proc run::callout {w title text color} {
 }
 
 # ---- the Check / Continue button ---------------------------------------------------------------
+# Make the bottom button match the session state, whatever happened before.
+proc run::syncButton {} {
+    variable S
+    if {![info exists S(btn)] || ![winfo exists $S(btn)] || ![info exists S(phase)]} return
+    switch $S(phase) {
+        page     { ui::btnSet $S(btn) -disabled 0 -style primary }
+        answering { ui::btnSet $S(btn) -disabled [expr {!$S(ready)}] -text "Check" -style primary }
+        checked  { ui::btnSet $S(btn) -disabled 0 -text "Continue" -style [expr {[info exists S(lastOK)] && $S(lastOK) ? "success" : "danger"}] }
+    }
+}
+
 proc run::onCheckTap {} {
     variable S
     switch $S(phase) {
@@ -151,6 +162,8 @@ proc run::doCheck {} {
     set res [ex::check]
     set ok [dict get $res ok]
     set S(phase) checked
+    set S(lastOK) $ok
+    sfx::play [expr {$ok ? "correct" : "wrong"}]
     set eid [dict get $e id]
     # --- scoring
     set gain 0
@@ -218,6 +231,8 @@ proc run::doCheck {} {
     set sc [winfo parent $S(scroll)]
     if {[winfo exists $sc.flat]} { flat::refresh $sc; catch {$sc.flat yview moveto 1} }
     if {$S(mode) eq "lesson" || $S(mode) eq "practice"} { store::save }
+    syncButton
+    after 150 run::syncButton
 }
 
 # ---- finishing ----------------------------------------------------------------------------------------
@@ -253,7 +268,19 @@ proc run::finish {} {
         }
     }
     set total [expr {$S(xp) + $bonus}]
+    set lvl0 [store::level]
+    set goal [store::setting goal 50]
+    set goalDone0 [expr {[store::xpToday] >= $goal}]
     if {$total > 0} { store::addXP $total } else { store::touchStreak }
+    # celebration sounds
+    switch $S(mode) {
+        lesson   { sfx::play [expr {$stars == 3 ? "perfect" : "complete"}] }
+        unittest { sfx::play [expr {$passed ? ($acc >= 1.0 ? "perfect" : "complete") : "fail"}] }
+        default  { sfx::play [expr {$acc >= 0.7 ? "complete" : "good"}] }
+    }
+    set later 750
+    if {[store::level] > $lvl0} { after $later [list sfx::play levelup]; incr later 900 }
+    if {!$goalDone0 && [store::xpToday] >= $goal} { after $later [list sfx::play goal] }
     store::save
     set summary [dict create mode $S(mode) stars $stars acc $acc xp $total bonus $bonus first $first \
         newCards $newCards passed $passed attempted $n correct $S(firstOK) missed [llength $S(missed)] \

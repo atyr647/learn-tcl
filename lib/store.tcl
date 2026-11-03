@@ -8,7 +8,7 @@ namespace eval store {
     proc defaults {} {
         dict create xp 0 streak 0 best 0 lastday 0 \
             daily {} lessons {} cards {} exstats {} newToday {0 0} \
-            settings {theme dark goal 50 unlockAll 0 textScale 1.0} \
+            settings {theme dark goal 50 unlockAll 0 textScale 1.0 sound 1 haptics 1} \
             playground "" version 1
     }
 

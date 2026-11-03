@@ -7,6 +7,8 @@ namespace eval app {
 proc app::init {} {
     variable view
     store::init
+    sfx::init [expr {$store::dir ne "" ? $store::dir : "/tmp"}]
+    after 1500 sfx::warm
     aa::init [expr {$store::dir ne "" ? $store::dir : "/tmp"}]
     theme::apply [store::setting theme dark]
     . configure -bg $::T(bg)
@@ -119,6 +121,7 @@ proc app::navDraw {w active W H} {
     }
 }
 proc app::navTap {w x} {
+    sfx::play tap
     set i [expr {int($x * 4.0 / [winfo width $w])}]
     app::go [lindex {home practice play profile} $i]
 }
@@ -352,6 +355,7 @@ proc app::pathDraw {c ids color W} {
 proc app::lessonTap {id} {
     if {$::ui::drag(moved)} return
     if {![isUnlocked $id]} {
+        sfx::play again
         ui::toast "Finish the lesson before it to unlock this one."
         return
     }
@@ -632,6 +636,7 @@ proc review::show {} {
 }
 proc review::reveal {} {
     variable S
+    sfx::play flip
     set b $S(in)
     destroy $b.hint
     set f [ui::card $b.ans -fill [ui::mix $::T(bg) $::T(success) .12] -line [ui::mix $::T(bg) $::T(success) .5] -pad [ui::px 4.4]]
@@ -658,6 +663,7 @@ proc review::reveal {} {
 }
 proc review::grade {g} {
     variable S
+    sfx::play [lindex {again tap good good} $g]
     set cid $S(cid)
     if {[srs::isNew $S(card)]} { srs::noteNewIntroduced }
     dict set ::state cards $cid [srs::grade $S(card) $g]
@@ -677,6 +683,7 @@ proc review::finish {} {
     variable S
     set n $S(reviewed)
     if {$n == 0} { app::go practice; return }
+    sfx::play complete
     set xp [expr {$n * 2}]
     store::addXP $xp
     store::save
@@ -729,6 +736,7 @@ proc app::playRun {} {
     dict set ::state playground $code
     store::save
     set r [sandbox::run $code]
+    sfx::play [expr {[dict get $r ok] ? "good" : "again"}]
     foreach k [winfo children $::app::pgOut] { destroy $k }
     ui::output $::app::pgOut.o [sandbox::display $r]
     pack $::app::pgOut.o -fill x
@@ -844,6 +852,19 @@ proc app::screenProfile {} {
             -state [expr {$v == $cs ? "selected" : "normal"}] -bg $::T(surface)
         pack $f.tsb.b$k -side left -expand 1 -fill x -padx [ui::px .6]
     }
+    label $f.snd -text "Sound and haptics" -font f.bodyb -fg $::T(text) -bg $::T(surface) -anchor w
+    pack $f.snd -fill x -pady [list [ui::px 2] 0]
+    frame $f.sb -bg $::T(surface)
+    pack $f.sb -fill x -pady [ui::px 1.5]
+    set son [store::setting sound 1]
+    set hon [store::setting haptics 1]
+    ui::option $f.sb.a [expr {$son ? "Sound on" : "Sound off"}] [list app::setSound [expr {!$son}]] -font f.bodyb -align center \
+        -state [expr {$son ? "selected" : "normal"}] -bg $::T(surface)
+    ui::option $f.sb.b [expr {$hon ? "Haptics on" : "Haptics off"}] [list app::setHaptics [expr {!$hon}]] -font f.bodyb -align center \
+        -state [expr {$hon ? "selected" : "normal"}] -bg $::T(surface)
+    pack $f.sb.a $f.sb.b -side left -expand 1 -fill x -padx [ui::px .6]
+    ui::button $f.st "Play test sounds" app::testSounds -style secondary -height [ui::px 9.5] -font f.smallb -bg $::T(surface)
+    pack $f.st -fill x -pady [list [ui::px 1.5] 0]
     label $f.ul -text "Lesson unlocking" -font f.bodyb -fg $::T(text) -bg $::T(surface) -anchor w
     pack $f.ul -fill x -pady [list [ui::px 2] 0]
     frame $f.ub -bg $::T(surface)
@@ -888,6 +909,15 @@ proc app::drawWeek {c W H} {
     }
 }
 proc app::setScale {v} { store::setSetting textScale $v; set ui::fscale $v; ui::fonts; screenProfile }
+proc app::setSound {v} { store::setSetting sound $v; if {$v} { sfx::play correct }; screenProfile }
+proc app::setHaptics {v} { store::setSetting haptics $v; if {$v} { sfx::play correct }; screenProfile }
+proc app::testSounds {} {
+    set t 0
+    foreach n {tap correct wrong complete perfect} {
+        after $t [list sfx::play $n]
+        incr t 700
+    }
+}
 proc app::setGoal {g} { store::setSetting goal $g; screenProfile }
 proc app::setTheme {t} { store::setSetting theme $t; theme::apply $t; screenProfile }
 proc app::setUnlock {v} { store::setSetting unlockAll $v; screenProfile }
@@ -911,6 +941,7 @@ proc app::diag {} {
     set cw [winfo width $c]; set ch [winfo height $c]
     lappend lines "Tk [info patchlevel]   window [winfo width .]x[winfo height .]   canvas ${cw}x${ch}"
     lappend lines "tk scaling [tk scaling]   U [format %.2f $ui::U]   fscale $ui::fscale"
+    lappend lines [sfx::describe]
     foreach q {{sdltk size} {sdltk root} {sdltk viewport} {sdltk hasgl} {sdltk framebuffer} {sdltk accelbuffer 0}} {
         if {![catch {{*}$q} v]} { lappend lines "[lindex $q 1]: $v" }
     }

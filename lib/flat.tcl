@@ -14,6 +14,8 @@ namespace eval flat {
     variable job
     array set job {}
     variable enabled 1
+    variable boundTags
+    array set boundTags {}
 }
 
 proc flat::supported {w} {
@@ -37,25 +39,36 @@ proc flat::freeze {sc} {
     set root $sc.c.f
     if {![supported $root]} { return 0 }
     set F $sc.flat
-    destroy $F
-    canvas $F -bg [$sc.c cget -bg] -highlightthickness 0 -bd 0 -yscrollincrement 1
     set hot($sc) {}
+    if {[winfo exists $F]} {
+        # reuse the canvas: destroying/re-placing a window on every tap is slow and
+        # can leave this toolkit's renderer with stale regions
+        foreach t [array names ::flat::boundTags] { catch {$F bind $t <ButtonRelease-1> {}} }
+        array unset ::flat::boundTags
+        $F delete all
+        set fresh 0
+    } else {
+        canvas $F -bg [$sc.c cget -bg] -highlightthickness 0 -bd 0 -yscrollincrement 1
+        set fresh 1
+    }
     set ox [winfo rootx $root]; set oy [winfo rooty $root]
     set ::flat::bgdef [$sc.c cget -bg]
+    set ::flat::curF $F
     walk $sc $F $root $ox $oy
     set h [winfo reqheight $root]
     set vh [winfo height $sc.c]
     $F configure -scrollregion [list 0 0 1 [expr {max($h, $vh)}]]
-    place $F -in $sc.c -x 0 -y 0 -relwidth 1 -relheight 1
-    raise $F
-    set ui::scrollers($F) 1
-    bindtags $F [list $F Drag . all]
-    bind $F <ButtonRelease-1> [list flat::tap $sc $F %x %y]
-    bind $F <MouseWheel> [list $F yview scroll -60 units]
-    bind $F <Button-4> [list $F yview scroll -60 units]
-    bind $F <Button-5> [list $F yview scroll 60 units]
-    # keep the page at the top the first time
-    $F yview moveto 0
+    if {$fresh} {
+        place $F -in $sc.c -x 0 -y 0 -relwidth 1 -relheight 1
+        raise $F
+        set ui::scrollers($F) 1
+        bindtags $F [list $F Drag . all]
+        bind $F <ButtonRelease-1> [list flat::tap $sc $F %x %y]
+        bind $F <MouseWheel> [list $F yview scroll -60 units]
+        bind $F <Button-4> [list $F yview scroll -60 units]
+        bind $F <Button-5> [list $F yview scroll 60 units]
+        $F yview moveto 0
+    }
     return 1
 }
 
@@ -128,6 +141,7 @@ proc flat::copyCanvas {F c x y} {
             if {$s ne ""} {
                 $F addtag $tag withtag $new
                 $F bind $tag <ButtonRelease-1> $s
+                set ::flat::boundTags($tag) 1
             }
         }
     }
@@ -226,6 +240,8 @@ proc flat::refresh {sc} {
     set top [$sc.flat canvasy 0]
     freeze $sc
     if {[winfo exists $sc.flat]} { $sc.flat yview scroll [expr {int($top)}] units }
+    # let the owner of the screen re-assert controls that live outside the scroll area
+    if {[llength [info commands ::run::syncButton]]} { catch {::run::syncButton} }
 }
 
 # Mark the scroll container that owns widget w as needing a new snapshot.

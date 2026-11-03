@@ -2,6 +2,7 @@
 # Drives the real UI: plays through lessons by "tapping" through the widgets,
 # solves every exercise type, and (optionally) writes screenshots.
 set root [file dirname [file dirname [file normalize [info script]]]]
+set ::env(LEARNTCL_NOSOUND) 1
 set ::LEARNTCL_NO_MAIN 1
 set tmp [file join /tmp learn-tcl-ui-[pid]]
 file mkdir $tmp
@@ -91,6 +92,8 @@ proc playLesson {id shotPrefix} {
         if {!$run::S(ready)} { fail "$id: exercise not ready after answering ($kind)"; run::setReady 1 }
         run::onCheckTap   ;# Check
         pump
+        set bd $::ui::btn($run::S(btn))
+        if {[dict get $bd text] ne "Continue" || [dict get $bd disabled]} { fail "$id: after Check the button should read Continue (got [dict get $bd text], disabled=[dict get $bd disabled])" }
         if {$shotPrefix ne "" && [lsearch $seenKinds $kind] < 0} { shot ${shotPrefix}_${kind}_fb }
         lappend seenKinds $kind
         run::onCheckTap   ;# Continue
@@ -138,6 +141,45 @@ while {$run::S(idx) < $run::S(n) && [incr guard] < 100} {
     solveCurrent 0; pump; run::onCheckTap; pump; run::onCheckTap; pump
 }
 shot 09_practice_done
+
+# ---- regression: the 'stuck on Check' bug (order exercise, tapped through the screen overlay)
+store::reset
+app::go home; pump
+app::startLesson 1.1; pump
+proc tapAt {F x y} {
+    event generate $F <ButtonPress-1> -x $x -y $y; update
+    event generate $F <ButtonRelease-1> -x $x -y $y; update
+    after 60 {set ::tw 1}; vwait ::tw; update
+}
+while {1} {
+    set step [lindex $run::S(steps) $run::S(idx)]
+    if {[dict get $step t] eq "ex" && [dict get [dict get $step e] kind] eq "order" && ![dict get $step warm]} break
+    if {[dict get $step t] eq "page"} { run::onCheckTap; pump; continue }
+    solveCurrent 0; pump; run::onCheckTap; pump; run::onCheckTap; pump
+}
+foreach want [lsearch -all -inline [dict get [dict get $step e] lines] *] {
+    set target ""
+    foreach h $flat::hot(.v.s) { lassign $h x1 y1 x2 y2 kind w a
+        if {$kind eq "btn" && [string match *.bank.* $w] && [dict get $::ui::btn($w) text] eq $want} { set target $h; break } }
+    if {$target eq ""} { fail "order line '$want' not tappable"; break }
+    lassign $target x1 y1 x2 y2
+    tapAt .v.s.flat [expr {($x1+$x2)/2}] [expr {($y1+$y2)/2}]
+}
+set b $run::S(btn)
+tapAt $b 50 20
+after 300 {set ::tw2 1}; vwait ::tw2; update
+set bd $::ui::btn($b)
+if {$run::S(phase) ne "checked" || [dict get $bd text] ne "Continue" || [dict get $bd disabled]} {
+    fail "stuck-button regression: phase=$run::S(phase) button=[dict get $bd text] disabled=[dict get $bd disabled]"
+}
+puts "order exercise via touch overlay: Check -> Continue ok"
+
+# ---- sound / haptics settings
+app::go profile; pump
+app::setSound 0; pump
+if {[store::setting sound 1] != 0} { fail "sound setting not saved" }
+app::setSound 1; app::setHaptics 0; app::setHaptics 1; pump
+puts "sound settings ok"
 
 # ---- unit test / test-out on a fresh profile
 store::reset
