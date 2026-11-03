@@ -3,6 +3,8 @@
 # Every sound is synthesised here from sine "bell" notes and cached as a small WAV
 # file, so there are no audio assets to ship or license. Generation needs no Tk
 # (it is unit-tested headlessly). Playback uses, in order:
+#   * Muzic: Android's built-in MIDI synthesizer, driven with a few notes per
+#     effect (instant, no audio data to stream) - the first choice on Android
 #   * Snack (the sound package bundled with AndroWish, also used on desktops that
 #     have it)
 #   * an external player on desktop (paplay / aplay / afplay)
@@ -19,6 +21,13 @@ namespace eval sfx {
     variable player ""
     variable warmList {}
     variable ver v1
+    variable errors {}          ;# why a backend was rejected (shown by the test button)
+    variable midiCh
+    # General-MIDI instruments: 9 glockenspiel, 12 marimba, 115 woodblock
+    array set midiCh {bell 0 low 1 wood 2}
+    variable midiKind
+    array set midiKind {tap wood flip wood good bell again low correct bell wrong low
+        complete bell perfect bell goal bell levelup bell fail low}
 
     # name -> list of {startSeconds frequency duration amplitude ?decay?}
     # (C5 523, E5 659, G5 784, C6 1047, E6 1319, G6 1568)
@@ -73,6 +82,23 @@ proc sfx::synth {name} {
     return $out
 }
 
+# The same effects as MIDI notes: {delayMs pitch volume durationMs} per note.
+proc sfx::midiEvents {name} {
+    variable defs
+    set ev {}
+    foreach e $defs($name) {
+        lassign $e t freq dur amp
+        set pitch [expr {int(round(69 + 12 * log($freq / 440.0) / log(2)))}]
+        if {$name eq "tap"}  { set pitch 80 }
+        if {$name eq "flip"} { set pitch 72 }
+        set pitch [expr {max(24, min(96, $pitch))}]
+        set vol [expr {max(25, min(100, int($amp * 200)))}]
+        set ms [expr {max(60, int($dur * 1000 * 1.6))}]
+        lappend ev [list [expr {int($t * 1000)}] $pitch $vol $ms]
+    }
+    return $ev
+}
+
 proc sfx::wav {samples} {
     variable rate
     set data [binary format s* $samples]
@@ -114,17 +140,42 @@ proc sfx::init {d} {
     set dir [::file join $d sound]
     set backend none
     if {[info exists ::env(LEARNTCL_NOSOUND)]} { return }
-    # Snack is the first choice
-    if {![catch {package require snack}] && [llength [info commands snack::sound]]} {
-        set backend snack
-    } else {
+    variable errors
+    set errors {}
+    # On Android the built-in MIDI synthesizer is the first choice
+    if {[llength [info commands borg]] || [info exists ::env(LEARNTCL_FORCE_MUZIC)]} {
+        if {[catch {
+            package require Muzic
+            muzic::init
+            muzic::channel $::sfx::midiCh(bell) 9
+            muzic::channel $::sfx::midiCh(low)  12
+            muzic::channel $::sfx::midiCh(wood) 115
+        } err]} {
+            lappend errors "muzic: $err"
+        } else {
+            set backend muzic
+        }
+    }
+    # next choice: Snack
+    if {$backend eq "none"} {
+        if {[catch {package require snack} err]} {
+            lappend errors "snack: $err"
+        } elseif {[llength [info commands snack::sound]]} {
+            set backend snack
+        } else {
+            lappend errors "snack: loaded but snack::sound is missing"
+        }
+    }
+    # then an external player (desktop)
+    if {$backend eq "none"} {
         foreach p {paplay aplay afplay} {
             set e [auto_execok $p]
             if {$e ne ""} { set player $e; set backend external; break }
         }
-        if {$backend eq "none" && [llength [info commands borg]]} { set backend borg }
     }
-    set warmList [lsort [array names defs]]
+    # finally the phone's notification sound for the big moments
+    if {$backend eq "none" && [llength [info commands borg]]} { set backend borg }
+    if {$backend in {muzic borg none}} { set warmList {} } else { set warmList [lsort [array names defs]] }
 }
 
 # generate the remaining effects a little at a time so start-up is never blocked
@@ -156,6 +207,20 @@ proc sfx::play {name} {
     set now [clock milliseconds]
     if {[info exists last($name)] && $now - $last($name) < 70} return
     set last($name) $now
+    if {$backend eq "muzic"} {
+        variable midiKind
+        variable midiCh
+        set ch $midiCh($midiKind($name))
+        foreach ev [midiEvents $name] {
+            lassign $ev t pitch vol ms
+            if {$t == 0} {
+                if {[catch {muzic::playnote $ch $pitch $vol $ms} err]} { fail muzic $err; return }
+            } else {
+                after $t [list catch [list muzic::playnote $ch $pitch $vol $ms]]
+            }
+        }
+        return
+    }
     if {$backend eq "borg"} {
         if {$name in {complete perfect levelup goal}} { catch {borg beep} }
         return
@@ -168,10 +233,10 @@ proc sfx::play {name} {
                 set s [snack::sound ::sfx::s_$name]
                 $s read $f
                 set snd($name) $s
-            }]} { set backend none; return }
+            } err]} { fail snack $err; return }
         }
         catch {$snd($name) stop}
-        catch {$snd($name) play -blocking 0}
+        if {[catch {$snd($name) play -blocking 0} err]} { fail snack $err }
     } elseif {$backend eq "external"} {
         catch {exec $player $f > /dev/null 2>@1 &}
     }
@@ -189,6 +254,26 @@ proc sfx::haptic {name} {
         default  { return }
     }
     catch {borg vibrate $ms}
+}
+
+# A backend failed while playing: remember why and fall back to the next one.
+proc sfx::fail {which err} {
+    variable errors
+    variable backend
+    lappend errors "$which (playing): $err"
+    set backend none
+    if {[llength [info commands borg]]} { set backend borg }
+}
+
+# Text for the test dialog: which backend is in use, and everything that went wrong.
+proc sfx::report {} {
+    variable backend
+    variable errors
+    set t "Sound engine: $backend\n[expr {[enabled] ? "Sound is ON" : "Sound is OFF (see Profile)"}], haptics [expr {[hapticsOn] ? "ON" : "OFF"}]"
+    foreach e $errors { append t "\n! $e" }
+    if {$backend eq "none"} { append t "\nNo way to play sound was found." }
+    append t "\nSounds use the media volume - turn it up."
+    return $t
 }
 
 proc sfx::describe {} {

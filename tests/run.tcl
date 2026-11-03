@@ -123,6 +123,38 @@ foreach n [lsort [array names sfx::defs]] {
     check "$n: loudness sane ([expr {100 * $peak / 32767}]%, no clipping)" {$peak > 3000 && $peak < 22000}
     check "$n: silent at both ends (no click)" {abs([lindex $pcm 0]) < 50 && abs([lindex $pcm end]) < 50}
 }
+foreach n [lsort [array names sfx::defs]] {
+    set ev [sfx::midiEvents $n]
+    set okm 1; set prev -1
+    foreach e $ev {
+        lassign $e t pitch vol ms
+        if {$pitch < 24 || $pitch > 96 || $vol < 25 || $vol > 100 || $ms < 60 || $t < $prev} { set okm 0 }
+        set prev $t
+    }
+    check "$n: MIDI notes valid ([llength $ev] notes)" {$okm && [llength $ev] > 0 && [info exists sfx::midiKind($n)]}
+}
+check "A5 maps to MIDI pitch 81, C5 to 72" {[lindex [lindex [sfx::midiEvents correct] 1] 1] == 81 && [lindex [lindex [sfx::midiEvents complete] 0] 1] == 72}
+# the MIDI backend plays through muzic::playnote (stubbed here)
+namespace eval muzic {variable log {}; proc playnote {ch p v ms} {variable log; lappend log [list $ch $p $v $ms]}}
+set sfx::backend muzic
+sfx::play wrong
+after 400 {set ::tdone 1}; vwait ::tdone
+check "MIDI backend sends the notes ([llength $muzic::log])" {[llength $muzic::log] == 2 && [lindex $muzic::log 0 0] == $sfx::midiCh(low)}
+set sfx::backend none
+# backend selection: Muzic missing -> error recorded and reported; Muzic present -> chosen first
+unset -nocomplain ::env(LEARNTCL_NOSOUND)
+set ::env(LEARNTCL_FORCE_MUZIC) 1
+sfx::init $tmp/sfxtest2
+check "missing Muzic is recorded, not fatal" {[llength $sfx::errors] >= 1 && [string match "muzic:*" [lindex $sfx::errors 0]] && $sfx::backend ne "muzic"}
+check "the report explains what failed" {[string match "*muzic:*" [sfx::report]] && [string match "*media volume*" [sfx::report]]}
+package provide Muzic 1.0
+namespace eval muzic {variable ch {}; proc init {} {}; proc channel {c i} {variable ch; lappend ch [list $c $i]}}
+sfx::init $tmp/sfxtest3
+check "Muzic is the first choice when available" {$sfx::backend eq "muzic" && $sfx::errors eq ""}
+check "instruments assigned to the MIDI channels" {$muzic::ch eq {{0 9} {1 12} {2 115}}}
+unset ::env(LEARNTCL_FORCE_MUZIC)
+set ::env(LEARNTCL_NOSOUND) 1
+sfx::init $tmp/sfxtest
 # the external-player path really runs a player on the cached file
 set sfx::backend external
 set sfx::player /bin/true

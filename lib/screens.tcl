@@ -912,6 +912,7 @@ proc app::setScale {v} { store::setSetting textScale $v; set ui::fscale $v; ui::
 proc app::setSound {v} { store::setSetting sound $v; if {$v} { sfx::play correct }; screenProfile }
 proc app::setHaptics {v} { store::setSetting haptics $v; if {$v} { sfx::play correct }; screenProfile }
 proc app::testSounds {} {
+    ui::confirm "Sound check" [sfx::report] "OK" {}
     set t 0
     foreach n {tap correct wrong complete perfect} {
         after $t [list sfx::play $n]
