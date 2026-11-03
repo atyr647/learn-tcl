@@ -28,12 +28,6 @@ proc boot::main {} {
         catch {wm attributes . -fullscreen 1}
         update
         set W [expr {min([winfo screenwidth .], [winfo screenheight .])}]
-    } elseif {[info exists ::env(TERMUX_VERSION)] || [info exists ::env(LEARNTCL_FULLSCREEN)]} {
-        # Termux + an X server app (Termux:X11): fill the whole display
-        set sw [winfo screenwidth .]; set sh [winfo screenheight .]
-        wm geometry . ${sw}x${sh}+0+0
-        update
-        set W [expr {min($sw, $sh)}]
     } else {
         set W 410
         wm geometry . ${W}x840
