@@ -39,6 +39,7 @@ proc boot::main {} {
     app::init
     sandbox::init [expr {$store::dir ne "" ? $store::dir : [pwd]}]
     app::go home
-    bind . <Escape> {if {[winfo exists .v.bot.b]} run::quit}
+    foreach k {<Escape> <Cancel> <XF86Back> <Key-Escape>} { catch {bind . $k app::back} }
+    app::fit
 }
 if {![info exists ::LEARNTCL_NO_MAIN]} { boot::main }

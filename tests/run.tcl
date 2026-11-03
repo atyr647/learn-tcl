@@ -51,6 +51,21 @@ store::init $tmp/data
 check "corrupt file tolerated" {[dict get $::state xp] == 0}
 check "level math" {[store::level] == 1}
 
+puts "== accessibility: WCAG contrast"
+proc lum {c} { scan $c "#%2x%2x%2x" r g b; set s 0
+    foreach v [list $r $g $b] w {.2126 .7152 .0722} { set x [expr {$v/255.0}]; set x [expr {$x<=0.03928 ? $x/12.92 : pow(($x+0.055)/1.055,2.4)}]; set s [expr {$s+$w*$x}] }
+    return $s }
+proc ratio {a b} { set la [lum $a]; set lb [lum $b]; expr {(max($la,$lb)+.05)/(min($la,$lb)+.05)} }
+foreach th {dark light} {
+    theme::apply $th
+    foreach {fg bgk min} {text bg 7 text surface 7 muted bg 4.5 muted surface 4.5 primaryText bg 4.5 primaryText surface 4.5
+        success surface 4.5 error surface 4.5 warn surface 4.5 info surface 4.5 onprimary primary 4.5
+        c_cmd codebg 4.5 c_kw codebg 4.5 c_var codebg 4.5 c_str codebg 4.5 c_num codebg 4.5 c_cmt codebg 4.5 c_out codebg 4.5 primary bg 3} {
+        check "$th: $fg on $bgk >= $min" {[ratio $::T($fg) $::T($bgk)] >= $min}
+    }
+}
+theme::apply dark
+
 puts "== course content"
 foreach f [lsort [glob -directory $root/content u*.tcl]] { source -encoding utf-8 $f }
 set probs [content::check]

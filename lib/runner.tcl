@@ -11,7 +11,7 @@ proc run::start {args} {
     variable S
     array unset S
     array set S [list title "" steps {} lesson "" mode practice onfinish {} idx 0 \
-        firstOK 0 attempted 0 xp 0 ready 0 phase answering warmOK 0 warmN 0 missed {} bar ""]
+        unit 0 firstOK 0 attempted 0 xp 0 ready 0 phase answering warmOK 0 warmN 0 missed {} bar ""]
     array set S $args
     set S(n) [llength $S(steps)]
     set S(startTime) [clock seconds]
@@ -236,11 +236,24 @@ proc run::finish {} {
             if {[srs::add [dict get $c id]]} { incr newCards }
         }
     }
+    set passed 0
+    if {$S(mode) eq "unittest"} {
+        set passed [expr {$n >= 4 && $acc >= 0.8}]
+        if {$passed} {
+            set bonus 30
+            foreach lid [content::lessonsOf $S(unit)] {
+                if {![store::lessonDone $lid]} {
+                    dict set ::state lessons $lid [dict create stars 2 day [util::today]]
+                }
+                foreach c [dict get [content::get $lid] cards] { srs::add [dict get $c id] }
+            }
+        }
+    }
     set total [expr {$S(xp) + $bonus}]
     if {$total > 0} { store::addXP $total } else { store::touchStreak }
     store::save
     set summary [dict create mode $S(mode) stars $stars acc $acc xp $total bonus $bonus first $first \
-        newCards $newCards attempted $n correct $S(firstOK) missed [llength $S(missed)] \
+        newCards $newCards passed $passed attempted $n correct $S(firstOK) missed [llength $S(missed)] \
         lesson $S(lesson) seconds [expr {[clock seconds] - $S(startTime)}]]
     if {$S(onfinish) ne ""} { uplevel #0 [list {*}$S(onfinish) $summary] }
 }
@@ -290,6 +303,21 @@ proc run::pick {n args} {
         set pool [lreplace $pool $pickIdx $pickIdx]
     }
     return $out
+}
+
+# A unit test: n questions drawn from every lesson in the unit.
+proc run::unitSteps {unit n} {
+    set pool {}
+    foreach lid [content::lessonsOf $unit] {
+        foreach e [dict get [content::get $lid] ex] {
+            if {[dict get $e kind] in {mc predict type blank order}} { lappend pool $e }
+        }
+    }
+    set steps {}
+    foreach e [lrange [util::shuffle $pool] 0 [expr {$n - 1}]] {
+        lappend steps [dict create t ex e $e warm 0 retry 0]
+    }
+    return $steps
 }
 
 proc run::practiceSteps {n kinds} {

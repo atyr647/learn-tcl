@@ -11,6 +11,7 @@ and is itself written **entirely in Tcl/Tk** (about 3,000 lines of Tcl plus the 
 * **Daily practice** that interleaves old material and favours your weak spots, plus a 2-minute quick quiz
 * **Playground**: a real, sandboxed Tcl interpreter with a symbol keypad for typing code on a phone
 * Smooth, anti-aliased visuals: icons, rounded corners and progress rings are rasterised at runtime (`lib/aa.tcl`), because plain Tk canvas shapes are jagged
+* **Unit tests / test-out**: score 80% on a 10-question unit test to skip ahead; **text-size setting**, **tablet/landscape** column layout, Android **back button** support, forgiving typed answers, WCAG-checked colours in both themes
 * XP, streaks, daily goal, levels, stars, light and dark themes; progress saved on the device
 * **Trustworthy content**: an automated test runs every code example in the course and checks the output shown
 

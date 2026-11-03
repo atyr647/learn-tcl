@@ -21,7 +21,7 @@ proc ex::build {body e} {
     set st(body) $body
     set kind [dict get $e kind]
     set st(kind) $kind
-    label $body.cap -text [string toupper $caption($kind)] -font f.smallb -fg $::T(primary) -bg $::T(bg) -anchor w
+    label $body.cap -text [string toupper $caption($kind)] -font f.smallb -fg $::T(primaryText) -bg $::T(bg) -anchor w
     pack $body.cap -fill x -pady [list 0 [ui::px 1.5]]
     switch $kind {
         mc - predict { buildChoice $body $e }
@@ -308,7 +308,11 @@ proc ex::checkType {} {
     variable st
     set given [util::norm [$st(entry) get]]
     set ok 0
-    foreach a [dict get $st(e) accept] { if {$given eq [util::norm $a]} { set ok 1 } }
+    # forgiving: ignore case, a trailing semicolon and surrounding quotes/backticks
+    set given [string trim [string trimright $given ";"] "`\"' "]
+    foreach a [dict get $st(e) accept] {
+        if {[string equal -nocase $given [string trim [util::norm $a] "`\"' "]]} { set ok 1 }
+    }
     set st(done) 1
     $st(entry) configure -state readonly
     $st(entry) configure -fg [expr {$ok ? $::T(success) : $::T(error)}]

@@ -11,8 +11,32 @@ proc app::init {} {
     . configure -bg $::T(bg)
     wm title . "Learn Tcl"
     frame $view -bg $::T(bg)
-    pack $view -fill both -expand 1
+    place $view -relx .5 -y 0 -anchor n -relwidth 1 -relheight 1
+    set ui::fscale [store::setting textScale 1.0]
     ui::fonts
+    bind . <Configure> {if {"%W" eq "."} app::fit}
+}
+
+# Keep the app in a phone-width column, centred, on tablets / landscape / desktop.
+proc app::fit {} {
+    variable view
+    set cw [expr {int(112 * $ui::U)}]
+    if {[winfo width .] > $cw} {
+        place configure $view -relwidth 0 -width $cw
+    } else {
+        place configure $view -relwidth 1 -width 0
+    }
+}
+
+# Android back button / Escape.
+proc app::back {} {
+    variable tab
+    if {[winfo exists .dlg]} { destroy .dlg; return }
+    if {[winfo exists $::app::view.top.x]} {
+        if {[winfo exists $::app::view.top.n]} { review::finish } else { run::quit }
+        return
+    }
+    if {$tab ne "home"} { go home }
 }
 
 proc app::clear {} {
@@ -125,7 +149,7 @@ proc app::screenHome {} {
     label $f.r.a -text "Daily goal" -font f.bodyb -fg $::T(text) -bg $::T(surface) -anchor w
     label $f.r.b -text "$today of $goal XP today" -font f.small -fg $::T(muted) -bg $::T(surface) -anchor w
     lassign [store::levelProgress] lp lt
-    label $f.r.c -text "Level [store::level]  -  [store::levelTitle]" -font f.smallb -fg $::T(primary) -bg $::T(surface) -anchor w
+    label $f.r.c -text "Level [store::level]  -  [store::levelTitle]" -font f.smallb -fg $::T(primaryText) -bg $::T(surface) -anchor w
     ui::progress $f.r.p [expr {double($lp)/$lt}] -color $::T(primary) -track $::T(surface2)
     pack $f.r.a $f.r.b -fill x
     pack $f.r.c -fill x -pady [list [ui::px 1.6] [ui::px .8]]
@@ -140,7 +164,7 @@ proc app::screenHome {} {
         set fill [ui::mix $::T(bg) $col .22]
         set f [ui::card $body.hero -fill $fill -line [ui::mix $::T(bg) $col .6] -pad [ui::px 4.4]]
         pack $body.hero -fill x -padx $pad -pady [ui::px 1.5]
-        label $f.k -text "UP NEXT  -  LESSON $next" -font f.smallb -fg $col -bg $fill -anchor w
+        label $f.k -text "UP NEXT  -  LESSON $next" -font f.smallb -fg [ui::ink $col] -bg $fill -anchor w
         label $f.t -text [dict get $l title] -font f.h1 -fg $::T(text) -bg $fill -anchor w -justify left \
             -wraplength [expr {[winfo width .] - [ui::px 22]}]
         ui::rich $f.d [dict get $l blurb] -bg $fill -fg $::T(muted)
@@ -180,11 +204,14 @@ proc app::screenHome {} {
         set f [ui::card $body.u$n -fill [ui::mix $::T(bg) $col .2] -line [ui::mix $::T(bg) $col .55] -pad [ui::px 3.6]]
         pack $body.u$n -fill x -padx $pad -pady [list [ui::px 4.5] [ui::px 1]]
         set bg [ui::mix $::T(bg) $col .2]
-        label $f.k -text "UNIT $n   -   $done / [llength $ids]" -font f.smallb -fg $col -bg $bg -anchor w
+        label $f.k -text "UNIT $n   -   $done / [llength $ids]" -font f.smallb -fg [ui::ink $col] -bg $bg -anchor w
         label $f.t -text [dict get $u title] -font f.h2 -fg $::T(text) -bg $bg -anchor w
         ui::rich $f.d [dict get $u blurb] -bg $bg -fg $::T(muted) -font f.small
         pack $f.k $f.t -fill x
         pack $f.d -fill x
+        ui::button $f.t$n [expr {$done == [llength $ids] ? "Retake unit test" : "Unit test / test out"}] [list app::startUnitTest $n] \
+            -style secondary -height [ui::px 9.5] -font f.smallb -bg $bg
+        pack $f.t$n -fill x -pady [list [ui::px 2] 0]
         path $body.p$n $ids $col
         pack $body.p$n -fill x -padx $pad
     }
@@ -285,6 +312,11 @@ proc app::startLesson {id} {
     run::start steps [run::lessonSteps $id] mode lesson lesson $id onfinish app::lessonDone
 }
 proc app::lessonDone {sum} { result $sum }
+proc app::startUnitTest {n} {
+    set steps [run::unitSteps $n 10]
+    if {![llength $steps]} return
+    run::start steps $steps mode unittest unit $n onfinish app::lessonDone
+}
 
 # ============================================================== RESULT
 proc app::result {sum} {
@@ -306,6 +338,7 @@ proc app::result {sum} {
     } else {
         bind $b.st <Configure> [list app::drawBadge $b.st %w %h]
         set head [expr {$mode eq "review" ? "Review complete!" : "Practice complete!"}]
+        if {$mode eq "unittest"} { set head [expr {[dict get $sum passed] ? "Unit test passed!" : "Not quite yet"}] }
     }
     pack $b.st -fill x
     after 250 [list app::confetti $b.st]
@@ -325,11 +358,19 @@ proc app::result {sum} {
     foreach t $tiles {
         lassign $t k v col
         set f [ui::card $b.t.c$i -fill $::T(surface) -line $col -pad [ui::px 2.4]]
-        label $f.k -text $k -font f.smallb -fg $col -bg $::T(surface)
+        label $f.k -text $k -font f.smallb -fg [ui::ink $col] -bg $::T(surface)
         label $f.v -text $v -font f.h1 -fg $::T(text) -bg $::T(surface)
         pack $f.k $f.v
         pack $b.t.c$i -side left -expand 1 -fill x -padx [ui::px 1]
         incr i
+    }
+    if {$mode eq "unittest"} {
+        if {[dict get $sum passed]} {
+            ui::rich $b.n "You scored [expr {int(round([dict get $sum acc] * 100))}]%. Every lesson in this unit is now marked complete, and its flashcards are in your deck." -justify center -fg $::T(muted)
+        } else {
+            ui::rich $b.n "You scored [expr {int(round([dict get $sum acc] * 100))}]%. You need 80% to pass. Revisit the lessons in this unit and try again - the missed questions are now flashcards." -justify center -fg $::T(muted)
+        }
+        pack $b.n -fill x -pady [ui::px 3]
     }
     if {$mode eq "lesson"} {
         set nc [dict get $sum newCards]
@@ -734,6 +775,17 @@ proc app::screenProfile {} {
             -state [expr {$t eq $::T(name) ? "selected" : "normal"}] -bg $::T(surface)
         pack $f.tb.$t -side left -expand 1 -fill x -padx [ui::px .6]
     }
+    label $f.ts -text "Text size" -font f.bodyb -fg $::T(text) -bg $::T(surface) -anchor w
+    pack $f.ts -fill x -pady [list [ui::px 2] 0]
+    frame $f.tsb -bg $::T(surface)
+    pack $f.tsb -fill x -pady [ui::px 1.5]
+    set cs [store::setting textScale 1.0]
+    set k 0
+    foreach {nm v} {A- 0.9 A 1.0 A+ 1.15 A++ 1.3} {
+        ui::option $f.tsb.b[incr k] $nm [list app::setScale $v] -font f.bodyb -align center \
+            -state [expr {$v == $cs ? "selected" : "normal"}] -bg $::T(surface)
+        pack $f.tsb.b$k -side left -expand 1 -fill x -padx [ui::px .6]
+    }
     label $f.ul -text "Lesson unlocking" -font f.bodyb -fg $::T(text) -bg $::T(surface) -anchor w
     pack $f.ul -fill x -pady [list [ui::px 2] 0]
     frame $f.ub -bg $::T(surface)
@@ -774,6 +826,7 @@ proc app::drawWeek {c W H} {
         $c create text $cx [expr {$H - [ui::px 3]}] -text [util::dayName $d] -font f.small -fill [expr {$i == 0 ? $::T(text) : $::T(muted)}]
     }
 }
+proc app::setScale {v} { store::setSetting textScale $v; set ui::fscale $v; ui::fonts; screenProfile }
 proc app::setGoal {g} { store::setSetting goal $g; screenProfile }
 proc app::setTheme {t} { store::setSetting theme $t; theme::apply $t; screenProfile }
 proc app::setUnlock {v} { store::setSetting unlockAll $v; screenProfile }

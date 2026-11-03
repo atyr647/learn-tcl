@@ -36,6 +36,12 @@ Progress is stored in a private folder chosen at startup (it tries AndroWish's a
 files directory first, then `$HOME`, then a temporary folder). The Profile screen
 shows the exact path, and says so if saving is not possible.
 
+## Performance note
+
+Smooth icons and corners are drawn in pure Tcl the first time they are needed, then
+cached. On a desktop the first screen builds in about 0.4 s and later ones in about 0.2 s;
+a phone will be slower (expect a noticeable first-launch pause). Please report timings.
+
 ## Tips and known unknowns
 
 * The app asks AndroWish to show the on-screen keyboard when you tap a text field. If

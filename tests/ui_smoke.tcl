@@ -139,6 +139,48 @@ while {$run::S(idx) < $run::S(n) && [incr guard] < 100} {
 }
 shot 09_practice_done
 
+# ---- unit test / test-out on a fresh profile
+store::reset
+app::go home; pump
+app::startUnitTest 2; pump
+set guard 0
+while {$run::S(idx) < $run::S(n) && [incr guard] < 100} {
+    solveCurrent 0; pump; run::onCheckTap; pump; run::onCheckTap; pump
+}
+foreach lid [content::lessonsOf 2] { if {![store::lessonDone $lid]} { fail "unit test pass did not complete $lid" } }
+if {[store::lessonDone 3.1]} { fail "unit test leaked into unit 3" }
+shot 12_unit_test_passed
+# a failing unit test marks nothing
+app::startUnitTest 3; pump
+set guard 0
+while {$run::S(idx) < $run::S(n) && [incr guard] < 100} {
+    set step [lindex $run::S(steps) $run::S(idx)]
+    if {[dict get $step retry]} { solveCurrent 0 } else { solveCurrent 1 }
+    pump; run::onCheckTap; pump; run::onCheckTap; pump
+}
+if {[store::lessonDone 3.1]} { fail "failed unit test must not complete lessons" }
+puts "unit test pass/fail flows ok"
+
+# ---- back button
+app::startLesson 1.1; pump
+app::back; pump
+if {![winfo exists .dlg]} { fail "back during a lesson should ask to leave" }
+app::back; pump
+if {[winfo exists .dlg]} { fail "second back should close the dialog" }
+app::go profile; pump
+app::back; pump
+if {$app::tab ne "home"} { fail "back from a tab should go home" }
+
+# ---- text size + wide (tablet/landscape) layout
+foreach v {0.9 1.15 1.3 1.0} { app::setScale $v; pump }
+app::go home; pump
+wm geometry . 1000x600+0+0; update; pump
+set cw [winfo width .v]
+if {$cw > int(112 * $::ui::U) + 2} { fail "wide window not capped: $cw" }
+shot 13_wide
+wm geometry . 410x840+0+0; update; pump
+puts "back button / text size / wide layout ok"
+
 # light theme
 app::setTheme light; pump; shot 10_profile_light
 app::go home; pump; shot 11_home_light

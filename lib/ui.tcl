@@ -1,5 +1,6 @@
 # ui.tcl - a small touch-first widget kit built on plain Tk canvases.
 namespace eval ui {
+    variable fscale 1.0
     variable U 4.0               ;# 1% of screen width in pixels; everything scales from it
     variable drag
     array set drag {moved 0 canvas "" y 0 vel 0 down 0 sy 0}
@@ -28,10 +29,13 @@ proc ui::mix {c1 c2 t} {
         [expr {int($g1 + ($g2 - $g1) * $t)}] [expr {int($b1 + ($b2 - $b1) * $t)}]
 }
 proc ui::shade {c f} { mix $c #000000 $f }
+# A bright accent colour made readable as small text on the current theme.
+proc ui::ink {c} { expr {$::T(name) eq "light" ? [mix $c #000000 .55] : $c} }
 
 # ---- fonts -------------------------------------------------------------
 proc ui::fonts {} {
     variable U
+    variable fscale
     set have [font families]
     set sans [dict get [font actual TkDefaultFont] -family]
     foreach c {"Inter" "SF Pro Text" "Segoe UI" "Roboto" "Noto Sans" "Cantarell" "Helvetica Neue"} { if {$c in $have} { set sans $c; break } }
@@ -45,7 +49,7 @@ proc ui::fonts {} {
         tab 2.9 bold sans  bodyi 4.2 normal sans
     } {
         catch {font delete f.$n}
-        font create f.$n -family [set $fam] -size -[expr {max(9, int(round($U * $sz)))}] -weight $wt -slant [expr {$n eq "bodyi" ? "italic" : "roman"}]
+        font create f.$n -family [set $fam] -size -[expr {max(9, int(round($U * $sz * $fscale)))}] -weight $wt -slant [expr {$n eq "bodyi" ? "italic" : "roman"}]
     }
 }
 
