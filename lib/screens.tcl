@@ -877,7 +877,7 @@ proc app::screenProfile {} {
     ui::button $body.diag "Run performance test" app::diag -style secondary -height [ui::px 11]
     pack $body.diag -fill x -padx $pad -pady [list [ui::px 3] 0]
     sectionTitle $body "About"
-    ui::rich $body.ab "Learn Tcl is written entirely in Tcl/Tk. Every code example in the course is executed by an automated test, so what you learn is what really runs.\n\nYour progress is saved on this device, in the app's private storage, after every answer. It survives restarts and app updates, and is only removed if you uninstall the app or clear its data.\n\nSaved at: [expr {$store::path eq {} ? {nowhere - storage is not writable!} : $store::path}]" -fg $::T(muted) -font f.small
+    ui::rich $body.ab "Learn Tcl is written entirely in Tcl/Tk. Every code example in the course is executed by an automated test, so what you learn is what really runs.\n\nYour progress is saved on this device, in the app's private storage, after every answer. It survives restarts and app updates, and is only removed if you uninstall the app or clear its data.\n\nBuild: [expr {[info exists ::LEARNTCL_BUILD] ? $::LEARNTCL_BUILD : {development}}]\nSaved at: [expr {$store::path eq {} ? {nowhere - storage is not writable!} : $store::path}]" -fg $::T(muted) -font f.small
     pack $body.ab -fill x -padx $pad
     frame $body.pad -bg $::T(bg) -height [ui::px 10]
     pack $body.pad

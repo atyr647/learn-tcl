@@ -269,7 +269,7 @@ proc sfx::fail {which err} {
 proc sfx::report {} {
     variable backend
     variable errors
-    set t "Sound engine: $backend\n[expr {[enabled] ? "Sound is ON" : "Sound is OFF (see Profile)"}], haptics [expr {[hapticsOn] ? "ON" : "OFF"}]"
+    set t "Build: [expr {[info exists ::LEARNTCL_BUILD] ? $::LEARNTCL_BUILD : {development}}]\nSound engine: $backend\n[expr {[enabled] ? "Sound is ON" : "Sound is OFF (see Profile)"}], haptics [expr {[hapticsOn] ? "ON" : "OFF"}]"
     foreach e $errors { append t "\n! $e" }
     if {$backend eq "none"} { append t "\nNo way to play sound was found." }
     append t "\nSounds use the media volume - turn it up."

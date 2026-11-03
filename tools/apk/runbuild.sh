@@ -9,7 +9,9 @@ mkdir -p ~/.android
 [ -f ~/.android/debug.keystore ] || { echo 'MISSING ~/.android/debug.keystore - a new key would break updates!'; exit 1; }
 cd /home/user/aw/tree/x
 # minutes since 2026-01-01: unique and increasing for every build
-VCODE=$(( ($(date +%s) - 1767225600) / 60 ))
+# use the build number stamped into the bundle so the in-app 'Build:' line equals versionCode
+VCODE=$(grep -o 'LEARNTCL_BUILD [0-9]*' /home/user/learn-tcl/dist/learn-tcl.tcl | head -1 | awk '{print $2}')
+[ -n "$VCODE" ] || VCODE=$(( ($(date +%s) - 1767225600) / 60 ))
 for i in 1 2 3 4 5 6 7 8; do
   ./gradlew assembleDebug --no-daemon --max-workers=1 -Dorg.gradle.parallel=false -Pvcode=$VCODE > /home/user/aw/build.log 2>&1 && { echo BUILD_OK >> /home/user/aw/build.log; exit 0; }
   grep -q "429" /home/user/aw/build.log || break
