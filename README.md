@@ -10,6 +10,7 @@ and is itself written **entirely in Tcl/Tk** (about 3,000 lines of Tcl plus the 
 * **152 flashcards** with an SM-2 spaced-repetition scheduler (Again / Hard / Good / Easy); questions you miss become flashcards automatically
 * **Daily practice** that interleaves old material and favours your weak spots, plus a 2-minute quick quiz
 * **Playground**: a real, sandboxed Tcl interpreter with a symbol keypad for typing code on a phone
+* Smooth, anti-aliased visuals: icons, rounded corners and progress rings are rasterised at runtime (`lib/aa.tcl`), because plain Tk canvas shapes are jagged
 * XP, streaks, daily goal, levels, stars, light and dark themes; progress saved on the device
 * **Trustworthy content**: an automated test runs every code example in the course and checks the output shown
 

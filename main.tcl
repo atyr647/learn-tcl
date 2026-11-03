@@ -3,7 +3,7 @@
 # Run with:  wish main.tcl        (desktop)   or open in AndroWish (Android)
 package require Tk
 
-set ::app_lib {util theme store srs sandbox content ui exercises runner screens}
+set ::app_lib {util theme store srs sandbox content aa ui exercises runner screens}
 set ::app_content {u01 u02 u03 u04 u05 u06 u07 u08 u09 u10 u11}
 
 namespace eval boot {

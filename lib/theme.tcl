@@ -1,8 +1,8 @@
 # theme.tcl - colour palettes. The active palette lives in the global array T.
 namespace eval theme {
     variable dark {
-        bg #0E1320  surface #19203A  surface2 #232C4D  border #34406B
-        text #EEF2FF  muted #93A0C6  primary #7C6CFF  success #2FD39A
+        bg #0B0F1A  surface #141A2C  surface2 #1D2540  border #2A3454
+        text #EEF2FF  muted #93A0C6  primary #7F6BFF  success #34D8A0
         error #FF5D7A  warn #FFC857  info #4CC9F0  codebg #0A0F1D
         onprimary #FFFFFF
         c_cmd #7FB2FF  c_kw #C792EA  c_var #FFC857  c_str #8BE0A4

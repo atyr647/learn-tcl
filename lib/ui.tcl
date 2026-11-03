@@ -32,8 +32,11 @@ proc ui::shade {c f} { mix $c #000000 $f }
 # ---- fonts -------------------------------------------------------------
 proc ui::fonts {} {
     variable U
+    set have [font families]
     set sans [dict get [font actual TkDefaultFont] -family]
+    foreach c {"Inter" "SF Pro Text" "Segoe UI" "Roboto" "Noto Sans" "Cantarell" "Helvetica Neue"} { if {$c in $have} { set sans $c; break } }
     set mono [dict get [font actual TkFixedFont] -family]
+    foreach c {"JetBrains Mono" "Cascadia Mono" "SF Mono" "Menlo" "Roboto Mono" "DejaVu Sans Mono"} { if {$c in $have} { set mono $c; break } }
     foreach {n sz wt fam} {
         title 7.4 bold sans   h1 5.8 bold sans   h2 4.7 bold sans
         body 4.2 normal sans  bodyb 4.2 bold sans small 3.4 normal sans
@@ -48,98 +51,39 @@ proc ui::fonts {} {
 
 # ---- drawing helpers ---------------------------------------------------
 proc ui::rrect {c x1 y1 x2 y2 r args} {
-    set pts [list \
-        [expr {$x1+$r}] $y1  [expr {$x1+$r}] $y1  [expr {$x2-$r}] $y1  [expr {$x2-$r}] $y1 \
-        $x2 $y1  $x2 [expr {$y1+$r}]  $x2 [expr {$y1+$r}]  $x2 [expr {$y2-$r}]  $x2 [expr {$y2-$r}] \
-        $x2 $y2  [expr {$x2-$r}] $y2  [expr {$x2-$r}] $y2  [expr {$x1+$r}] $y2  [expr {$x1+$r}] $y2 \
-        $x1 $y2  $x1 [expr {$y2-$r}]  $x1 [expr {$y2-$r}]  $x1 [expr {$y1+$r}]  $x1 [expr {$y1+$r}]  $x1 $y1]
-    $c create polygon $pts -smooth 1 {*}$args
+    set o [dict merge [dict create -fill "" -outline "" -width 0 -tags "" -dash ""] $args]
+    if {[dict get $o -dash] ne ""} {
+        # dashed outlines are only used for placeholders; plain polygon is fine there
+        set pts [list [expr {$x1+$r}] $y1 [expr {$x2-$r}] $y1 $x2 $y1 $x2 [expr {$y1+$r}] $x2 [expr {$y2-$r}] \
+            $x2 $y2 [expr {$x2-$r}] $y2 [expr {$x1+$r}] $y2 $x1 $y2 $x1 [expr {$y2-$r}] $x1 [expr {$y1+$r}] $x1 $y1]
+        return [$c create polygon $pts -smooth 1 -fill [dict get $o -fill] -outline [dict get $o -outline] \
+            -width [dict get $o -width] -dash [dict get $o -dash] -tags [dict get $o -tags]]
+    }
+    set line [dict get $o -outline]
+    set bw [expr {$line ne "" ? max(1, int([dict get $o -width])) : 0}]
+    aa::rrect $c $x1 $y1 $x2 $y2 $r [dict get $o -fill] $line $bw [dict get $o -tags]
 }
 
-# Icons drawn from primitives (font glyph support on Android is not reliable).
+# Anti-aliased icon image centred at cx,cy. s = size in pixels.
 proc ui::icon {c name cx cy s color {tag ""}} {
-    set h [expr {$s / 2.0}]
-    switch $name {
-        check {
-            $c create line [expr {$cx-$h*.7}] $cy [expr {$cx-$h*.15}] [expr {$cy+$h*.55}] [expr {$cx+$h*.8}] [expr {$cy-$h*.6}] \
-                -width [expr {max(2,$s*.18)}] -fill $color -capstyle round -joinstyle round -tags $tag
-        }
-        cross {
-            set d [expr {$h*.6}]
-            $c create line [expr {$cx-$d}] [expr {$cy-$d}] [expr {$cx+$d}] [expr {$cy+$d}] -width [expr {max(2,$s*.18)}] -fill $color -capstyle round -tags $tag
-            $c create line [expr {$cx-$d}] [expr {$cy+$d}] [expr {$cx+$d}] [expr {$cy-$d}] -width [expr {max(2,$s*.18)}] -fill $color -capstyle round -tags $tag
-        }
-        star {
-            set pts {}
-            for {set i 0} {$i < 10} {incr i} {
-                set a [expr {-1.5707963 + $i * 0.6283185}]
-                set r [expr {$i % 2 ? $h*.42 : $h}]
-                lappend pts [expr {$cx + $r*cos($a)}] [expr {$cy + $r*sin($a)*1.0 + $h*.08}]
-            }
-            $c create polygon $pts -fill $color -outline $color -width 1 -joinstyle round -tags $tag
-        }
-        flame {
-            $c create polygon \
-                $cx [expr {$cy-$h}] [expr {$cx+$h*.55}] [expr {$cy-$h*.2}] [expr {$cx+$h*.75}] [expr {$cy+$h*.3}] \
-                [expr {$cx+$h*.4}] [expr {$cy+$h*.85}] $cx [expr {$cy+$h}] [expr {$cx-$h*.4}] [expr {$cy+$h*.85}] \
-                [expr {$cx-$h*.75}] [expr {$cy+$h*.3}] [expr {$cx-$h*.45}] [expr {$cy-$h*.25}] [expr {$cx-$h*.15}] [expr {$cy+$h*.05}] \
-                -smooth 1 -fill $color -outline $color -tags $tag
-            $c create oval [expr {$cx-$h*.25}] [expr {$cy+$h*.25}] [expr {$cx+$h*.25}] [expr {$cy+$h*.8}] \
-                -fill [mix $color #ffffff .65] -outline "" -tags $tag
-        }
-        bolt {
-            $c create polygon [expr {$cx+$h*.2}] [expr {$cy-$h}] [expr {$cx-$h*.6}] [expr {$cy+$h*.15}] $cx [expr {$cy+$h*.15}] \
-                [expr {$cx-$h*.2}] [expr {$cy+$h}] [expr {$cx+$h*.6}] [expr {$cy-$h*.2}] $cx [expr {$cy-$h*.2}] \
-                -fill $color -outline $color -joinstyle round -tags $tag
-        }
-        lock {
-            $c create arc [expr {$cx-$h*.5}] [expr {$cy-$h}] [expr {$cx+$h*.5}] [expr {$cy+$h*.1}] -start 0 -extent 180 \
-                -style arc -outline $color -width [expr {max(2,$s*.14)}] -tags $tag
-            rrect $c [expr {$cx-$h*.75}] [expr {$cy-$h*.2}] [expr {$cx+$h*.75}] [expr {$cy+$h}] [expr {$h*.2}] -fill $color -outline "" -tags $tag
-        }
-        home {
-            $c create polygon $cx [expr {$cy-$h}] [expr {$cx+$h}] [expr {$cy-$h*.05}] [expr {$cx+$h*.7}] [expr {$cy-$h*.05}] \
-                [expr {$cx+$h*.7}] [expr {$cy+$h*.85}] [expr {$cx+$h*.2}] [expr {$cy+$h*.85}] [expr {$cx+$h*.2}] [expr {$cy+$h*.3}] \
-                [expr {$cx-$h*.2}] [expr {$cy+$h*.3}] [expr {$cx-$h*.2}] [expr {$cy+$h*.85}] [expr {$cx-$h*.7}] [expr {$cy+$h*.85}] \
-                [expr {$cx-$h*.7}] [expr {$cy-$h*.05}] [expr {$cx-$h}] [expr {$cy-$h*.05}] \
-                -fill $color -outline $color -joinstyle round -tags $tag
-        }
-        cards {
-            rrect $c [expr {$cx-$h*.45}] [expr {$cy-$h*.85}] [expr {$cx+$h*.95}] [expr {$cy+$h*.4}] [expr {$h*.2}] -fill "" -outline $color -width [expr {max(2,$s*.1)}] -tags $tag
-            rrect $c [expr {$cx-$h*.95}] [expr {$cy-$h*.4}] [expr {$cx+$h*.45}] [expr {$cy+$h*.85}] [expr {$h*.2}] -fill $color -outline $color -width 1 -tags $tag
-        }
-        code {
-            set w [expr {max(2,$s*.14)}]
-            $c create line [expr {$cx-$h*.35}] [expr {$cy-$h*.6}] [expr {$cx-$h*.95}] $cy [expr {$cx-$h*.35}] [expr {$cy+$h*.6}] -width $w -fill $color -capstyle round -joinstyle round -tags $tag
-            $c create line [expr {$cx+$h*.35}] [expr {$cy-$h*.6}] [expr {$cx+$h*.95}] $cy [expr {$cx+$h*.35}] [expr {$cy+$h*.6}] -width $w -fill $color -capstyle round -joinstyle round -tags $tag
-            $c create line [expr {$cx+$h*.15}] [expr {$cy-$h*.7}] [expr {$cx-$h*.15}] [expr {$cy+$h*.7}] -width $w -fill $color -capstyle round -tags $tag
-        }
-        user {
-            $c create oval [expr {$cx-$h*.38}] [expr {$cy-$h*.9}] [expr {$cx+$h*.38}] [expr {$cy-$h*.14}] -fill $color -outline $color -tags $tag
-            $c create arc [expr {$cx-$h*.85}] [expr {$cy+$h*.05}] [expr {$cx+$h*.85}] [expr {$cy+$h*1.75}] -start 0 -extent 180 -fill $color -outline $color -style pieslice -tags $tag
-        }
-        close {
-            ui::icon $c cross $cx $cy $s $color $tag
-        }
-        back {
-            $c create line [expr {$cx+$h*.4}] [expr {$cy-$h*.8}] [expr {$cx-$h*.4}] $cy [expr {$cx+$h*.4}] [expr {$cy+$h*.8}] \
-                -width [expr {max(2,$s*.16)}] -fill $color -capstyle round -joinstyle round -tags $tag
-        }
-        play {
-            $c create polygon [expr {$cx-$h*.5}] [expr {$cy-$h*.7}] [expr {$cx+$h*.8}] $cy [expr {$cx-$h*.5}] [expr {$cy+$h*.7}] -fill $color -outline $color -joinstyle round -tags $tag
-        }
-        target {
-            foreach f {1 .62 .25} {
-                set r [expr {$h*$f}]
-                $c create oval [expr {$cx-$r}] [expr {$cy-$r}] [expr {$cx+$r}] [expr {$cy+$r}] \
-                    -outline $color -width [expr {max(2,$s*.1)}] -fill [expr {$f == .25 ? $color : ""}] -tags $tag
-            }
-        }
-        bulb {
-            $c create oval [expr {$cx-$h*.65}] [expr {$cy-$h}] [expr {$cx+$h*.65}] [expr {$cy+$h*.3}] -fill $color -outline $color -tags $tag
-            rrect $c [expr {$cx-$h*.35}] [expr {$cy+$h*.2}] [expr {$cx+$h*.35}] [expr {$cy+$h*.85}] [expr {$h*.12}] -fill $color -outline "" -tags $tag
-        }
+    set px [expr {max(8, int(round($s)))}]
+    $c create image [expr {int($cx)}] [expr {int($cy)}] -image [aa::icon $name $px $color] -tags $tag
+}
+
+# Anti-aliased filled circle (optionally with an outline band of width bw).
+proc ui::circle {c cx cy r fill {outline ""} {bw 0} {tag ""}} {
+    if {$outline ne "" && $bw > 0} {
+        $c create image [expr {int($cx)}] [expr {int($cy)}] -image [aa::disc $outline [expr {int(2 * $r)}]] -tags $tag
+        set r [expr {$r - $bw}]
     }
+    if {$fill ne ""} {
+        $c create image [expr {int($cx)}] [expr {int($cy)}] -image [aa::disc $fill [expr {max(2, int(2 * $r))}]] -tags $tag
+    }
+}
+
+# Anti-aliased progress ring image centred at cx,cy.
+proc ui::ring {c cx cy d t frac color track {tag ""}} {
+    $c create image [expr {int($cx)}] [expr {int($cy)}] -image [aa::ring [expr {int($d)}] [expr {int($t)}] $frac $color $track] -tags $tag
 }
 
 # ---- buttons -------------------------------------------------------------
@@ -298,7 +242,7 @@ proc ui::_optDraw {w} {
     $w delete $tid
     set r [expr {min(int($H * .3), [px 3.5])}]
     set lw [expr {max(2, [px 0.55])}]
-    rrect $w [expr {$lw/2}] [expr {$lw/2}] [expr {$W - $lw/2}] [expr {$H - $lw/2}] $r -fill $fill -outline $line -width $lw
+    rrect $w 0 0 $W $H $r -fill $fill -outline $line -width $lw
     $w create text $tx [expr {$H / 2}] -text [dict get $d text] -font $font -fill $fg -anchor $anchor \
         -width [expr {$W - 2 * $pad - 4}] -justify left
 }
@@ -336,8 +280,8 @@ proc ui::_cardPaint {w o} {
     if {$W < 8} return
     $w delete bg
     set line [dict get $o -line]
-    set item [rrect $w 1 1 [expr {$W-1}] [expr {$H-1}] [dict get $o -r] \
-        -fill [dict get $o -fill] -outline $line -width [expr {$line eq "" ? 0 : [px .5]}] -tags bg]
+    rrect $w 0 0 $W $H [dict get $o -r] \
+        -fill [dict get $o -fill] -outline $line -width [expr {$line eq "" ? 0 : [px .35]}] -tags bg
     $w lower bg
 }
 

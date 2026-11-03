@@ -60,7 +60,11 @@ proc app::navDraw {w active W H} {
     foreach {id label ic} $tabs {
         set cx [expr {int(($n + .5) * $W / 4)}]
         set col [expr {$id eq $active ? $::T(primary) : $::T(muted)}]
-        ui::icon $w $ic $cx [expr {$H * .36}] [ui::px 6] $col
+        if {$id eq $active} {
+            ui::rrect $w [expr {$cx - [ui::px 8]}] [expr {$H * .36 - [ui::px 4.2]}] [expr {$cx + [ui::px 8]}] [expr {$H * .36 + [ui::px 4.2]}] \
+                [ui::px 4.2] -fill [ui::mix $::T(surface) $::T(primary) .24]
+        }
+        ui::icon $w $ic $cx [expr {$H * .36}] [ui::px 5.6] $col
         $w create text $cx [expr {$H * .75}] -text $label -font f.tab -fill $col
         incr n
     }
@@ -108,15 +112,12 @@ proc app::screenHome {} {
     pack $body.goal -fill x -padx $pad -pady [ui::px 1.5]
     set R [ui::px 22]
     canvas $f.ring -width $R -height $R -highlightthickness 0 -bg $::T(surface)
-    set m [ui::px 2.4]
-    $f.ring create oval $m $m [expr {$R-$m}] [expr {$R-$m}] -outline $::T(surface2) -width [ui::px 2.6]
     set frac [expr {min(1.0, double($today) / $goal)}]
-    if {$frac > 0} {
-        $f.ring create arc $m $m [expr {$R-$m}] [expr {$R-$m}] -start 90 -extent [expr {-359.9 * $frac}] \
-            -style arc -outline [expr {$frac >= 1 ? $::T(success) : $::T(primary)}] -width [ui::px 2.6]
-    }
+    set rc [expr {$frac >= 1 ? $::T(success) : $::T(primary)}]
+    ui::ring $f.ring [expr {$R/2}] [expr {$R/2}] $R [ui::px 3] $frac $rc $::T(surface2)
     if {$frac >= 1} { ui::icon $f.ring check [expr {$R/2}] [expr {$R/2}] [ui::px 8] $::T(success) } else {
-        $f.ring create text [expr {$R/2}] [expr {$R/2}] -text "$today" -font f.h2 -fill $::T(text)
+        $f.ring create text [expr {$R/2}] [expr {$R/2 - [ui::px 1.2]}] -text "$today" -font f.h1 -fill $::T(text)
+        $f.ring create text [expr {$R/2}] [expr {$R/2 + [ui::px 3.6]}] -text "XP" -font f.smallb -fill $::T(muted)
     }
     pack $f.ring -side left
     frame $f.r -bg $::T(surface)
@@ -164,7 +165,7 @@ proc app::screenHome {} {
         label $f.l.b -text "Spaced review keeps lessons in memory" -font f.small -fg $::T(muted) -bg $::T(surface) -anchor w
         pack $f.l.a $f.l.b -fill x
         ui::button $f.go "Review" {app::startReview} -style success -height [ui::px 10] -bg $::T(surface)
-        $f.go configure -width [ui::px 27]
+        $f.go configure -width [ui::px 31]
         pack $f.go -side right
     }
 
@@ -234,7 +235,7 @@ proc app::pathDraw {c ids color W} {
             set st [store::lessonStars $id]
             set sy [expr {$bottom + [ui::px 3]}]
             for {set s 0} {$s < 3} {incr s} {
-                ui::icon $c star [expr {$tx + [ui::px 2.2] + $s * [ui::px 5]}] $sy [ui::px 4.4] \
+                ui::icon $c star [expr {$tx + [ui::px 2.4] + $s * [ui::px 5.2]}] $sy [ui::px 4.6] \
                     [expr {$s < $st ? $::T(warn) : $::T(surface2)}] [list $tag txt$id]
             }
             set bottom [expr {$sy + [ui::px 2.4]}]
@@ -257,14 +258,14 @@ proc app::pathDraw {c ids color W} {
         set cy [lindex $centers $i]
         set tag lesson$id
         if {[store::lessonDone $id]} {
-            $c create oval [expr {$cx-$r}] [expr {$cy-$r}] [expr {$cx+$r}] [expr {$cy+$r}] -fill $color -outline $color -tags $tag
-            ui::icon $c check $cx $cy [ui::px 6.5] #ffffff $tag
+            ui::circle $c $cx $cy $r $color "" 0 $tag
+            ui::icon $c check $cx $cy [ui::px 7] #ffffff $tag
         } elseif {[isUnlocked $id]} {
-            $c create oval [expr {$cx-$r-3}] [expr {$cy-$r-3}] [expr {$cx+$r+3}] [expr {$cy+$r+3}] -outline [ui::mix $::T(bg) $color .5] -width 2 -tags $tag
-            $c create oval [expr {$cx-$r}] [expr {$cy-$r}] [expr {$cx+$r}] [expr {$cy+$r}] -fill $::T(surface) -outline $color -width [ui::px .9] -tags $tag
+            ui::circle $c $cx $cy [expr {$r + [ui::px 1.4]}] [ui::mix $::T(bg) $color .28] "" 0 $tag
+            ui::circle $c $cx $cy $r $::T(surface) $color [ui::px .8] $tag
             ui::icon $c play [expr {$cx+1}] $cy [ui::px 5] $color $tag
         } else {
-            $c create oval [expr {$cx-$r}] [expr {$cy-$r}] [expr {$cx+$r}] [expr {$cy+$r}] -fill $::T(surface2) -outline $::T(border) -tags $tag
+            ui::circle $c $cx $cy $r $::T(surface2) $::T(border) [ui::px .5] $tag
             ui::icon $c lock $cx $cy [ui::px 5] $::T(muted) $tag
         }
         $c bind $tag <ButtonRelease-1> [list app::lessonTap $id]
@@ -362,8 +363,7 @@ proc app::drawStars {c n W H} {
 proc app::drawBadge {c W H} {
     $c delete badge
     set r [expr {$H * .36}]
-    $c create oval [expr {$W/2-$r}] [expr {$H/2-$r}] [expr {$W/2+$r}] [expr {$H/2+$r}] \
-        -fill $::T(success) -outline "" -tags badge
+    ui::circle $c [expr {$W/2}] [expr {$H/2}] $r $::T(success) "" 0 badge
     ui::icon $c check [expr {$W/2}] [expr {$H/2}] [expr {$r*1.2}] #ffffff badge
 }
 # Confetti falls inside the header canvas only, so it never covers other widgets.
@@ -399,7 +399,7 @@ proc app::actionCard {w icon title desc cmd color enabled} {
     set fill $::T(surface)
     set f [ui::card $w -fill $fill -line $::T(border) -pad [ui::px 3.6]]
     canvas $f.i -width [ui::px 12] -height [ui::px 12] -highlightthickness 0 -bg $fill
-    $f.i create oval 0 0 [ui::px 12] [ui::px 12] -fill [ui::mix $fill $color [expr {$enabled ? .25 : .08}]] -outline ""
+    ui::rrect $f.i 0 0 [ui::px 12] [ui::px 12] [ui::px 4] -fill [ui::mix $fill $color [expr {$enabled ? .24 : .08}]]
     ui::icon $f.i $icon [ui::px 6] [ui::px 6] [ui::px 6.4] [expr {$enabled ? $color : $::T(muted)}]
     pack $f.i -side left
     frame $f.t -bg $fill
@@ -658,7 +658,7 @@ proc app::screenProfile {} {
     pack $body.id -fill x -padx $pad -pady [list [ui::px 5] [ui::px 2]]
     set R [ui::px 22]
     canvas $body.id.a -width $R -height $R -highlightthickness 0 -bg $::T(bg)
-    $body.id.a create oval 1 1 [expr {$R-1}] [expr {$R-1}] -fill $::T(primary) -outline ""
+    ui::circle $body.id.a [expr {$R/2}] [expr {$R/2}] [expr {$R/2 - 1}] $::T(primary)
     $body.id.a create text [expr {$R/2}] [expr {$R/2}] -text [store::level] -font f.num -fill $::T(onprimary)
     pack $body.id.a -side left
     frame $body.id.t -bg $::T(bg)
