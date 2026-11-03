@@ -5,9 +5,9 @@ and is itself written **entirely in Tcl/Tk** (about 3,000 lines of Tcl plus the 
 
 ![screens](docs/screenshots/home.png) ![](docs/screenshots/lesson.png) ![](docs/screenshots/question.png)
 
-* **59 lessons in 14 units**: from "what is a program?" through the whole language to coroutines, TclOO, sockets, binary data, testing, metaprogramming and Tk - then reading/debugging real code and **eight capstone projects**
-* **572 questions** in six types: multiple choice, *predict the output*, fill-the-blanks, order-the-lines, typed answers, and *write real code* (checked by actually running it) - over 110 of them are "write a real program" exercises, including find-the-bug tasks and step-by-step projects
-* **228 flashcards** with an SM-2 spaced-repetition scheduler (Again / Hard / Good / Easy); questions you miss become flashcards automatically
+* **78 lessons in 17 units**: from "what is a program?" through the whole language to coroutines, TclOO, sockets, binary data, testing, metaprogramming, Unicode, security, functional style and Tk - then algorithms and data structures, reading/debugging real code, **eight capstone projects** and **practice katas**
+* **770 questions** in six types: multiple choice, *predict the output*, fill-the-blanks, order-the-lines, typed answers, and *write real code* (checked by actually running it) - 186 of them are "write a real program" exercises, including find-the-bug tasks and step-by-step projects
+* **293 flashcards** with an SM-2 spaced-repetition scheduler (Again / Hard / Good / Easy); questions you miss become flashcards automatically
 * **Daily practice** that interleaves old material and favours your weak spots, plus a 2-minute quick quiz
 * **Playground**: a real, sandboxed Tcl interpreter with a symbol keypad for typing code on a phone
 * Smooth, anti-aliased visuals: icons, rounded corners and progress rings are rasterised at runtime (`lib/aa.tcl`), because plain Tk canvas shapes are jagged

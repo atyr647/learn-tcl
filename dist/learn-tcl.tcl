@@ -4010,14 +4010,2045 @@ cards {
   {{Why separate lib files for state, UI and tests?} {Non-UI code can be tested headlessly and reused; the UI stays thin.}}
 }
 }
-} content/u14.tcl content::unit\ 14\ \"Read,\ debug\ and\ build\"\ \"Read\ other\ people's\ code,\ hunt\ bugs,\ and\ finish\ eight\ real\ projects.\"\ \"#EC4899\"\n\ncontent::lesson\ 14.1\ 14\ \"Reading\ and\ debugging\ real\ code\"\ \"The\ most\ underrated\ skill:\ understanding\ a\ program\ you\ did\ not\ write.\"\ \{\npages\ \{\n\ \ \{head\ \"How\ to\ read\ a\ program\"\ body\ \{\n\ \ \ \ p\ \{Experts\ spend\ more\ time\ **reading**\ code\ than\ writing\ it.\ A\ reliable\ method:\}\n\ \ \ \ p\ \{-\ Find\ the\ **data**:\ what\ shapes\ flow\ through\ the\ program\ (lists?\ dicts\ of\ dicts?)\n-\ Find\ the\ **entry\ point**:\ the\ lines\ that\ run\ when\ the\ program\ starts\n-\ Read\ each\ proc\ by\ its\ **name,\ parameters\ and\ return\ value**\ first,\ body\ second\n-\ **Trace**\ a\ tiny\ input\ by\ hand,\ writing\ down\ the\ variables\ as\ they\ change\}\n\ \ \ \ code\ \{proc\ parse\ \{text\}\ \{\n\ \ \ \ set\ rows\ \{\}\n\ \ \ \ foreach\ line\ \[split\ \[string\ trim\ \$text\]\ \"\\n\"\]\ \{\n\ \ \ \ \ \ \ \ lassign\ \[split\ \$line\ ,\]\ name\ dept\ pay\n\ \ \ \ \ \ \ \ lappend\ rows\ \[dict\ create\ name\ \$name\ dept\ \$dept\ pay\ \$pay\]\n\ \ \ \ \}\n\ \ \ \ return\ \$rows\n\}\nproc\ totals\ \{rows\}\ \{\n\ \ \ \ set\ t\ \{\}\n\ \ \ \ foreach\ r\ \$rows\ \{\n\ \ \ \ \ \ \ \ dict\ incr\ t\ \[dict\ get\ \$r\ dept\]\ \[dict\ get\ \$r\ pay\]\n\ \ \ \ \}\n\ \ \ \ return\ \$t\n\}\nset\ data\ \"ann,ops,30\nbob,dev,50\ncy,ops,20\"\ndict\ for\ \{d\ n\}\ \[totals\ \[parse\ \$data\]\]\ \{\n\ \ \ \ puts\ \"\$d:\ \$n\"\n\}\}\n\ \ \ \ out\ \{ops:\ 50\ndev:\ 50\}\n\ \ \ \ p\ \{Data\ first:\ `parse`\ turns\ CSV\ text\ into\ a\ list\ of\ dicts\;\ `totals`\ folds\ those\ into\ one\ dict\ of\ department\ to\ pay.\ The\ entry\ point\ is\ the\ last\ block.\ Tracing:\ ann\ adds\ 30\ to\ ops,\ bob\ adds\ 50\ to\ dev,\ cy\ adds\ 20\ to\ ops,\ giving\ ops\ 50\ and\ dev\ 50.\}\n\ \ \}\}\n\ \ \{head\ \"Recursion\ and\ tables\ of\ behaviour\"\ body\ \{\n\ \ \ \ p\ \{Two\ shapes\ you\ will\ meet\ constantly.\ **Recursive**\ code\ handles\ nested\ data\ by\ calling\ itself\ on\ the\ parts:\}\n\ \ \ \ code\ \{proc\ flatten\ \{l\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ foreach\ x\ \$l\ \{\n\ \ \ \ \ \ \ \ if\ \{\[llength\ \$x\]\ >\ 1\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ r\ \{*\}\[flatten\ \$x\]\n\ \ \ \ \ \ \ \ \}\ else\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ r\ \$x\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \}\n\ \ \ \ return\ \$r\n\}\nputs\ \[flatten\ \{1\ \{2\ 3\}\ \{4\ \{5\ 6\}\}\}\]\}\n\ \ \ \ out\ \{1\ 2\ 3\ 4\ 5\ 6\}\n\ \ \ \ p\ \{And\ **dispatch\ tables**\ replace\ long\ chains\ of\ `if`\ with\ a\ dict\ from\ name\ to\ behaviour:\}\n\ \ \ \ code\ \{set\ ops\ \[dict\ create\ \\\n\ \ \ \ add\ \{\{a\ b\}\ \{expr\ \{\$a\ +\ \$b\}\}\}\ \\\n\ \ \ \ mul\ \{\{a\ b\}\ \{expr\ \{\$a\ *\ \$b\}\}\}\ \\\n\ \ \ \ neg\ \{\{a\}\ \{expr\ \{-\$a\}\}\}\]\nproc\ calc\ \{op\ args\}\ \{\n\ \ \ \ global\ ops\n\ \ \ \ if\ \{!\[dict\ exists\ \$ops\ \$op\]\}\ \{error\ \"unknown\ op\ \$op\"\}\n\ \ \ \ apply\ \[dict\ get\ \$ops\ \$op\]\ \{*\}\$args\n\}\nputs\ \[calc\ add\ 2\ 3\]\nputs\ \[calc\ neg\ 5\]\nputs\ \[catch\ \{calc\ pow\ 2\ 3\}\ m\]\nputs\ \$m\}\n\ \ \ \ out\ \{5\n-5\n1\nunknown\ op\ pow\}\n\ \ \}\}\n\ \ \{head\ \"Debugging\"\ body\ \{\n\ \ \ \ p\ \{Most\ bugs\ fall\ into\ a\ few\ families.\ Learn\ to\ recognise\ them:\}\n\ \ \ \ p\ \{-\ **Off-by-one**:\ `<`\ where\ you\ meant\ `<=`,\ or\ indexes\ starting\ at\ 0\n-\ **Whole-number\ division**:\ `expr\ \{7\ /\ 2\}`\ is\ 3\n-\ **Scope**:\ a\ proc\ cannot\ see\ a\ global\ variable\ unless\ you\ say\ `global`\n-\ **Quoting**:\ braces\ versus\ quotes,\ and\ a\ missing\ `\$`\n-\ **Mutation**:\ forgetting\ that\ `lappend`/`set`\ change\ the\ variable\ but\ `lsort`\ returns\ a\ new\ list\}\n\ \ \ \ p\ \{Debug\ scientifically:\ reproduce\ the\ bug\ with\ the\ **smallest**\ input,\ print\ the\ intermediate\ values\ with\ `puts`,\ form\ a\ guess,\ test\ the\ guess,\ repeat.\ Do\ not\ change\ code\ at\ random.\}\n\ \ \ \ tip\ \{`puts\ stderr\ \"x=\$x\"`\ is\ a\ perfectly\ good\ debugger.\ `info\ body`,\ `info\ args`\ and\ `trace\ add\ execution`\ are\ better\ ones.\ And\ `catch`\ plus\ `puts\ \$::errorInfo`\ shows\ the\ whole\ call\ stack\ of\ an\ error.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ predict\ code\ \{proc\ flatten\ \{l\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ foreach\ x\ \$l\ \{\n\ \ \ \ \ \ \ \ if\ \{\[llength\ \$x\]\ >\ 1\}\ \{lappend\ r\ \{*\}\[flatten\ \$x\]\}\ else\ \{lappend\ r\ \$x\}\n\ \ \ \ \}\n\ \ \ \ return\ \$r\n\}\nputs\ \[llength\ \[flatten\ \{a\ \{b\ c\}\ \{d\ \{e\ f\ g\}\}\}\]\]\}\ choices\ \{7\ 5\ 3\ 4\}\ ans\ 0\ why\ \{Seven\ leaves:\ a\ b\ c\ d\ e\ f\ g.\}\}\n\ \ \{kind\ predict\ code\ \{set\ ops\ \[dict\ create\ sq\ \{\{x\}\ \{expr\ \{\$x\ *\ \$x\}\}\}\ inc\ \{\{x\}\ \{expr\ \{\$x\ +\ 1\}\}\}\]\nputs\ \[apply\ \[dict\ get\ \$ops\ sq\]\ \[apply\ \[dict\ get\ \$ops\ inc\]\ 4\]\]\}\ choices\ \{25\ 17\ 20\ 5\}\ ans\ 0\ why\ \{inc\ 4\ =\ 5,\ then\ sq\ 5\ =\ 25.\}\}\n\ \ \{kind\ predict\ code\ \{proc\ totals\ \{rows\}\ \{\n\ \ \ \ set\ t\ \{\}\n\ \ \ \ foreach\ r\ \$rows\ \{dict\ incr\ t\ \[lindex\ \$r\ 0\]\ \[lindex\ \$r\ 1\]\}\n\ \ \ \ return\ \$t\n\}\nputs\ \[totals\ \{\{a\ 1\}\ \{b\ 2\}\ \{a\ 3\}\}\]\}\ choices\ \{\{a\ 4\ b\ 2\}\ \{a\ 1\ b\ 2\ a\ 3\}\ \{a\ 3\ b\ 2\}\ \{4\ 2\}\}\ ans\ 0\ why\ \{Amounts\ for\ the\ same\ key\ are\ added.\}\}\n\ \ \{kind\ mc\ q\ \{You\ find\ `for\ \{set\ i\ 0\}\ \{\$i\ <=\ \[llength\ \$l\]\}\ \{incr\ i\}`\ while\ reading\ a\ program.\ What\ is\ the\ likely\ bug?\}\ choices\ \{\{Off-by-one:\ it\ runs\ once\ too\ many\ (indexes\ go\ 0\ to\ llength-1)\}\ \{It\ runs\ too\ few\ times\}\ \{It\ never\ runs\}\ \{There\ is\ no\ bug\}\}\ ans\ 0\ why\ \{A\ list\ with\ n\ items\ has\ indexes\ 0\ ..\ n-1.\}\}\n\ \ \{kind\ mc\ q\ \{A\ proc\ reads\ a\ variable\ `count`\ that\ is\ set\ at\ the\ top\ of\ the\ script,\ but\ fails\ with\ \"no\ such\ variable\".\ Why?\}\ choices\ \{\{Procs\ have\ their\ own\ scope\;\ it\ needs\ `global\ count`\}\ \{Variables\ cannot\ be\ read\ in\ procs\}\ \{count\ is\ a\ reserved\ word\}\ \{The\ script\ must\ be\ saved\ first\}\}\ ans\ 0\ why\ \{Without\ `global`\ (or\ `::count`)\ the\ proc\ looks\ in\ its\ own\ local\ scope.\}\}\n\ \ \{kind\ mc\ q\ \{What\ is\ the\ best\ first\ step\ when\ you\ find\ a\ bug?\}\ choices\ \{\{Reproduce\ it\ with\ the\ smallest\ possible\ input\}\ \{Rewrite\ the\ whole\ function\}\ \{Add\ random\ changes\ until\ it\ works\}\ \{Ignore\ it\}\}\ ans\ 0\ why\ \{A\ small\ reproduction\ makes\ the\ cause\ visible.\}\}\n\ \ \{kind\ code\ prompt\ \{**Fix\ the\ bug.**\ `average`\ should\ return\ a\ decimal\ result,\ but\ whole-number\ division\ throws\ away\ the\ fraction.\}\ starter\ \{proc\ average\ \{l\}\ \{\n\ \ \ \ set\ t\ 0\n\ \ \ \ foreach\ x\ \$l\ \{incr\ t\ \$x\}\n\ \ \ \ return\ \[expr\ \{\$t\ /\ \[llength\ \$l\]\}\]\n\}\}\ solution\ \{proc\ average\ \{l\}\ \{\n\ \ \ \ set\ t\ 0\n\ \ \ \ foreach\ x\ \$l\ \{incr\ t\ \$x\}\n\ \ \ \ return\ \[expr\ \{double(\$t)\ /\ \[llength\ \$l\]\}\]\n\}\}\ tests\ \{\{average\ \{1\ 2\}\}\ 1.5\ \{average\ \{4\}\}\ 4.0\}\ why\ \{Making\ one\ operand\ a\ double\ forces\ decimal\ division.\}\}\n\ \ \{kind\ code\ prompt\ \{**Fix\ the\ bug.**\ `range\ 3`\ should\ return\ `1\ 2\ 3`,\ but\ it\ stops\ one\ short.\}\ starter\ \{proc\ range\ \{n\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ for\ \{set\ i\ 1\}\ \{\$i\ <\ \$n\}\ \{incr\ i\}\ \{lappend\ r\ \$i\}\n\ \ \ \ return\ \$r\n\}\}\ solution\ \{proc\ range\ \{n\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ for\ \{set\ i\ 1\}\ \{\$i\ <=\ \$n\}\ \{incr\ i\}\ \{lappend\ r\ \$i\}\n\ \ \ \ return\ \$r\n\}\}\ tests\ \{\{range\ 3\}\ \{1\ 2\ 3\}\ \{range\ 1\}\ 1\ \{range\ 0\}\ \{\}\}\ why\ \{The\ test\ must\ be\ `<=`\ so\ n\ itself\ is\ included.\}\}\n\ \ \{kind\ code\ prompt\ \{**Fix\ the\ bug.**\ `hit`\ should\ increase\ the\ global\ `count`,\ but\ it\ fails\ because\ of\ scope.\}\ starter\ \{proc\ hit\ \{\}\ \{\n\ \ \ \ incr\ count\n\}\}\ solution\ \{proc\ hit\ \{\}\ \{\n\ \ \ \ global\ count\n\ \ \ \ incr\ count\n\}\}\ tests\ \{\{set\ count\ 0\;\ hit\;\ hit\;\ set\ count\}\ 2\}\ why\ \{`global\ count`\ links\ the\ name\ to\ the\ global\ variable.\}\}\n\ \ \{kind\ code\ prompt\ \{**Fix\ the\ bug.**\ `sorted`\ should\ return\ the\ list\ in\ order,\ but\ the\ result\ is\ thrown\ away.\}\ starter\ \{proc\ sorted\ \{l\}\ \{\n\ \ \ \ lsort\ \$l\n\ \ \ \ return\ \$l\n\}\}\ solution\ \{proc\ sorted\ \{l\}\ \{\n\ \ \ \ return\ \[lsort\ \$l\]\n\}\}\ tests\ \{\{sorted\ \{c\ a\ b\}\}\ \{a\ b\ c\}\}\ why\ \{`lsort`\ returns\ a\ new\ list\;\ it\ does\ not\ change\ the\ original.\}\}\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **depth**\ returning\ how\ deeply\ a\ list\ is\ nested.\ A\ single\ word\ has\ depth\ 0\;\ a\ list\ is\ 1\ plus\ the\ depth\ of\ its\ deepest\ item.\ So\ `depth\ x`\ is\ 0,\ `depth\ \{a\ b\}`\ is\ 1\ and\ `depth\ \{a\ \{b\ \{c\ d\}\}\}`\ is\ 3.\}\ starter\ \{proc\ depth\ \{x\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ depth\ \{x\}\ \{\n\ \ \ \ if\ \{\[llength\ \$x\]\ <=\ 1\ &&\ \[lindex\ \$x\ 0\]\ eq\ \$x\}\ \{return\ 0\}\n\ \ \ \ set\ d\ 0\n\ \ \ \ foreach\ i\ \$x\ \{\n\ \ \ \ \ \ \ \ set\ di\ \[depth\ \$i\]\n\ \ \ \ \ \ \ \ if\ \{\$di\ >\ \$d\}\ \{set\ d\ \$di\}\n\ \ \ \ \}\n\ \ \ \ return\ \[expr\ \{\$d\ +\ 1\}\]\n\}\}\ tests\ \{\{depth\ x\}\ 0\ \{depth\ \{a\ b\}\}\ 1\ \{depth\ \{a\ \{b\ \{c\ d\}\}\}\}\ 3\}\ why\ \{Recurse\ into\ each\ item,\ keep\ the\ deepest,\ add\ one.\}\}\n\}\ncards\ \{\n\ \ \{\{What\ is\ a\ reliable\ method\ for\ reading\ unfamiliar\ code?\}\ \{Find\ the\ data\ shapes,\ find\ the\ entry\ point,\ read\ each\ proc's\ name/parameters/return\ first,\ then\ trace\ a\ tiny\ input\ by\ hand.\}\}\n\ \ \{\{Name\ common\ bug\ families.\}\ \{Off-by-one,\ whole-number\ division,\ missing\ `global`\ (scope),\ quoting\ mistakes,\ and\ forgetting\ `lsort`/`string`\ return\ new\ values.\}\}\n\ \ \{\{What\ is\ a\ dispatch\ table?\}\ \{A\ dict\ from\ a\ name\ to\ behaviour\ (a\ lambda),\ replacing\ a\ long\ if/elseif\ chain:\ `apply\ \[dict\ get\ \$ops\ \$name\]\ \{*\}\$args`.\}\}\n\ \ \{\{How\ should\ you\ debug?\}\ \{Reproduce\ with\ the\ smallest\ input,\ print\ intermediate\ values,\ guess,\ test\ the\ guess,\ repeat\ -\ never\ change\ code\ at\ random.\}\}\n\}\n\}\n\ncontent::lesson\ 14.2\ 14\ \"Project\ 1:\ a\ to-do\ manager\"\ \"Lists,\ dicts,\ namespaces\ and\ procs\ working\ together.\"\ \{\npages\ \{\n\ \ \{head\ \"The\ brief\"\ body\ \{\n\ \ \ \ p\ \{Build\ a\ small\ **to-do\ manager**\ as\ a\ namespace\ called\ `todo`.\ It\ must:\}\n\ \ \ \ p\ \{-\ `todo::reset`\ empties\ the\ list\n-\ `todo::add\ title`\ adds\ an\ item\ and\ returns\ its\ id\ (1,\ 2,\ 3,\ ...)\n-\ `todo::complete\ id`\ marks\ an\ item\ done,\ or\ raises\ the\ error\ `no\ such\ item`\ for\ an\ unknown\ id\n-\ `todo::pending`\ returns\ the\ titles\ of\ the\ items\ not\ yet\ done,\ in\ id\ order\n-\ `todo::report`\ returns\ a\ text\ listing,\ one\ line\ per\ item,\ like\ `\[x\]\ 1\ milk`\ (done)\ or\ `\[\ \]\ 2\ eggs`\}\n\ \ \ \ p\ \{Work\ in\ small\ steps:\ each\ exercise\ below\ adds\ one\ feature,\ and\ you\ can\ always\ run\ it\ in\ the\ **Playground**\ first.\}\n\ \ \}\}\n\ \ \{head\ \"Design\"\ body\ \{\n\ \ \ \ p\ \{Store\ the\ items\ in\ a\ **dict\ keyed\ by\ id**,\ each\ value\ a\ dict\ with\ `title`\ and\ `done`.\ A\ separate\ counter\ gives\ the\ next\ id.\ A\ namespace\ keeps\ all\ of\ it\ private:\}\n\ \ \ \ code\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ variable\ next\n\ \ \ \ \ \ \ \ set\ items\ \{\}\n\ \ \ \ \ \ \ \ set\ next\ 1\n\ \ \ \ \}\n\}\nputs\ \[dict\ size\ \$todo::items\]\}\n\ \ \ \ out\ \{0\}\n\ \ \ \ p\ \{Each\ public\ proc\ starts\ with\ `variable\ items\ next`\ to\ reach\ the\ namespace's\ data.\ Because\ the\ dict\ is\ keyed\ by\ id,\ finding\ or\ updating\ an\ item\ is\ a\ single\ `dict`\ call.\}\n\ \ \}\}\n\ \ \{head\ \"Tips\"\ body\ \{\n\ \ \ \ p\ \{-\ Create\ the\ next\ id\ with\ `incr\ next`\ and\ use\ the\ value\ **before**\ incrementing\n-\ `dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]`\ stores\ a\ record\n-\ For\ `report`,\ `dict\ for`\ walks\ the\ items\ in\ insertion\ order,\ which\ is\ id\ order\ here\n-\ Use\ `error\ \"no\ such\ item\"`\ and\ test\ it\ with\ `catch`\}\n\ \ \ \ tip\ \{Think\ about\ the\ unhappy\ paths\ early:\ unknown\ ids,\ empty\ lists,\ and\ titles\ containing\ spaces.\ Tests\ for\ those\ catch\ the\ most\ bugs.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ code\ prompt\ \{**Step\ 1.**\ Create\ the\ namespace\ `todo`\ with\ `reset`\ and\ `add`.\ `add\ title`\ stores\ the\ item\ and\ returns\ its\ id.\}\ starter\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\}\}\ solution\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ variable\ next\n\ \ \ \ \ \ \ \ set\ items\ \{\}\n\ \ \ \ \ \ \ \ set\ next\ 1\n\ \ \ \ \}\n\ \ \ \ proc\ add\ \{title\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ variable\ next\n\ \ \ \ \ \ \ \ set\ id\ \$next\n\ \ \ \ \ \ \ \ incr\ next\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]\n\ \ \ \ \ \ \ \ return\ \$id\n\ \ \ \ \}\n\}\}\ tests\ \{\{todo::reset\;\ todo::add\ milk\;\ todo::add\ eggs\}\ 2\ \{todo::reset\;\ todo::add\ milk\}\ 1\}\ why\ \{Read\ `next`\ for\ the\ id,\ increment\ it,\ and\ store\ a\ record\ under\ that\ id.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 2.**\ Add\ `complete\ id`.\ It\ sets\ `done`\ to\ 1,\ and\ raises\ `no\ such\ item`\ if\ the\ id\ does\ not\ exist.\ (Your\ namespace\ from\ step\ 1\ is\ included.)\}\ starter\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{variable\ items\;\ variable\ next\;\ set\ items\ \{\}\;\ set\ next\ 1\}\n\ \ \ \ proc\ add\ \{title\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\;\ variable\ next\n\ \ \ \ \ \ \ \ set\ id\ \$next\;\ incr\ next\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]\n\ \ \ \ \ \ \ \ return\ \$id\n\ \ \ \ \}\n\}\}\ solution\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{variable\ items\;\ variable\ next\;\ set\ items\ \{\}\;\ set\ next\ 1\}\n\ \ \ \ proc\ add\ \{title\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\;\ variable\ next\n\ \ \ \ \ \ \ \ set\ id\ \$next\;\ incr\ next\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]\n\ \ \ \ \ \ \ \ return\ \$id\n\ \ \ \ \}\n\ \ \ \ proc\ complete\ \{id\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$items\ \$id\]\}\ \{error\ \"no\ such\ item\"\}\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ done\ 1\n\ \ \ \ \}\n\}\}\ tests\ \{\{todo::reset\;\ set\ a\ \[todo::add\ x\]\;\ todo::complete\ \$a\;\ dict\ get\ \$todo::items\ \$a\ done\}\ 1\ \{todo::reset\;\ catch\ \{todo::complete\ 9\}\ m\;\ set\ m\}\ \{no\ such\ item\}\}\ why\ \{Check\ with\ `dict\ exists`\ first.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 3.**\ Add\ `pending`,\ returning\ the\ titles\ of\ items\ that\ are\ not\ done,\ in\ id\ order.\}\ starter\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{variable\ items\;\ variable\ next\;\ set\ items\ \{\}\;\ set\ next\ 1\}\n\ \ \ \ proc\ add\ \{title\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\;\ variable\ next\n\ \ \ \ \ \ \ \ set\ id\ \$next\;\ incr\ next\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]\n\ \ \ \ \ \ \ \ return\ \$id\n\ \ \ \ \}\n\ \ \ \ proc\ complete\ \{id\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$items\ \$id\]\}\ \{error\ \"no\ such\ item\"\}\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ done\ 1\n\ \ \ \ \}\n\}\}\ solution\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{variable\ items\;\ variable\ next\;\ set\ items\ \{\}\;\ set\ next\ 1\}\n\ \ \ \ proc\ add\ \{title\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\;\ variable\ next\n\ \ \ \ \ \ \ \ set\ id\ \$next\;\ incr\ next\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]\n\ \ \ \ \ \ \ \ return\ \$id\n\ \ \ \ \}\n\ \ \ \ proc\ complete\ \{id\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$items\ \$id\]\}\ \{error\ \"no\ such\ item\"\}\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ done\ 1\n\ \ \ \ \}\n\ \ \ \ proc\ pending\ \{\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ set\ r\ \{\}\n\ \ \ \ \ \ \ \ dict\ for\ \{id\ rec\}\ \$items\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{!\[dict\ get\ \$rec\ done\]\}\ \{lappend\ r\ \[dict\ get\ \$rec\ title\]\}\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ return\ \$r\n\ \ \ \ \}\n\}\}\ tests\ \{\{todo::reset\;\ todo::add\ milk\;\ set\ b\ \[todo::add\ eggs\]\;\ todo::add\ bread\;\ todo::complete\ \$b\;\ todo::pending\}\ \{milk\ bread\}\}\ why\ \{Walk\ the\ records\ and\ collect\ titles\ whose\ `done`\ is\ 0.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 4.**\ Add\ `report`:\ one\ line\ per\ item,\ `\[x\]\ 1\ milk`\ for\ done\ and\ `\[\ \]\ 2\ eggs`\ for\ pending,\ joined\ with\ newlines.\}\ starter\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{variable\ items\;\ variable\ next\;\ set\ items\ \{\}\;\ set\ next\ 1\}\n\ \ \ \ proc\ add\ \{title\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\;\ variable\ next\n\ \ \ \ \ \ \ \ set\ id\ \$next\;\ incr\ next\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]\n\ \ \ \ \ \ \ \ return\ \$id\n\ \ \ \ \}\n\ \ \ \ proc\ complete\ \{id\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$items\ \$id\]\}\ \{error\ \"no\ such\ item\"\}\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ done\ 1\n\ \ \ \ \}\n\}\}\ solution\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{variable\ items\;\ variable\ next\;\ set\ items\ \{\}\;\ set\ next\ 1\}\n\ \ \ \ proc\ add\ \{title\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\;\ variable\ next\n\ \ \ \ \ \ \ \ set\ id\ \$next\;\ incr\ next\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]\n\ \ \ \ \ \ \ \ return\ \$id\n\ \ \ \ \}\n\ \ \ \ proc\ complete\ \{id\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$items\ \$id\]\}\ \{error\ \"no\ such\ item\"\}\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ done\ 1\n\ \ \ \ \}\n\ \ \ \ proc\ report\ \{\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ set\ lines\ \{\}\n\ \ \ \ \ \ \ \ dict\ for\ \{id\ rec\}\ \$items\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ set\ mark\ \[expr\ \{\[dict\ get\ \$rec\ done\]\ ?\ \"x\"\ :\ \"\ \"\}\]\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ lines\ \"\\\[\$mark\\\]\ \$id\ \[dict\ get\ \$rec\ title\]\"\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ return\ \[join\ \$lines\ \"\\n\"\]\n\ \ \ \ \}\n\}\}\ tests\ \{\{todo::reset\;\ todo::add\ milk\;\ set\ b\ \[todo::add\ eggs\]\;\ todo::complete\ \$b\;\ todo::report\}\ \{\[\ \]\ 1\ milk\n\[x\]\ 2\ eggs\}\}\ why\ \{Build\ each\ line\ with\ a\ conditional\ mark,\ then\ `join`\ the\ lines\ with\ newlines.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 5\ -\ final.**\ Put\ it\ all\ together\ in\ one\ namespace:\ reset,\ add,\ complete,\ pending\ and\ report,\ with\ a\ **count**\ proc\ returning\ how\ many\ items\ are\ not\ done.\}\ starter\ \{namespace\ eval\ todo\ \{\n\}\}\ solution\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{variable\ items\;\ variable\ next\;\ set\ items\ \{\}\;\ set\ next\ 1\}\n\ \ \ \ proc\ add\ \{title\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\;\ variable\ next\n\ \ \ \ \ \ \ \ set\ id\ \$next\;\ incr\ next\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]\n\ \ \ \ \ \ \ \ return\ \$id\n\ \ \ \ \}\n\ \ \ \ proc\ complete\ \{id\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$items\ \$id\]\}\ \{error\ \"no\ such\ item\"\}\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ done\ 1\n\ \ \ \ \}\n\ \ \ \ proc\ pending\ \{\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ set\ r\ \{\}\n\ \ \ \ \ \ \ \ dict\ for\ \{id\ rec\}\ \$items\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{!\[dict\ get\ \$rec\ done\]\}\ \{lappend\ r\ \[dict\ get\ \$rec\ title\]\}\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ return\ \$r\n\ \ \ \ \}\n\ \ \ \ proc\ report\ \{\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ set\ lines\ \{\}\n\ \ \ \ \ \ \ \ dict\ for\ \{id\ rec\}\ \$items\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ set\ mark\ \[expr\ \{\[dict\ get\ \$rec\ done\]\ ?\ \"x\"\ :\ \"\ \"\}\]\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ lines\ \"\\\[\$mark\\\]\ \$id\ \[dict\ get\ \$rec\ title\]\"\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ return\ \[join\ \$lines\ \"\\n\"\]\n\ \ \ \ \}\n\ \ \ \ proc\ count\ \{\}\ \{return\ \[llength\ \[pending\]\]\}\n\}\}\ tests\ \{\{todo::reset\;\ todo::add\ a\;\ todo::add\ b\;\ todo::add\ c\;\ todo::complete\ 2\;\ todo::count\}\ 2\ \{todo::reset\;\ todo::count\}\ 0\ \{todo::reset\;\ todo::add\ \"buy\ milk\"\;\ todo::pending\}\ \{\{buy\ milk\}\}\}\ why\ \{`count`\ reuses\ `pending`\ -\ small\ procs\ that\ build\ on\ each\ other.\}\}\n\ \ \{kind\ mc\ q\ \{Why\ store\ items\ in\ a\ dict\ keyed\ by\ id\ rather\ than\ a\ list\ of\ titles?\}\ choices\ \{\{Looking\ up\ or\ updating\ one\ item\ is\ a\ single\ dict\ call,\ and\ ids\ stay\ stable\ if\ items\ are\ removed\}\ \{Dicts\ are\ always\ faster\}\ \{Lists\ cannot\ hold\ text\}\ \{It\ uses\ less\ memory\}\}\ ans\ 0\ why\ \{Stable\ ids\ and\ direct\ lookup\ are\ the\ point.\}\}\n\ \ \{kind\ predict\ code\ \{namespace\ eval\ t\ \{variable\ n\ 1\;\ proc\ next\ \{\}\ \{variable\ n\;\ set\ id\ \$n\;\ incr\ n\;\ return\ \$id\}\}\nputs\ \"\[t::next\]\[t::next\]\[t::next\]\"\}\ choices\ \{123\ 111\ 321\ 333\}\ ans\ 0\ why\ \{Read\ the\ value,\ then\ increment\ -\ so\ ids\ go\ 1,\ 2,\ 3.\}\}\n\}\ncards\ \{\n\ \ \{\{How\ do\ you\ give\ items\ stable\ ids?\}\ \{Keep\ a\ `next`\ counter\ in\ the\ namespace\;\ use\ its\ value\ as\ the\ id,\ then\ `incr`\ it.\}\}\n\ \ \{\{How\ do\ you\ raise\ a\ clear\ error\ for\ an\ unknown\ id?\}\ \{`if\ \{!\[dict\ exists\ \$items\ \$id\]\}\ \{error\ \"no\ such\ item\"\}`\}\}\n\ \ \{\{Why\ use\ a\ namespace\ for\ a\ module?\}\ \{It\ keeps\ the\ data\ and\ procs\ together\ and\ private,\ avoiding\ clashes\ with\ other\ code.\}\}\n\}\n\}\n\ncontent::lesson\ 14.3\ 14\ \"Project\ 2:\ a\ word-frequency\ analyser\"\ \"Text\ processing\ with\ regular\ expressions,\ dicts\ and\ sorting.\"\ \{\npages\ \{\n\ \ \{head\ \"The\ brief\"\ body\ \{\n\ \ \ \ p\ \{Write\ the\ core\ of\ a\ **text\ analyser**.\ Given\ any\ text\ it\ should:\}\n\ \ \ \ p\ \{-\ `tokenize\ text`\ split\ it\ into\ lower-case\ words\ (letters\ and\ apostrophes\ only\;\ punctuation\ and\ numbers\ are\ dropped)\n-\ `count\ words`\ return\ a\ dict\ of\ how\ often\ each\ word\ appears\n-\ `top\ counts\ n`\ the\ n\ most\ frequent\ words,\ most\ frequent\ first\ (ties\ keep\ first-seen\ order)\n-\ `drop\ counts\ stopwords`\ remove\ common\ words\ such\ as\ `the`\ and\ `a`\}\n\ \ \}\}\n\ \ \{head\ \"Design\"\ body\ \{\n\ \ \ \ p\ \{The\ pipeline\ is\ four\ small\ pure\ functions,\ each\ easy\ to\ test\ on\ its\ own:\ **text\ ->\ words\ ->\ counts\ ->\ ranking**.\ A\ `regexp\ -all\ -inline`\ does\ the\ tokenising\ in\ one\ line:\}\n\ \ \ \ code\ \{puts\ \[regexp\ -all\ -inline\ \{\[a-z'\]+\}\ \[string\ tolower\ \"It's\ a\ dog-eat-dog\ world,\ 2\ times!\"\]\]\}\n\ \ \ \ out\ \{it's\ a\ dog\ eat\ dog\ world\ times\}\n\ \ \ \ p\ \{Note\ how\ the\ hyphen,\ comma,\ digit\ and\ exclamation\ mark\ all\ act\ as\ separators.\}\n\ \ \}\}\n\ \ \{head\ \"Tips\"\ body\ \{\n\ \ \ \ p\ \{-\ Always\ lower-case\ **before**\ matching,\ so\ `\[a-z'\]`\ is\ enough\n-\ `dict\ incr\ counts\ \$w`\ counts\ without\ any\ `if`\n-\ `lsort\ -stride\ 2\ -index\ 1\ -integer\ -decreasing`\ ranks\ a\ flat\ dict,\ keeping\ ties\ in\ first-seen\ order\ because\ `lsort`\ is\ stable\n-\ To\ drop\ stop\ words\ use\ `dict\ remove`\ or\ skip\ them\ in\ a\ `foreach`\}\n\ \ \ \ tip\ \{Small,\ pure\ functions\ (input\ in,\ result\ out,\ no\ globals)\ are\ the\ easiest\ code\ to\ test\ and\ reuse.\ The\ whole\ analyser\ needs\ no\ global\ state\ at\ all.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ code\ prompt\ \{**Step\ 1.**\ Write\ `tokenize`.\}\ starter\ \{proc\ tokenize\ \{text\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ tokenize\ \{text\}\ \{\n\ \ \ \ return\ \[regexp\ -all\ -inline\ \{\[a-z'\]+\}\ \[string\ tolower\ \$text\]\]\n\}\}\ tests\ \{\{tokenize\ \"It's\ a\ dog-eat-dog\ world,\ 2\ times!\"\}\ \{it's\ a\ dog\ eat\ dog\ world\ times\}\ \{tokenize\ \"123\ !!\"\}\ \{\}\}\ why\ \{Lower-case,\ then\ collect\ runs\ of\ letters\ and\ apostrophes.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 2.**\ Write\ `count`,\ returning\ a\ dict\ of\ word\ counts\ from\ a\ list\ of\ words.\}\ starter\ \{proc\ count\ \{words\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ count\ \{words\}\ \{\n\ \ \ \ set\ d\ \{\}\n\ \ \ \ foreach\ w\ \$words\ \{dict\ incr\ d\ \$w\}\n\ \ \ \ return\ \$d\n\}\}\ tests\ \{\{count\ \{a\ b\ a\ c\ a\ b\}\}\ \{a\ 3\ b\ 2\ c\ 1\}\ \{count\ \{\}\}\ \{\}\}\ why\ \{`dict\ incr`\ creates\ missing\ keys\ at\ zero.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 3.**\ Write\ `top\ counts\ n`,\ returning\ the\ n\ most\ frequent\ words,\ highest\ first.\}\ starter\ \{proc\ top\ \{counts\ n\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ top\ \{counts\ n\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ foreach\ \{w\ c\}\ \[lsort\ -stride\ 2\ -index\ 1\ -integer\ -decreasing\ \$counts\]\ \{lappend\ r\ \$w\}\n\ \ \ \ return\ \[lrange\ \$r\ 0\ \[expr\ \{\$n\ -\ 1\}\]\]\n\}\}\ tests\ \{\{top\ \{a\ 3\ b\ 5\ c\ 4\ d\ 1\}\ 2\}\ \{b\ c\}\ \{top\ \{x\ 1\ y\ 1\ z\ 1\}\ 2\}\ \{x\ y\}\}\ why\ \{Stable\ sorting\ keeps\ ties\ in\ their\ original\ order.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 4.**\ Write\ `drop\ counts\ stopwords`,\ returning\ the\ dict\ without\ any\ word\ in\ the\ stopword\ list.\}\ starter\ \{proc\ drop\ \{counts\ stop\}\ \{\n\ \ \ \ return\ \$counts\n\}\}\ solution\ \{proc\ drop\ \{counts\ stop\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ dict\ for\ \{w\ c\}\ \$counts\ \{\n\ \ \ \ \ \ \ \ if\ \{\$w\ ni\ \$stop\}\ \{dict\ set\ r\ \$w\ \$c\}\n\ \ \ \ \}\n\ \ \ \ return\ \$r\n\}\}\ tests\ \{\{drop\ \{the\ 5\ cat\ 2\ a\ 3\ dog\ 1\}\ \{the\ a\}\}\ \{cat\ 2\ dog\ 1\}\}\ why\ \{The\ `ni`\ operator\ tests\ \"not\ in\"\ a\ list.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 5\ -\ final.**\ Write\ `analyse\ text\ n\ stopwords`,\ returning\ the\ n\ most\ frequent\ non-stop\ words\ of\ the\ text,\ using\ all\ four\ steps.\}\ starter\ \{proc\ analyse\ \{text\ n\ stop\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ analyse\ \{text\ n\ stop\}\ \{\n\ \ \ \ set\ counts\ \{\}\n\ \ \ \ foreach\ w\ \[regexp\ -all\ -inline\ \{\[a-z'\]+\}\ \[string\ tolower\ \$text\]\]\ \{\n\ \ \ \ \ \ \ \ if\ \{\$w\ in\ \$stop\}\ continue\n\ \ \ \ \ \ \ \ dict\ incr\ counts\ \$w\n\ \ \ \ \}\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ foreach\ \{w\ c\}\ \[lsort\ -stride\ 2\ -index\ 1\ -integer\ -decreasing\ \$counts\]\ \{lappend\ r\ \$w\}\n\ \ \ \ return\ \[lrange\ \$r\ 0\ \[expr\ \{\$n\ -\ 1\}\]\]\n\}\}\ tests\ \{\{analyse\ \"The\ cat\ and\ the\ hat\ and\ the\ bat.\ The\ cat\ sat.\"\ 2\ \{the\ and\}\}\ \{cat\ hat\}\ \{analyse\ \"\"\ 3\ \{\}\}\ \{\}\}\ why\ \{Chain\ the\ pipeline:\ tokenise,\ filter,\ count,\ rank,\ take\ n.\}\}\n\ \ \{kind\ predict\ code\ \{puts\ \[regexp\ -all\ -inline\ \{\[a-z'\]+\}\ \"don't\ stop-believin'\"\]\}\ choices\ \{\{don't\ stop\ believin'\}\ \{don't\ stop-believin'\}\ \{dont\ stop\ believin\}\ \{don't\}\}\ ans\ 0\ why\ \{Apostrophes\ are\ kept\;\ the\ hyphen\ separates\ words.\}\}\n\ \ \{kind\ mc\ q\ \{Why\ lower-case\ the\ text\ before\ tokenising?\}\ choices\ \{\{So\ \"The\"\ and\ \"the\"\ count\ as\ the\ same\ word\}\ \{Regular\ expressions\ require\ it\}\ \{It\ makes\ the\ program\ faster\}\ \{Tcl\ cannot\ match\ capitals\}\}\ ans\ 0\ why\ \{Normalising\ input\ is\ the\ first\ step\ of\ most\ text\ pipelines.\}\}\n\}\ncards\ \{\n\ \ \{\{How\ do\ you\ split\ text\ into\ words\ with\ a\ regex?\}\ \{`regexp\ -all\ -inline\ \{\[a-z'\]+\}\ \[string\ tolower\ \$text\]`\}\}\n\ \ \{\{How\ do\ you\ rank\ a\ flat\ dict\ by\ value?\}\ \{`lsort\ -stride\ 2\ -index\ 1\ -integer\ -decreasing\ \$dict`\ (stable,\ so\ ties\ keep\ order).\}\}\n\ \ \{\{What\ makes\ a\ function\ easy\ to\ test?\}\ \{Pure:\ input\ in,\ result\ out,\ no\ hidden\ global\ state.\}\}\n\}\n\}\n\ncontent::lesson\ 14.4\ 14\ \"Project\ 3:\ an\ RPN\ calculator\"\ \"A\ stack\ machine\ with\ careful\ error\ handling.\"\ \{\npages\ \{\n\ \ \{head\ \"The\ brief\"\ body\ \{\n\ \ \ \ p\ \{**Reverse\ Polish\ Notation**\ writes\ the\ operator\ after\ its\ numbers:\ `3\ 4\ +`\ means\ 3\ plus\ 4,\ and\ `3\ 4\ +\ 2\ *`\ means\ (3\ +\ 4)\ times\ 2.\ It\ needs\ no\ brackets\ and\ is\ trivially\ evaluated\ with\ a\ **stack**:\ numbers\ are\ pushed\;\ an\ operator\ pops\ two,\ computes,\ and\ pushes\ the\ result.\}\n\ \ \ \ p\ \{Write\ `rpn\ expression`\ supporting\ `+\ -\ *\ /`,\ with\ these\ rules:\}\n\ \ \ \ p\ \{-\ the\ result\ is\ the\ single\ value\ left\ on\ the\ stack\n-\ an\ operator\ without\ two\ numbers\ raises\ `stack\ underflow`\n-\ an\ unknown\ word\ raises\ `bad\ token:\ X`\n-\ leftovers\ (more\ than\ one\ value\ at\ the\ end)\ raise\ `too\ many\ values`\}\n\ \ \}\}\n\ \ \{head\ \"Design\"\ body\ \{\n\ \ \ \ p\ \{Keep\ the\ stack\ as\ a\ list\ and\ use\ `lindex\ ...\ end`\ and\ `lrange`\ to\ pop.\ A\ small\ loop\ over\ the\ tokens\ does\ everything:\}\n\ \ \ \ code\ \{set\ stack\ \{\}\nforeach\ tok\ \{3\ 4\ +\}\ \{\n\ \ \ \ if\ \{\[string\ is\ double\ -strict\ \$tok\]\}\ \{\n\ \ \ \ \ \ \ \ lappend\ stack\ \$tok\n\ \ \ \ \}\ else\ \{\n\ \ \ \ \ \ \ \ set\ b\ \[lindex\ \$stack\ end\]\n\ \ \ \ \ \ \ \ set\ a\ \[lindex\ \$stack\ end-1\]\n\ \ \ \ \ \ \ \ set\ stack\ \[lrange\ \$stack\ 0\ end-2\]\n\ \ \ \ \ \ \ \ lappend\ stack\ \[expr\ \"\$a\ \$tok\ \$b\"\]\n\ \ \ \ \}\n\}\nputs\ \$stack\}\n\ \ \ \ out\ \{7\}\n\ \ \ \ p\ \{The\ operand\ order\ matters\ for\ `-`\ and\ `/`:\ the\ **second-from-top**\ is\ the\ left\ operand.\}\n\ \ \}\}\n\ \ \{head\ \"Tips\"\ body\ \{\n\ \ \ \ p\ \{-\ Check\ the\ stack\ size\ **before**\ popping,\ so\ underflow\ is\ a\ clean\ error\ rather\ than\ an\ `expr`\ crash\n-\ Build\ the\ expression\ with\ `expr\ \{\$a\ +\ \$b\}`-style\ code,\ or\ use\ `switch`\ on\ the\ operator\ for\ safety\n-\ `/`\ should\ produce\ a\ decimal\ when\ needed\;\ use\ `double(\$a)\ /\ \$b`\n-\ Raise\ errors\ with\ `error\ \"...\"`\ and\ test\ them\ with\ `catch`\}\n\ \ \ \ warn\ \{`expr\ \"\$a\ \$tok\ \$b\"`\ would\ evaluate\ whatever\ the\ token\ says\ if\ it\ were\ not\ validated.\ Always\ check\ the\ token\ against\ the\ allowed\ operators\ first\ -\ never\ pass\ user\ input\ straight\ to\ `expr`.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ code\ prompt\ \{**Step\ 1.**\ Write\ `rpn`\ for\ numbers\ and\ `+`\ only.\}\ starter\ \{proc\ rpn\ \{text\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ rpn\ \{text\}\ \{\n\ \ \ \ set\ stack\ \{\}\n\ \ \ \ foreach\ tok\ \$text\ \{\n\ \ \ \ \ \ \ \ if\ \{\$tok\ eq\ \"+\"\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ set\ b\ \[lindex\ \$stack\ end\]\n\ \ \ \ \ \ \ \ \ \ \ \ set\ a\ \[lindex\ \$stack\ end-1\]\n\ \ \ \ \ \ \ \ \ \ \ \ set\ stack\ \[lrange\ \$stack\ 0\ end-2\]\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ stack\ \[expr\ \{\$a\ +\ \$b\}\]\n\ \ \ \ \ \ \ \ \}\ else\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ stack\ \$tok\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \}\n\ \ \ \ return\ \[lindex\ \$stack\ end\]\n\}\}\ tests\ \{\{rpn\ \"3\ 4\ +\"\}\ 7\ \{rpn\ \"1\ 2\ +\ 3\ +\"\}\ 6\}\ why\ \{Push\ numbers\;\ on\ `+`\ pop\ two\ and\ push\ the\ sum.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 2.**\ Support\ `+\ -\ *\ /`\ using\ a\ `switch`\ on\ the\ operator.\ Division\ should\ give\ a\ decimal:\ `rpn\ \"7\ 2\ /\"`\ is\ 3.5.\}\ starter\ \{proc\ rpn\ \{text\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ rpn\ \{text\}\ \{\n\ \ \ \ set\ stack\ \{\}\n\ \ \ \ foreach\ tok\ \$text\ \{\n\ \ \ \ \ \ \ \ switch\ --\ \$tok\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ +\ -\ -\ -\ *\ -\ /\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ set\ b\ \[lindex\ \$stack\ end\]\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ set\ a\ \[lindex\ \$stack\ end-1\]\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ set\ stack\ \[lrange\ \$stack\ 0\ end-2\]\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ switch\ --\ \$tok\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ \ \{set\ r\ \[expr\ \{\$a\ +\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ -\ \ \{set\ r\ \[expr\ \{\$a\ -\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *\ \ \{set\ r\ \[expr\ \{\$a\ *\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ /\ \ \{set\ r\ \[expr\ \{double(\$a)\ /\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lappend\ stack\ \$r\n\ \ \ \ \ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ \ \ \ \ default\ \{lappend\ stack\ \$tok\}\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \}\n\ \ \ \ return\ \[lindex\ \$stack\ end\]\n\}\}\ tests\ \{\{rpn\ \"3\ 4\ +\ 2\ *\"\}\ 14\ \{rpn\ \"10\ 4\ -\"\}\ 6\ \{rpn\ \"7\ 2\ /\"\}\ 3.5\}\ why\ \{Operand\ order:\ the\ second-from-top\ is\ the\ left\ operand.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 3.**\ Add\ errors:\ `stack\ underflow`\ when\ an\ operator\ lacks\ two\ values,\ and\ `bad\ token:\ X`\ for\ anything\ that\ is\ neither\ a\ number\ nor\ an\ operator.\}\ starter\ \{proc\ rpn\ \{text\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ rpn\ \{text\}\ \{\n\ \ \ \ set\ stack\ \{\}\n\ \ \ \ foreach\ tok\ \$text\ \{\n\ \ \ \ \ \ \ \ if\ \{\[string\ is\ double\ -strict\ \$tok\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ stack\ \$tok\n\ \ \ \ \ \ \ \ \}\ elseif\ \{\$tok\ in\ \{+\ -\ *\ /\}\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{\[llength\ \$stack\]\ <\ 2\}\ \{error\ \"stack\ underflow\"\}\n\ \ \ \ \ \ \ \ \ \ \ \ set\ b\ \[lindex\ \$stack\ end\]\n\ \ \ \ \ \ \ \ \ \ \ \ set\ a\ \[lindex\ \$stack\ end-1\]\n\ \ \ \ \ \ \ \ \ \ \ \ set\ stack\ \[lrange\ \$stack\ 0\ end-2\]\n\ \ \ \ \ \ \ \ \ \ \ \ switch\ --\ \$tok\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ \ \{set\ r\ \[expr\ \{\$a\ +\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ -\ \ \{set\ r\ \[expr\ \{\$a\ -\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *\ \ \{set\ r\ \[expr\ \{\$a\ *\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ /\ \ \{set\ r\ \[expr\ \{double(\$a)\ /\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ stack\ \$r\n\ \ \ \ \ \ \ \ \}\ else\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ error\ \"bad\ token:\ \$tok\"\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \}\n\ \ \ \ return\ \[lindex\ \$stack\ end\]\n\}\}\ tests\ \{\{rpn\ \"3\ 4\ +\"\}\ 7\ \{catch\ \{rpn\ \"3\ +\"\}\ m\;\ set\ m\}\ \{stack\ underflow\}\ \{catch\ \{rpn\ \"3\ x\"\}\ m\;\ set\ m\}\ \{bad\ token:\ x\}\}\ why\ \{Validate\ before\ popping,\ and\ reject\ unknown\ words.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 4\ -\ final.**\ Add\ the\ `too\ many\ values`\ error\ when\ more\ than\ one\ value\ is\ left,\ and\ an\ empty\ expression\ should\ raise\ `empty\ expression`.\}\ starter\ \{proc\ rpn\ \{text\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ rpn\ \{text\}\ \{\n\ \ \ \ if\ \{\[llength\ \$text\]\ ==\ 0\}\ \{error\ \"empty\ expression\"\}\n\ \ \ \ set\ stack\ \{\}\n\ \ \ \ foreach\ tok\ \$text\ \{\n\ \ \ \ \ \ \ \ if\ \{\[string\ is\ double\ -strict\ \$tok\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ stack\ \$tok\n\ \ \ \ \ \ \ \ \}\ elseif\ \{\$tok\ in\ \{+\ -\ *\ /\}\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{\[llength\ \$stack\]\ <\ 2\}\ \{error\ \"stack\ underflow\"\}\n\ \ \ \ \ \ \ \ \ \ \ \ set\ b\ \[lindex\ \$stack\ end\]\n\ \ \ \ \ \ \ \ \ \ \ \ set\ a\ \[lindex\ \$stack\ end-1\]\n\ \ \ \ \ \ \ \ \ \ \ \ set\ stack\ \[lrange\ \$stack\ 0\ end-2\]\n\ \ \ \ \ \ \ \ \ \ \ \ switch\ --\ \$tok\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ \ \{set\ r\ \[expr\ \{\$a\ +\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ -\ \ \{set\ r\ \[expr\ \{\$a\ -\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *\ \ \{set\ r\ \[expr\ \{\$a\ *\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ /\ \ \{set\ r\ \[expr\ \{double(\$a)\ /\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ stack\ \$r\n\ \ \ \ \ \ \ \ \}\ else\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ error\ \"bad\ token:\ \$tok\"\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \}\n\ \ \ \ if\ \{\[llength\ \$stack\]\ !=\ 1\}\ \{error\ \"too\ many\ values\"\}\n\ \ \ \ return\ \[lindex\ \$stack\ 0\]\n\}\}\ tests\ \{\{rpn\ \"5\ 1\ 2\ +\ 4\ *\ +\ 3\ -\"\}\ 14\ \{catch\ \{rpn\ \"1\ 2\"\}\ m\;\ set\ m\}\ \{too\ many\ values\}\ \{catch\ \{rpn\ \"\"\}\ m\;\ set\ m\}\ \{empty\ expression\}\}\ why\ \{A\ valid\ expression\ leaves\ exactly\ one\ value.\}\}\n\ \ \{kind\ predict\ code\ \{set\ stack\ \{1\ 2\ 3\}\nset\ b\ \[lindex\ \$stack\ end\]\nset\ a\ \[lindex\ \$stack\ end-1\]\nset\ stack\ \[lrange\ \$stack\ 0\ end-2\]\nputs\ \"\$a\ \$b\ \$stack\"\}\ choices\ \{\{2\ 3\ 1\}\ \{1\ 2\ 3\}\ \{3\ 2\ 1\}\ \{2\ 3\ \{\}\}\}\ ans\ 0\ why\ \{Pop\ two\ from\ the\ end\;\ one\ item\ (1)\ remains.\}\}\n\ \ \{kind\ mc\ q\ \{Why\ validate\ each\ token\ before\ using\ `expr`?\}\ choices\ \{\{Passing\ unchecked\ input\ to\ `expr`\ could\ run\ unintended\ code\}\ \{expr\ is\ slow\}\ \{Tokens\ must\ be\ numbers\}\ \{It\ is\ required\ by\ switch\}\}\ ans\ 0\ why\ \{Never\ evaluate\ input\ you\ have\ not\ checked.\}\}\n\ \ \{kind\ mc\ q\ \{For\ `10\ 4\ -`,\ which\ value\ is\ the\ left\ operand?\}\ choices\ \{\{10\ (the\ second-from-top)\}\ \{4\}\ \{Either\}\ \{Neither\}\}\ ans\ 0\ why\ \{Operators\ take\ the\ older\ value\ first,\ so\ 10\ -\ 4.\}\}\n\}\ncards\ \{\n\ \ \{\{How\ does\ RPN\ evaluation\ work?\}\ \{Push\ numbers\ on\ a\ stack\;\ an\ operator\ pops\ two\ values,\ computes,\ and\ pushes\ the\ result.\}\}\n\ \ \{\{Why\ check\ the\ stack\ size\ before\ popping?\}\ \{To\ raise\ a\ clean\ `stack\ underflow`\ error\ instead\ of\ a\ confusing\ crash.\}\}\n\ \ \{\{Why\ never\ pass\ raw\ input\ to\ expr?\}\ \{It\ evaluates\ whatever\ it\ is\ given,\ so\ unvalidated\ input\ can\ run\ unintended\ code.\}\}\n\}\n\}\n\ncontent::lesson\ 14.5\ 14\ \"Project\ 4:\ a\ config-file\ parser\"\ \"Parsing\ a\ real\ file\ format,\ with\ line-numbered\ errors.\"\ \{\npages\ \{\n\ \ \{head\ \"The\ brief\"\ body\ \{\n\ \ \ \ p\ \{Parse\ an\ **INI-style**\ configuration\ into\ a\ nested\ dict:\}\n\ \ \ \ code\ \{set\ text\ \{#\ demo\ config\n\[server\]\nhost\ =\ example.com\nport\ =\ 8080\n\n\[log\]\nlevel\ =\ debug\}\nforeach\ line\ \[split\ \$text\ \"\\n\"\]\ \{\n\ \ \ \ puts\ \"<\$line>\"\n\}\}\n\ \ \ \ out\ \{<#\ demo\ config>\n<\[server\]>\n<host\ =\ example.com>\n<port\ =\ 8080>\n<>\n<\[log\]>\n<level\ =\ debug>\}\n\ \ \ \ p\ \{Write\ `parseini\ text`\ returning\ a\ dict\ of\ sections,\ each\ a\ dict\ of\ keys,\ e.g.\ `server\ \{host\ example.com\ port\ 8080\}\ log\ \{level\ debug\}`.\ Comment\ lines\ (starting\ with\ `#`)\ and\ blank\ lines\ are\ ignored.\ Keys\ before\ any\ section\ go\ in\ a\ section\ named\ `global`.\ A\ bad\ line\ raises\ `line\ N:\ bad\ syntax`,\ where\ N\ counts\ from\ 1.\}\n\ \ \}\}\n\ \ \{head\ \"Design\"\ body\ \{\n\ \ \ \ p\ \{Walk\ the\ lines\ with\ a\ counter.\ For\ each\ line,\ **trim**,\ then\ decide:\ blank\ or\ comment\ (skip),\ `\[name\]`\ (new\ section),\ `key\ =\ value`\ (store),\ or\ anything\ else\ (error).\ Regular\ expressions\ classify\ lines\ neatly:\}\n\ \ \ \ code\ \{foreach\ line\ \{\{\[server\]\}\ \{host\ =\ a\ b\}\ \{#\ note\}\ \{oops\}\}\ \{\n\ \ \ \ if\ \{\[regexp\ \{^\\\[(\\w+)\\\]\$\}\ \$line\ ->\ sec\]\}\ \{\n\ \ \ \ \ \ \ \ puts\ \"section\ \$sec\"\n\ \ \ \ \}\ elseif\ \{\[regexp\ \{^(\\w+)\\s*=\\s*(.*)\$\}\ \$line\ ->\ k\ v\]\}\ \{\n\ \ \ \ \ \ \ \ puts\ \"pair\ \$k\ =\ \$v\"\n\ \ \ \ \}\ else\ \{\n\ \ \ \ \ \ \ \ puts\ \"other:\ \$line\"\n\ \ \ \ \}\n\}\}\n\ \ \ \ out\ \{section\ server\npair\ host\ =\ a\ b\nother:\ #\ note\nother:\ oops\}\n\ \ \ \ p\ \{`->`\ is\ a\ conventional\ name\ for\ \"the\ whole\ match,\ which\ I\ do\ not\ need\".\}\n\ \ \}\}\n\ \ \{head\ \"Tips\"\ body\ \{\n\ \ \ \ p\ \{-\ Keep\ the\ current\ section\ in\ a\ variable\;\ `dict\ set\ result\ \$section\ \$key\ \$value`\ creates\ nested\ dicts\ automatically\n-\ Do\ the\ comment/blank\ test\ **first**\n-\ `string\ trim`\ the\ value\ so\ stray\ spaces\ vanish\n-\ Count\ lines\ with\ `incr\ n`\ in\ the\ loop\ so\ errors\ can\ say\ which\ line\}\n\ \ \ \ tip\ \{A\ hand-written\ parser\ is\ often\ shorter\ and\ clearer\ than\ a\ heavy\ tool\ for\ small\ formats.\ For\ big\ ones,\ use\ a\ real\ parsing\ package\ -\ but\ you\ will\ understand\ it\ better\ having\ done\ this.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ code\ prompt\ \{**Step\ 1.**\ Write\ `parseini`\ for\ sections\ and\ `key\ =\ value`\ lines\ (no\ comments\ or\ errors\ yet).\}\ starter\ \{proc\ parseini\ \{text\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ parseini\ \{text\}\ \{\n\ \ \ \ set\ result\ \{\}\n\ \ \ \ set\ sec\ global\n\ \ \ \ foreach\ line\ \[split\ \$text\ \"\\n\"\]\ \{\n\ \ \ \ \ \ \ \ set\ line\ \[string\ trim\ \$line\]\n\ \ \ \ \ \ \ \ if\ \{\$line\ eq\ \"\"\}\ continue\n\ \ \ \ \ \ \ \ if\ \{\[regexp\ \{^\\\[(\\w+)\\\]\$\}\ \$line\ ->\ s\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ set\ sec\ \$s\n\ \ \ \ \ \ \ \ \}\ elseif\ \{\[regexp\ \{^(\\w+)\\s*=\\s*(.*)\$\}\ \$line\ ->\ k\ v\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ dict\ set\ result\ \$sec\ \$k\ \$v\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \}\n\ \ \ \ return\ \$result\n\}\}\ tests\ \{\{parseini\ \"\\\[a\\\]\\nx\ =\ 1\\ny\ =\ 2\\n\\\[b\\\]\\nz\ =\ 3\"\}\ \{a\ \{x\ 1\ y\ 2\}\ b\ \{z\ 3\}\}\}\ why\ \{Track\ the\ current\ section\;\ `dict\ set`\ builds\ the\ nested\ structure.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 2.**\ Ignore\ blank\ lines\ and\ `#`\ comments,\ and\ put\ keys\ that\ appear\ before\ any\ section\ into\ `global`.\}\ starter\ \{proc\ parseini\ \{text\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ parseini\ \{text\}\ \{\n\ \ \ \ set\ result\ \{\}\n\ \ \ \ set\ sec\ global\n\ \ \ \ foreach\ line\ \[split\ \$text\ \"\\n\"\]\ \{\n\ \ \ \ \ \ \ \ set\ line\ \[string\ trim\ \$line\]\n\ \ \ \ \ \ \ \ if\ \{\$line\ eq\ \"\"\ ||\ \[string\ index\ \$line\ 0\]\ eq\ \"#\"\}\ continue\n\ \ \ \ \ \ \ \ if\ \{\[regexp\ \{^\\\[(\\w+)\\\]\$\}\ \$line\ ->\ s\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ set\ sec\ \$s\n\ \ \ \ \ \ \ \ \}\ elseif\ \{\[regexp\ \{^(\\w+)\\s*=\\s*(.*)\$\}\ \$line\ ->\ k\ v\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ dict\ set\ result\ \$sec\ \$k\ \[string\ trim\ \$v\]\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \}\n\ \ \ \ return\ \$result\n\}\}\ tests\ \{\{parseini\ \"#\ top\\nname\ =\ demo\\n\\n\\\[s\\\]\\n#\ note\\nk\ =\ v\"\}\ \{global\ \{name\ demo\}\ s\ \{k\ v\}\}\}\ why\ \{Skip\ comments\ and\ blanks\ first\;\ `global`\ is\ just\ the\ starting\ section\ name.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 3.**\ Raise\ `line\ N:\ bad\ syntax`\ for\ any\ line\ that\ is\ none\ of\ the\ accepted\ forms\ (N\ counts\ from\ 1,\ including\ blank\ and\ comment\ lines).\}\ starter\ \{proc\ parseini\ \{text\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ parseini\ \{text\}\ \{\n\ \ \ \ set\ result\ \{\}\n\ \ \ \ set\ sec\ global\n\ \ \ \ set\ n\ 0\n\ \ \ \ foreach\ line\ \[split\ \$text\ \"\\n\"\]\ \{\n\ \ \ \ \ \ \ \ incr\ n\n\ \ \ \ \ \ \ \ set\ line\ \[string\ trim\ \$line\]\n\ \ \ \ \ \ \ \ if\ \{\$line\ eq\ \"\"\ ||\ \[string\ index\ \$line\ 0\]\ eq\ \"#\"\}\ continue\n\ \ \ \ \ \ \ \ if\ \{\[regexp\ \{^\\\[(\\w+)\\\]\$\}\ \$line\ ->\ s\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ set\ sec\ \$s\n\ \ \ \ \ \ \ \ \}\ elseif\ \{\[regexp\ \{^(\\w+)\\s*=\\s*(.*)\$\}\ \$line\ ->\ k\ v\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ dict\ set\ result\ \$sec\ \$k\ \[string\ trim\ \$v\]\n\ \ \ \ \ \ \ \ \}\ else\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ error\ \"line\ \$n:\ bad\ syntax\"\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \}\n\ \ \ \ return\ \$result\n\}\}\ tests\ \{\{parseini\ \"a\ =\ 1\\n\\\[s\\\]\\nb\ =\ 2\"\}\ \{global\ \{a\ 1\}\ s\ \{b\ 2\}\}\ \{catch\ \{parseini\ \"a\ =\ 1\\n\\n???\"\}\ m\;\ set\ m\}\ \{line\ 3:\ bad\ syntax\}\}\ why\ \{Keep\ a\ line\ counter\ and\ fall\ through\ to\ an\ error.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 4.**\ Write\ `cfgget\ cfg\ section\ key\ default`\ returning\ the\ value,\ or\ the\ default\ when\ the\ section\ or\ key\ is\ missing.\}\ starter\ \{proc\ cfgget\ \{cfg\ section\ key\ default\}\ \{\n\ \ \ \ return\ \$default\n\}\}\ solution\ \{proc\ cfgget\ \{cfg\ section\ key\ default\}\ \{\n\ \ \ \ if\ \{\[dict\ exists\ \$cfg\ \$section\ \$key\]\}\ \{\n\ \ \ \ \ \ \ \ return\ \[dict\ get\ \$cfg\ \$section\ \$key\]\n\ \ \ \ \}\n\ \ \ \ return\ \$default\n\}\}\ tests\ \{\{cfgget\ \{s\ \{k\ v\}\}\ s\ k\ none\}\ v\ \{cfgget\ \{s\ \{k\ v\}\}\ s\ x\ none\}\ none\ \{cfgget\ \{\}\ q\ k\ 7\}\ 7\}\ why\ \{`dict\ exists`\ accepts\ a\ whole\ path\ of\ keys.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 5\ -\ final.**\ Write\ `validate\ cfg\ required`\ where\ `required`\ is\ a\ list\ of\ `section.key`\ names\;\ return\ the\ list\ of\ those\ that\ are\ missing\ (empty\ list\ if\ all\ present).\}\ starter\ \{proc\ validate\ \{cfg\ required\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ validate\ \{cfg\ required\}\ \{\n\ \ \ \ set\ missing\ \{\}\n\ \ \ \ foreach\ item\ \$required\ \{\n\ \ \ \ \ \ \ \ lassign\ \[split\ \$item\ .\]\ sec\ key\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$cfg\ \$sec\ \$key\]\}\ \{lappend\ missing\ \$item\}\n\ \ \ \ \}\n\ \ \ \ return\ \$missing\n\}\}\ tests\ \{\{validate\ \{server\ \{host\ a\ port\ 1\}\ log\ \{level\ x\}\}\ \{server.host\ log.level\ log.file\ db.url\}\}\ \{log.file\ db.url\}\ \{validate\ \{a\ \{b\ 1\}\}\ \{a.b\}\}\ \{\}\}\ why\ \{Split\ each\ name\ into\ section\ and\ key,\ and\ test\ with\ `dict\ exists`.\}\}\n\ \ \{kind\ predict\ code\ \{regexp\ \{^(\\w+)\\s*=\\s*(.*)\$\}\ \"port\ \ =\ \ 8080\ \"\ ->\ k\ v\nputs\ \"<\$k>\ <\[string\ trim\ \$v\]>\"\}\ choices\ \{\{<port>\ <8080>\}\ \{<port\ >\ <8080>\}\ \{<port>\ <8080\ >\}\ \{<>\ <>\}\}\ ans\ 0\ why\ \{`\\s*`\ absorbs\ the\ spaces\;\ the\ value\ is\ trimmed.\}\}\n\ \ \{kind\ mc\ q\ \{Why\ report\ the\ line\ number\ in\ the\ error\ message?\}\ choices\ \{\{The\ user\ can\ find\ and\ fix\ the\ exact\ problem\}\ \{Line\ numbers\ are\ required\ by\ `error`\}\ \{It\ makes\ parsing\ faster\}\ \{It\ hides\ the\ cause\}\}\ ans\ 0\ why\ \{Good\ errors\ say\ where,\ not\ just\ what.\}\}\n\}\ncards\ \{\n\ \ \{\{How\ do\ you\ classify\ lines\ in\ a\ simple\ parser?\}\ \{Skip\ blanks/comments,\ then\ try\ regular\ expressions\ for\ each\ accepted\ form,\ and\ raise\ an\ error\ for\ anything\ else.\}\}\n\ \ \{\{How\ does\ `dict\ set\ d\ a\ b\ c`\ behave?\}\ \{It\ creates\ the\ nested\ dicts\ as\ needed:\ d\ becomes\ `a\ \{b\ c\}`.\}\}\n\ \ \{\{Why\ give\ a\ parse\ error\ a\ line\ number?\}\ \{So\ the\ user\ can\ locate\ the\ problem\ immediately.\}\}\n\}\n\}\n\ncontent::lesson\ 14.6\ 14\ \"Project\ 5:\ a\ bank\ with\ TclOO\"\ \"Classes,\ inheritance,\ error\ handling\ and\ consistency.\"\ \{\npages\ \{\n\ \ \{head\ \"The\ brief\"\ body\ \{\n\ \ \ \ p\ \{Model\ a\ tiny\ **bank**\ with\ TclOO:\}\n\ \ \ \ p\ \{-\ `Account`:\ constructor\ takes\ an\ opening\ balance\;\ `deposit\ n`,\ `withdraw\ n`\ (raises\ `insufficient\ funds`),\ `balance`\n-\ `Savings`\ inherits\ from\ `Account`\ and\ adds\ `addinterest\ rate`,\ which\ deposits\ balance\ times\ rate\n-\ `Bank`\ holds\ accounts\ by\ name:\ `open\ name\ balance`,\ `get\ name`,\ and\ `transfer\ from\ to\ amount`\}\n\ \ \ \ p\ \{The\ important\ rule:\ a\ **transfer\ must\ be\ all-or-nothing**.\ If\ the\ withdrawal\ fails,\ nothing\ must\ change.\}\n\ \ \}\}\n\ \ \{head\ \"Design\"\ body\ \{\n\ \ \ \ p\ \{Each\ class\ owns\ its\ data\ with\ `variable`.\ `Savings`\ uses\ `superclass\ Account`\ and\ calls\ inherited\ methods\ through\ `my`.\ The\ bank\ stores\ objects\ in\ a\ dict\ by\ name:\}\n\ \ \ \ code\ \{oo::class\ create\ Account\ \{\n\ \ \ \ variable\ bal\n\ \ \ \ constructor\ \{start\}\ \{set\ bal\ \$start\}\n\ \ \ \ method\ deposit\ \{n\}\ \{incr\ bal\ \$n\}\n\ \ \ \ method\ balance\ \{\}\ \{return\ \$bal\}\n\}\noo::class\ create\ Savings\ \{\n\ \ \ \ superclass\ Account\n\ \ \ \ method\ addinterest\ \{rate\}\ \{\n\ \ \ \ \ \ \ \ my\ deposit\ \[expr\ \{int(\[my\ balance\]\ *\ \$rate)\}\]\n\ \ \ \ \}\n\}\nset\ s\ \[Savings\ new\ 1000\]\n\$s\ addinterest\ 0.05\nputs\ \[\$s\ balance\]\}\n\ \ \ \ out\ \{1050\}\n\ \ \ \ p\ \{`Savings`\ got\ `deposit`\ and\ `balance`\ for\ free\ and\ added\ only\ what\ is\ new.\}\n\ \ \}\}\n\ \ \{head\ \"Tips\"\ body\ \{\n\ \ \ \ p\ \{-\ Check\ funds\ **before**\ changing\ anything\;\ an\ error\ raised\ first\ leaves\ the\ object\ untouched\n-\ In\ `transfer`,\ withdraw\ first\ (it\ may\ fail),\ then\ deposit\n-\ A\ missing\ account\ should\ raise\ `no\ such\ account`\n-\ Test\ the\ failure\ paths:\ they\ are\ where\ money\ bugs\ hide\}\n\ \ \ \ tip\ \{All-or-nothing\ operations\ are\ called\ **atomic**.\ Ordering\ your\ steps\ so\ the\ risky\ one\ comes\ first,\ as\ here,\ is\ the\ simplest\ way\ to\ get\ atomicity\ without\ any\ special\ machinery.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ code\ prompt\ \{**Step\ 1.**\ Write\ the\ `Account`\ class.\}\ starter\ \{oo::class\ create\ Account\ \{\n\}\}\ solution\ \{oo::class\ create\ Account\ \{\n\ \ \ \ variable\ bal\n\ \ \ \ constructor\ \{start\}\ \{set\ bal\ \$start\}\n\ \ \ \ method\ deposit\ \{n\}\ \{incr\ bal\ \$n\}\n\ \ \ \ method\ withdraw\ \{n\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\$n\ >\ \$bal\}\ \{error\ \"insufficient\ funds\"\}\n\ \ \ \ \ \ \ \ incr\ bal\ -\$n\n\ \ \ \ \}\n\ \ \ \ method\ balance\ \{\}\ \{return\ \$bal\}\n\}\}\ tests\ \{\{set\ a\ \[Account\ new\ 100\]\;\ \$a\ deposit\ 20\;\ \$a\ withdraw\ 50\;\ \$a\ balance\}\ 70\ \{set\ a\ \[Account\ new\ 10\]\;\ catch\ \{\$a\ withdraw\ 11\}\ m\;\ list\ \$m\ \[\$a\ balance\]\}\ \{\{insufficient\ funds\}\ 10\}\}\ why\ \{Validate\ before\ changing\ the\ balance.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 2.**\ Add\ `Savings`,\ inheriting\ from\ `Account`\ (the\ class\ is\ included\ below),\ with\ `addinterest\ rate`.\}\ starter\ \{oo::class\ create\ Account\ \{\n\ \ \ \ variable\ bal\n\ \ \ \ constructor\ \{start\}\ \{set\ bal\ \$start\}\n\ \ \ \ method\ deposit\ \{n\}\ \{incr\ bal\ \$n\}\n\ \ \ \ method\ withdraw\ \{n\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\$n\ >\ \$bal\}\ \{error\ \"insufficient\ funds\"\}\n\ \ \ \ \ \ \ \ incr\ bal\ -\$n\n\ \ \ \ \}\n\ \ \ \ method\ balance\ \{\}\ \{return\ \$bal\}\n\}\}\ solution\ \{oo::class\ create\ Account\ \{\n\ \ \ \ variable\ bal\n\ \ \ \ constructor\ \{start\}\ \{set\ bal\ \$start\}\n\ \ \ \ method\ deposit\ \{n\}\ \{incr\ bal\ \$n\}\n\ \ \ \ method\ withdraw\ \{n\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\$n\ >\ \$bal\}\ \{error\ \"insufficient\ funds\"\}\n\ \ \ \ \ \ \ \ incr\ bal\ -\$n\n\ \ \ \ \}\n\ \ \ \ method\ balance\ \{\}\ \{return\ \$bal\}\n\}\noo::class\ create\ Savings\ \{\n\ \ \ \ superclass\ Account\n\ \ \ \ method\ addinterest\ \{rate\}\ \{\n\ \ \ \ \ \ \ \ my\ deposit\ \[expr\ \{int(\[my\ balance\]\ *\ \$rate)\}\]\n\ \ \ \ \}\n\}\}\ tests\ \{\{set\ s\ \[Savings\ new\ 1000\]\;\ \$s\ addinterest\ 0.05\;\ \$s\ balance\}\ 1050\ \{set\ s\ \[Savings\ new\ 100\]\;\ \$s\ withdraw\ 30\;\ \$s\ balance\}\ 70\}\ why\ \{Inherited\ methods\ are\ available\ through\ `my`.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 3.**\ Write\ `Bank`\ with\ `open\ name\ balance`\ (creates\ an\ Account),\ `get\ name`\ (raises\ `no\ such\ account`\ if\ missing)\ and\ `total`\ (the\ sum\ of\ all\ balances).\ The\ Account\ class\ is\ included.\}\ starter\ \{oo::class\ create\ Account\ \{\n\ \ \ \ variable\ bal\n\ \ \ \ constructor\ \{start\}\ \{set\ bal\ \$start\}\n\ \ \ \ method\ deposit\ \{n\}\ \{incr\ bal\ \$n\}\n\ \ \ \ method\ withdraw\ \{n\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\$n\ >\ \$bal\}\ \{error\ \"insufficient\ funds\"\}\n\ \ \ \ \ \ \ \ incr\ bal\ -\$n\n\ \ \ \ \}\n\ \ \ \ method\ balance\ \{\}\ \{return\ \$bal\}\n\}\}\ solution\ \{oo::class\ create\ Account\ \{\n\ \ \ \ variable\ bal\n\ \ \ \ constructor\ \{start\}\ \{set\ bal\ \$start\}\n\ \ \ \ method\ deposit\ \{n\}\ \{incr\ bal\ \$n\}\n\ \ \ \ method\ withdraw\ \{n\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\$n\ >\ \$bal\}\ \{error\ \"insufficient\ funds\"\}\n\ \ \ \ \ \ \ \ incr\ bal\ -\$n\n\ \ \ \ \}\n\ \ \ \ method\ balance\ \{\}\ \{return\ \$bal\}\n\}\noo::class\ create\ Bank\ \{\n\ \ \ \ variable\ accts\n\ \ \ \ constructor\ \{\}\ \{set\ accts\ \{\}\}\n\ \ \ \ method\ open\ \{name\ bal\}\ \{dict\ set\ accts\ \$name\ \[Account\ new\ \$bal\]\}\n\ \ \ \ method\ get\ \{name\}\ \{\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$accts\ \$name\]\}\ \{error\ \"no\ such\ account\"\}\n\ \ \ \ \ \ \ \ return\ \[dict\ get\ \$accts\ \$name\]\n\ \ \ \ \}\n\ \ \ \ method\ total\ \{\}\ \{\n\ \ \ \ \ \ \ \ set\ t\ 0\n\ \ \ \ \ \ \ \ dict\ for\ \{n\ a\}\ \$accts\ \{incr\ t\ \[\$a\ balance\]\}\n\ \ \ \ \ \ \ \ return\ \$t\n\ \ \ \ \}\n\}\}\ tests\ \{\{set\ b\ \[Bank\ new\]\;\ \$b\ open\ ann\ 100\;\ \$b\ open\ bob\ 50\;\ \$b\ total\}\ 150\ \{set\ b\ \[Bank\ new\]\;\ catch\ \{\$b\ get\ zed\}\ m\;\ set\ m\}\ \{no\ such\ account\}\}\ why\ \{A\ dict\ of\ name\ to\ object\;\ `total`\ asks\ each\ object\ for\ its\ balance.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 4\ -\ final.**\ Add\ `transfer\ from\ to\ amount`\ to\ `Bank`.\ It\ must\ be\ all-or-nothing:\ if\ the\ withdrawal\ fails\ (or\ an\ account\ is\ missing),\ nothing\ changes\ anywhere.\ (Account\ and\ the\ rest\ of\ Bank\ are\ included.)\}\ starter\ \{oo::class\ create\ Account\ \{\n\ \ \ \ variable\ bal\n\ \ \ \ constructor\ \{start\}\ \{set\ bal\ \$start\}\n\ \ \ \ method\ deposit\ \{n\}\ \{incr\ bal\ \$n\}\n\ \ \ \ method\ withdraw\ \{n\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\$n\ >\ \$bal\}\ \{error\ \"insufficient\ funds\"\}\n\ \ \ \ \ \ \ \ incr\ bal\ -\$n\n\ \ \ \ \}\n\ \ \ \ method\ balance\ \{\}\ \{return\ \$bal\}\n\}\noo::class\ create\ Bank\ \{\n\ \ \ \ variable\ accts\n\ \ \ \ constructor\ \{\}\ \{set\ accts\ \{\}\}\n\ \ \ \ method\ open\ \{name\ bal\}\ \{dict\ set\ accts\ \$name\ \[Account\ new\ \$bal\]\}\n\ \ \ \ method\ get\ \{name\}\ \{\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$accts\ \$name\]\}\ \{error\ \"no\ such\ account\"\}\n\ \ \ \ \ \ \ \ return\ \[dict\ get\ \$accts\ \$name\]\n\ \ \ \ \}\n\}\}\ solution\ \{oo::class\ create\ Account\ \{\n\ \ \ \ variable\ bal\n\ \ \ \ constructor\ \{start\}\ \{set\ bal\ \$start\}\n\ \ \ \ method\ deposit\ \{n\}\ \{incr\ bal\ \$n\}\n\ \ \ \ method\ withdraw\ \{n\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\$n\ >\ \$bal\}\ \{error\ \"insufficient\ funds\"\}\n\ \ \ \ \ \ \ \ incr\ bal\ -\$n\n\ \ \ \ \}\n\ \ \ \ method\ balance\ \{\}\ \{return\ \$bal\}\n\}\noo::class\ create\ Bank\ \{\n\ \ \ \ variable\ accts\n\ \ \ \ constructor\ \{\}\ \{set\ accts\ \{\}\}\n\ \ \ \ method\ open\ \{name\ bal\}\ \{dict\ set\ accts\ \$name\ \[Account\ new\ \$bal\]\}\n\ \ \ \ method\ get\ \{name\}\ \{\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$accts\ \$name\]\}\ \{error\ \"no\ such\ account\"\}\n\ \ \ \ \ \ \ \ return\ \[dict\ get\ \$accts\ \$name\]\n\ \ \ \ \}\n\ \ \ \ method\ transfer\ \{from\ to\ amount\}\ \{\n\ \ \ \ \ \ \ \ set\ a\ \[my\ get\ \$from\]\n\ \ \ \ \ \ \ \ set\ b\ \[my\ get\ \$to\]\n\ \ \ \ \ \ \ \ \$a\ withdraw\ \$amount\n\ \ \ \ \ \ \ \ \$b\ deposit\ \$amount\n\ \ \ \ \}\n\}\}\ tests\ \{\{set\ b\ \[Bank\ new\]\;\ \$b\ open\ a\ 100\;\ \$b\ open\ c\ 5\;\ \$b\ transfer\ a\ c\ 40\;\ list\ \[\[\$b\ get\ a\]\ balance\]\ \[\[\$b\ get\ c\]\ balance\]\}\ \{60\ 45\}\ \{set\ b\ \[Bank\ new\]\;\ \$b\ open\ a\ 10\;\ \$b\ open\ c\ 5\;\ catch\ \{\$b\ transfer\ a\ c\ 99\}\;\ list\ \[\[\$b\ get\ a\]\ balance\]\ \[\[\$b\ get\ c\]\ balance\]\}\ \{10\ 5\}\ \{set\ b\ \[Bank\ new\]\;\ \$b\ open\ a\ 10\;\ catch\ \{\$b\ transfer\ a\ nobody\ 1\}\ m\;\ list\ \$m\ \[\[\$b\ get\ a\]\ balance\]\}\ \{\{no\ such\ account\}\ 10\}\}\ why\ \{Look\ up\ both\ accounts\ and\ withdraw\ first\ -\ the\ step\ that\ can\ fail\ -\ before\ depositing.\}\}\n\ \ \{kind\ predict\ code\ \{oo::class\ create\ A\ \{\n\ \ \ \ variable\ n\n\ \ \ \ constructor\ \{\}\ \{set\ n\ 0\}\n\ \ \ \ method\ up\ \{\}\ \{incr\ n\}\n\}\noo::class\ create\ B\ \{superclass\ A\}\nset\ b\ \[B\ new\]\n\$b\ up\nputs\ \[\$b\ up\]\}\ choices\ \{2\ 1\ 0\ \{\}\}\ ans\ 0\ why\ \{B\ inherits\ the\ constructor\ and\ `up`\;\ two\ calls\ give\ 2.\}\}\n\ \ \{kind\ mc\ q\ \{Why\ should\ `transfer`\ withdraw\ before\ it\ deposits?\}\ choices\ \{\{The\ withdrawal\ can\ fail\;\ failing\ first\ leaves\ everything\ unchanged\}\ \{Deposits\ are\ slower\}\ \{Withdrawals\ are\ logged\}\ \{Order\ never\ matters\}\}\ ans\ 0\ why\ \{Put\ the\ step\ that\ can\ fail\ first,\ so\ there\ is\ nothing\ to\ undo.\}\}\n\ \ \{kind\ mc\ q\ \{What\ does\ `superclass\ Account`\ give\ the\ `Savings`\ class?\}\ choices\ \{\{All\ of\ Account's\ methods,\ plus\ its\ constructor\}\ \{Only\ the\ variables\}\ \{A\ copy\ of\ one\ object\}\ \{Nothing\ until\ instantiated\}\}\ ans\ 0\ why\ \{Inheritance\ reuses\ behaviour.\}\}\n\}\ncards\ \{\n\ \ \{\{How\ do\ you\ make\ a\ multi-step\ operation\ all-or-nothing?\}\ \{Do\ the\ step\ that\ can\ fail\ first\;\ check\ preconditions\ before\ changing\ state.\}\}\n\ \ \{\{How\ does\ a\ TclOO\ subclass\ reuse\ behaviour?\}\ \{`superclass\ Parent`\;\ call\ inherited\ methods\ with\ `my\ method`\ (or\ `next`).\}\}\n\ \ \{\{Why\ test\ failure\ paths\ in\ particular?\}\ \{That\ is\ where\ state-corruption\ bugs\ hide:\ money\ moved\ without\ the\ other\ half.\}\}\n\}\n\}\n\ncontent::lesson\ 14.7\ 14\ \"Project\ 6:\ a\ cooperative\ scheduler\"\ \"Coroutines\ as\ lightweight\ tasks,\ scheduled\ round-robin.\"\ \{\npages\ \{\n\ \ \{head\ \"The\ brief\"\ body\ \{\n\ \ \ \ p\ \{Write\ a\ tiny\ **cooperative\ multitasking**\ scheduler.\ Each\ **task**\ is\ a\ coroutine\ that\ does\ a\ little\ work,\ then\ `yield`s\ to\ let\ others\ run.\ The\ scheduler\ runs\ the\ tasks\ in\ turn,\ round-robin,\ until\ all\ have\ finished,\ and\ returns\ a\ **log**\ of\ what\ each\ did.\}\n\ \ \ \ p\ \{-\ `spawn\ name\ body`\ registers\ a\ task.\ Inside\ the\ body,\ `log\ text`\ records\ a\ line\ and\ `yield`\ hands\ control\ back\n-\ `runall`\ runs\ the\ tasks\ round-robin\ and\ returns\ the\ combined\ log,\ in\ the\ order\ things\ happened\}\n\ \ \}\}\n\ \ \{head\ \"Design\"\ body\ \{\n\ \ \ \ p\ \{A\ coroutine\ is\ a\ proc\ that\ can\ pause.\ Run\ in\ a\ loop,\ three\ such\ tasks\ interleave\ perfectly\ with\ no\ threads\ and\ no\ locks:\}\n\ \ \ \ code\ \{proc\ worker\ \{name\ n\}\ \{\n\ \ \ \ yield\n\ \ \ \ for\ \{set\ i\ 1\}\ \{\$i\ <=\ \$n\}\ \{incr\ i\}\ \{\n\ \ \ \ \ \ \ \ yield\ \"\$name\$i\"\n\ \ \ \ \}\n\ \ \ \ return\ done\n\}\ncoroutine\ A\ worker\ A\ 2\ncoroutine\ B\ worker\ B\ 3\nset\ out\ \{\}\nforeach\ c\ \{A\ B\ A\ B\ A\ B\ B\}\ \{\n\ \ \ \ lappend\ out\ \[\$c\]\n\}\nputs\ \$out\}\n\ \ \ \ out\ \{A1\ B1\ A2\ B2\ done\ B3\ done\}\n\ \ \ \ p\ \{Each\ call\ resumes\ the\ task\ until\ its\ next\ `yield`\;\ when\ the\ body\ ends\ the\ final\ value\ is\ returned\ and\ the\ coroutine\ disappears.\}\n\ \ \}\}\n\ \ \{head\ \"Tips\"\ body\ \{\n\ \ \ \ p\ \{-\ Keep\ a\ list\ of\ live\ task\ names\;\ each\ pass,\ resume\ each\ one\ and\ remove\ those\ that\ finished\n-\ Detect\ a\ finished\ coroutine\ with\ `info\ commands\ \$name`:\ it\ is\ empty\ once\ the\ coroutine\ ends\n-\ Append\ what\ a\ task\ yields\ to\ the\ log,\ but\ ignore\ the\ final\ `done`\n-\ Deterministic\ order\ makes\ cooperative\ code\ easy\ to\ test\ -\ there\ is\ no\ timing\ involved\}\n\ \ \ \ tip\ \{This\ model\ -\ many\ logical\ tasks,\ one\ thread,\ explicit\ switch\ points\ -\ is\ the\ idea\ behind\ async/await\ in\ other\ languages,\ and\ behind\ most\ Tcl\ network\ servers.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ code\ prompt\ \{**Step\ 1.**\ Write\ `ticker\ name\ n`\ as\ a\ coroutine\ body:\ it\ yields\ once\ to\ start,\ then\ yields\ `name1\ name2\ ...\ namen`,\ then\ returns\ `done`.\}\ starter\ \{proc\ ticker\ \{name\ n\}\ \{\n\ \ \ \ return\ done\n\}\}\ solution\ \{proc\ ticker\ \{name\ n\}\ \{\n\ \ \ \ yield\n\ \ \ \ for\ \{set\ i\ 1\}\ \{\$i\ <=\ \$n\}\ \{incr\ i\}\ \{\n\ \ \ \ \ \ \ \ yield\ \"\$name\$i\"\n\ \ \ \ \}\n\ \ \ \ return\ done\n\}\}\ tests\ \{\{coroutine\ T1\ ticker\ X\ 2\;\ list\ \[T1\]\ \[T1\]\ \[T1\]\}\ \{X1\ X2\ done\}\}\ why\ \{The\ first\ `yield`\ is\ the\ starting\ gate\;\ the\ rest\ hand\ back\ values.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 2.**\ Write\ `runtask\ name`\ that\ resumes\ the\ coroutine\ `name`\ once\ and\ returns\ its\ value,\ or\ the\ empty\ string\ if\ it\ has\ already\ finished.\}\ starter\ \{proc\ runtask\ \{name\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ runtask\ \{name\}\ \{\n\ \ \ \ if\ \{\[info\ commands\ \$name\]\ eq\ \"\"\}\ \{return\ \"\"\}\n\ \ \ \ return\ \[\$name\]\n\}\}\ tests\ \{\{proc\ t\ \{\}\ \{yield\;\ yield\ a\;\ return\ z\}\;\ coroutine\ Q\ t\;\ list\ \[runtask\ Q\]\ \[runtask\ Q\]\ \[runtask\ Q\]\}\ \{a\ z\ \{\}\}\}\ why\ \{A\ finished\ coroutine\ no\ longer\ exists\ as\ a\ command.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 3.**\ Write\ `roundrobin\ names`\ that\ resumes\ each\ named\ coroutine\ in\ turn,\ again\ and\ again,\ collecting\ every\ yielded\ value\ (not\ the\ final\ return)\ until\ all\ tasks\ are\ finished.\ Return\ the\ list\ of\ collected\ values.\}\ starter\ \{proc\ roundrobin\ \{names\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ roundrobin\ \{names\}\ \{\n\ \ \ \ set\ log\ \{\}\n\ \ \ \ set\ live\ \$names\n\ \ \ \ while\ \{\[llength\ \$live\]\}\ \{\n\ \ \ \ \ \ \ \ set\ next\ \{\}\n\ \ \ \ \ \ \ \ foreach\ n\ \$live\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ set\ v\ \[\$n\]\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{\[info\ commands\ \$n\]\ ne\ \"\"\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lappend\ log\ \$v\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lappend\ next\ \$n\n\ \ \ \ \ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ set\ live\ \$next\n\ \ \ \ \}\n\ \ \ \ return\ \$log\n\}\}\ tests\ \{\{proc\ w\ \{name\ n\}\ \{yield\;\ for\ \{set\ i\ 1\}\ \{\$i\ <=\ \$n\}\ \{incr\ i\}\ \{yield\ \$name\$i\}\;\ return\ done\}\;\ coroutine\ A\ w\ A\ 2\;\ coroutine\ B\ w\ B\ 3\;\ roundrobin\ \{A\ B\}\}\ \{A1\ B1\ A2\ B2\ B3\}\}\ why\ \{After\ each\ resume,\ a\ coroutine\ that\ still\ exists\ yielded\ a\ value\;\ one\ that\ has\ gone\ had\ just\ returned.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 4\ -\ final.**\ Write\ `schedule\ tasks`\ where\ `tasks`\ is\ a\ dict\ of\ task\ name\ to\ a\ list\ of\ items.\ Each\ task,\ when\ run,\ produces\ its\ items\ one\ per\ turn.\ Use\ coroutines\ and\ round-robin\ scheduling,\ and\ return\ the\ combined\ log\ as\ `name:item`\ entries.\}\ starter\ \{proc\ schedule\ \{tasks\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ schedule\ \{tasks\}\ \{\n\ \ \ \ set\ names\ \{\}\n\ \ \ \ dict\ for\ \{name\ items\}\ \$tasks\ \{\n\ \ \ \ \ \ \ \ proc\ ::body_\$name\ \{name\ items\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ yield\n\ \ \ \ \ \ \ \ \ \ \ \ foreach\ i\ \$items\ \{yield\ \"\$name:\$i\"\}\n\ \ \ \ \ \ \ \ \ \ \ \ return\ done\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ coroutine\ ::co_\$name\ ::body_\$name\ \$name\ \$items\n\ \ \ \ \ \ \ \ lappend\ names\ ::co_\$name\n\ \ \ \ \}\n\ \ \ \ set\ log\ \{\}\n\ \ \ \ set\ live\ \$names\n\ \ \ \ while\ \{\[llength\ \$live\]\}\ \{\n\ \ \ \ \ \ \ \ set\ next\ \{\}\n\ \ \ \ \ \ \ \ foreach\ n\ \$live\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ set\ v\ \[\$n\]\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{\[info\ commands\ \$n\]\ ne\ \"\"\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lappend\ log\ \$v\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lappend\ next\ \$n\n\ \ \ \ \ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ set\ live\ \$next\n\ \ \ \ \}\n\ \ \ \ return\ \$log\n\}\}\ tests\ \{\{schedule\ \{a\ \{1\ 2\}\ b\ \{x\ y\ z\}\}\}\ \{a:1\ b:x\ a:2\ b:y\ b:z\}\ \{schedule\ \{\}\}\ \{\}\}\ why\ \{Create\ one\ coroutine\ per\ task,\ then\ drive\ them\ all\ round-robin.\}\}\n\ \ \{kind\ predict\ code\ \{proc\ g\ \{\}\ \{yield\;\ yield\ 1\;\ yield\ 2\;\ return\ 3\}\ncoroutine\ c\ g\nputs\ \"\[c\]\ \[c\]\ \[c\]\"\}\ choices\ \{\{1\ 2\ 3\}\ \{2\ 3\ \{\}\}\ \{1\ 2\ \{\}\}\ \{3\}\}\ ans\ 0\ why\ \{The\ first\ call\ returns\ the\ first\ yielded\ value\ 1,\ then\ 2,\ then\ the\ final\ return\ 3.\}\}\n\ \ \{kind\ predict\ code\ \{proc\ g\ \{\}\ \{yield\;\ return\ x\}\ncoroutine\ c\ g\nc\nputs\ \[llength\ \[info\ commands\ c\]\]\}\ choices\ \{0\ 1\ 2\ c\}\ ans\ 0\ why\ \{After\ the\ body\ returns,\ the\ coroutine\ command\ is\ deleted.\}\}\n\ \ \{kind\ mc\ q\ \{What\ does\ \"cooperative\"\ multitasking\ mean?\}\ choices\ \{\{Tasks\ switch\ only\ where\ they\ choose\ to\ yield\}\ \{The\ system\ interrupts\ tasks\ at\ random\}\ \{Tasks\ run\ on\ separate\ CPUs\}\ \{Tasks\ cannot\ share\ data\}\}\ ans\ 0\ why\ \{Switch\ points\ are\ explicit,\ which\ makes\ behaviour\ deterministic.\}\}\n\}\ncards\ \{\n\ \ \{\{How\ does\ a\ coroutine-based\ scheduler\ work?\}\ \{Keep\ a\ list\ of\ live\ tasks\;\ resume\ each\ in\ turn\;\ drop\ those\ that\ have\ finished.\}\}\n\ \ \{\{How\ do\ you\ know\ a\ coroutine\ has\ finished?\}\ \{Its\ command\ disappears:\ `info\ commands\ \$name`\ is\ empty.\}\}\n\ \ \{\{Why\ is\ cooperative\ scheduling\ easy\ to\ test?\}\ \{The\ switch\ points\ are\ explicit,\ so\ the\ order\ of\ events\ is\ deterministic.\}\}\n\}\n\}\n\ncontent::lesson\ 14.8\ 14\ \"Project\ 7:\ a\ state\ machine\"\ \"Model\ behaviour\ as\ states\ and\ transitions\ -\ and\ make\ illegal\ moves\ impossible.\"\ \{\npages\ \{\n\ \ \{head\ \"The\ brief\"\ body\ \{\n\ \ \ \ p\ \{Many\ programs\ are\ really\ **state\ machines**:\ a\ door\ is\ open,\ closed\ or\ locked\;\ an\ order\ is\ placed,\ paid,\ shipped.\ The\ rules\ are\ a\ table:\ *in\ this\ state,\ this\ event\ moves\ to\ that\ state.*\ Write\ a\ generic\ machine\ plus\ a\ vending-machine\ example.\}\n\ \ \ \ p\ \{-\ `machine::new\ transitions\ initial`\ returns\ a\ machine\ (a\ dict)\n-\ `machine::fire\ m\ event`\ returns\ the\ machine\ moved\ to\ its\ new\ state,\ or\ raises\ `illegal:\ EVENT\ in\ STATE`\n-\ `machine::state\ m`\ returns\ the\ current\ state\}\n\ \ \}\}\n\ \ \{head\ \"Design\"\ body\ \{\n\ \ \ \ p\ \{The\ whole\ behaviour\ is\ **data**:\ a\ dict\ mapping\ state\ to\ a\ dict\ of\ event\ to\ next\ state.\ The\ code\ is\ just\ a\ lookup.\}\n\ \ \ \ code\ \{set\ door\ \{\n\ \ \ \ closed\ \{open\ opened\ lock\ locked\}\n\ \ \ \ opened\ \{close\ closed\}\n\ \ \ \ locked\ \{unlock\ closed\}\n\}\nset\ s\ closed\nforeach\ ev\ \{open\ close\ lock\ unlock\}\ \{\n\ \ \ \ set\ s\ \[dict\ get\ \$door\ \$s\ \$ev\]\n\ \ \ \ puts\ \"\$ev\ ->\ \$s\"\n\}\}\n\ \ \ \ out\ \{open\ ->\ opened\nclose\ ->\ closed\nlock\ ->\ locked\nunlock\ ->\ closed\}\n\ \ \ \ p\ \{Adding\ a\ state\ or\ rule\ means\ editing\ the\ table,\ not\ the\ code.\ And\ impossible\ moves,\ like\ unlocking\ an\ open\ door,\ simply\ are\ not\ in\ the\ table.\}\n\ \ \}\}\n\ \ \{head\ \"Tips\"\ body\ \{\n\ \ \ \ p\ \{-\ `dict\ exists\ \$table\ \$state\ \$event`\ tells\ you\ whether\ a\ move\ is\ legal\n-\ Represent\ the\ machine\ as\ a\ dict\ with\ `table`\ and\ `state`\ so\ it\ can\ be\ passed\ around\ as\ a\ plain\ value\n-\ Return\ a\ **new**\ dict\ from\ `fire`\ (functional\ style)\ so\ earlier\ states\ are\ never\ lost\n-\ List\ all\ legal\ events\ for\ a\ state\ with\ `dict\ keys\ \[dict\ get\ \$table\ \$state\]`\}\n\ \ \ \ tip\ \{Drawing\ the\ states\ and\ arrows\ on\ paper\ first\ is\ the\ best\ design\ step.\ The\ code\ is\ then\ almost\ a\ transcription\ of\ the\ picture.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ code\ prompt\ \{**Step\ 1.**\ Create\ the\ namespace\ `machine`\ with\ `new\ transitions\ initial`\ returning\ a\ dict\ with\ keys\ `table`\ and\ `state`,\ and\ `state\ m`\ returning\ the\ current\ state.\}\ starter\ \{namespace\ eval\ machine\ \{\n\}\}\ solution\ \{namespace\ eval\ machine\ \{\n\ \ \ \ proc\ new\ \{table\ initial\}\ \{\n\ \ \ \ \ \ \ \ return\ \[dict\ create\ table\ \$table\ state\ \$initial\]\n\ \ \ \ \}\n\ \ \ \ proc\ state\ \{m\}\ \{\n\ \ \ \ \ \ \ \ return\ \[dict\ get\ \$m\ state\]\n\ \ \ \ \}\n\}\}\ tests\ \{\{machine::state\ \[machine::new\ \{a\ \{go\ b\}\}\ a\]\}\ a\}\ why\ \{A\ machine\ is\ just\ a\ dict\ holding\ its\ rules\ and\ its\ state.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 2.**\ Add\ `fire\ m\ event`,\ returning\ the\ machine\ in\ its\ new\ state,\ or\ raising\ `illegal:\ EVENT\ in\ STATE`.\}\ starter\ \{namespace\ eval\ machine\ \{\n\ \ \ \ proc\ new\ \{table\ initial\}\ \{return\ \[dict\ create\ table\ \$table\ state\ \$initial\]\}\n\ \ \ \ proc\ state\ \{m\}\ \{return\ \[dict\ get\ \$m\ state\]\}\n\}\}\ solution\ \{namespace\ eval\ machine\ \{\n\ \ \ \ proc\ new\ \{table\ initial\}\ \{return\ \[dict\ create\ table\ \$table\ state\ \$initial\]\}\n\ \ \ \ proc\ state\ \{m\}\ \{return\ \[dict\ get\ \$m\ state\]\}\n\ \ \ \ proc\ fire\ \{m\ event\}\ \{\n\ \ \ \ \ \ \ \ set\ s\ \[dict\ get\ \$m\ state\]\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$m\ table\ \$s\ \$event\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ error\ \"illegal:\ \$event\ in\ \$s\"\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ dict\ set\ m\ state\ \[dict\ get\ \$m\ table\ \$s\ \$event\]\n\ \ \ \ \ \ \ \ return\ \$m\n\ \ \ \ \}\n\}\}\ tests\ \{\{set\ m\ \[machine::new\ \{a\ \{go\ b\}\ b\ \{back\ a\}\}\ a\]\;\ machine::state\ \[machine::fire\ \$m\ go\]\}\ b\ \{set\ m\ \[machine::new\ \{a\ \{go\ b\}\}\ a\]\;\ catch\ \{machine::fire\ \$m\ nope\}\ e\;\ set\ e\}\ \{illegal:\ nope\ in\ a\}\}\ why\ \{A\ legal\ move\ exists\ in\ the\ table\;\ anything\ else\ is\ an\ error.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 3.**\ Add\ `events\ m`,\ returning\ the\ sorted\ list\ of\ legal\ events\ in\ the\ current\ state,\ and\ `run\ m\ eventlist`\ which\ fires\ each\ event\ in\ turn\ and\ returns\ the\ final\ state.\}\ starter\ \{namespace\ eval\ machine\ \{\n\ \ \ \ proc\ new\ \{table\ initial\}\ \{return\ \[dict\ create\ table\ \$table\ state\ \$initial\]\}\n\ \ \ \ proc\ state\ \{m\}\ \{return\ \[dict\ get\ \$m\ state\]\}\n\ \ \ \ proc\ fire\ \{m\ event\}\ \{\n\ \ \ \ \ \ \ \ set\ s\ \[dict\ get\ \$m\ state\]\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$m\ table\ \$s\ \$event\]\}\ \{error\ \"illegal:\ \$event\ in\ \$s\"\}\n\ \ \ \ \ \ \ \ dict\ set\ m\ state\ \[dict\ get\ \$m\ table\ \$s\ \$event\]\n\ \ \ \ \ \ \ \ return\ \$m\n\ \ \ \ \}\n\}\}\ solution\ \{namespace\ eval\ machine\ \{\n\ \ \ \ proc\ new\ \{table\ initial\}\ \{return\ \[dict\ create\ table\ \$table\ state\ \$initial\]\}\n\ \ \ \ proc\ state\ \{m\}\ \{return\ \[dict\ get\ \$m\ state\]\}\n\ \ \ \ proc\ fire\ \{m\ event\}\ \{\n\ \ \ \ \ \ \ \ set\ s\ \[dict\ get\ \$m\ state\]\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$m\ table\ \$s\ \$event\]\}\ \{error\ \"illegal:\ \$event\ in\ \$s\"\}\n\ \ \ \ \ \ \ \ dict\ set\ m\ state\ \[dict\ get\ \$m\ table\ \$s\ \$event\]\n\ \ \ \ \ \ \ \ return\ \$m\n\ \ \ \ \}\n\ \ \ \ proc\ events\ \{m\}\ \{\n\ \ \ \ \ \ \ \ return\ \[lsort\ \[dict\ keys\ \[dict\ get\ \$m\ table\ \[dict\ get\ \$m\ state\]\]\]\]\n\ \ \ \ \}\n\ \ \ \ proc\ run\ \{m\ evs\}\ \{\n\ \ \ \ \ \ \ \ foreach\ e\ \$evs\ \{set\ m\ \[fire\ \$m\ \$e\]\}\n\ \ \ \ \ \ \ \ return\ \[state\ \$m\]\n\ \ \ \ \}\n\}\}\ tests\ \{\{set\ d\ \{closed\ \{open\ opened\ lock\ locked\}\ opened\ \{close\ closed\}\ locked\ \{unlock\ closed\}\}\;\ machine::events\ \[machine::new\ \$d\ closed\]\}\ \{lock\ open\}\ \{set\ d\ \{closed\ \{open\ opened\ lock\ locked\}\ opened\ \{close\ closed\}\ locked\ \{unlock\ closed\}\}\;\ machine::run\ \[machine::new\ \$d\ closed\]\ \{open\ close\ lock\ unlock\}\}\ closed\}\ why\ \{`dict\ keys`\ of\ the\ current\ state's\ row\ lists\ the\ legal\ events.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 4\ -\ final.**\ Use\ your\ machine\ to\ model\ a\ vending\ machine\ with\ states\ `idle`,\ `paid`,\ `dispensing`\ and\ events\ `coin`\ (idle\ to\ paid),\ `select`\ (paid\ to\ dispensing),\ `done`\ (dispensing\ to\ idle),\ `refund`\ (paid\ to\ idle).\ Write\ `vend\ events`\ that\ runs\ the\ given\ events\ from\ `idle`\ and\ returns\ the\ final\ state,\ raising\ the\ machine's\ error\ for\ an\ illegal\ move.\ (A\ complete\ `machine`\ namespace\ is\ included.)\}\ starter\ \{namespace\ eval\ machine\ \{\n\ \ \ \ proc\ new\ \{table\ initial\}\ \{return\ \[dict\ create\ table\ \$table\ state\ \$initial\]\}\n\ \ \ \ proc\ state\ \{m\}\ \{return\ \[dict\ get\ \$m\ state\]\}\n\ \ \ \ proc\ fire\ \{m\ event\}\ \{\n\ \ \ \ \ \ \ \ set\ s\ \[dict\ get\ \$m\ state\]\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$m\ table\ \$s\ \$event\]\}\ \{error\ \"illegal:\ \$event\ in\ \$s\"\}\n\ \ \ \ \ \ \ \ dict\ set\ m\ state\ \[dict\ get\ \$m\ table\ \$s\ \$event\]\n\ \ \ \ \ \ \ \ return\ \$m\n\ \ \ \ \}\n\}\nproc\ vend\ \{events\}\ \{\n\ \ \ \ return\ idle\n\}\}\ solution\ \{namespace\ eval\ machine\ \{\n\ \ \ \ proc\ new\ \{table\ initial\}\ \{return\ \[dict\ create\ table\ \$table\ state\ \$initial\]\}\n\ \ \ \ proc\ state\ \{m\}\ \{return\ \[dict\ get\ \$m\ state\]\}\n\ \ \ \ proc\ fire\ \{m\ event\}\ \{\n\ \ \ \ \ \ \ \ set\ s\ \[dict\ get\ \$m\ state\]\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$m\ table\ \$s\ \$event\]\}\ \{error\ \"illegal:\ \$event\ in\ \$s\"\}\n\ \ \ \ \ \ \ \ dict\ set\ m\ state\ \[dict\ get\ \$m\ table\ \$s\ \$event\]\n\ \ \ \ \ \ \ \ return\ \$m\n\ \ \ \ \}\n\}\nproc\ vend\ \{events\}\ \{\n\ \ \ \ set\ table\ \{\n\ \ \ \ \ \ \ \ idle\ \{coin\ paid\}\n\ \ \ \ \ \ \ \ paid\ \{select\ dispensing\ refund\ idle\}\n\ \ \ \ \ \ \ \ dispensing\ \{done\ idle\}\n\ \ \ \ \}\n\ \ \ \ set\ m\ \[machine::new\ \$table\ idle\]\n\ \ \ \ foreach\ e\ \$events\ \{set\ m\ \[machine::fire\ \$m\ \$e\]\}\n\ \ \ \ return\ \[machine::state\ \$m\]\n\}\}\ tests\ \{\{vend\ \{coin\ select\ done\}\}\ idle\ \{vend\ \{coin\ refund\}\}\ idle\ \{vend\ \{coin\}\}\ paid\ \{catch\ \{vend\ \{select\}\}\ e\;\ set\ e\}\ \{illegal:\ select\ in\ idle\}\}\ why\ \{The\ vending\ rules\ are\ just\ a\ table\ handed\ to\ the\ generic\ machine.\}\}\n\ \ \{kind\ predict\ code\ \{set\ t\ \{a\ \{x\ b\}\ b\ \{y\ a\}\}\nset\ s\ a\nforeach\ e\ \{x\ y\ x\}\ \{set\ s\ \[dict\ get\ \$t\ \$s\ \$e\]\}\nputs\ \$s\}\ choices\ \{b\ a\ \{\}\ x\}\ ans\ 0\ why\ \{a\ -x->\ b\ -y->\ a\ -x->\ b.\}\}\n\ \ \{kind\ mc\ q\ \{Why\ store\ the\ transition\ rules\ as\ data\ rather\ than\ as\ `if`\ statements?\}\ choices\ \{\{Changing\ behaviour\ means\ editing\ a\ table,\ and\ illegal\ moves\ are\ simply\ absent\}\ \{Tables\ run\ faster\}\ \{if\ statements\ are\ not\ allowed\}\ \{Dicts\ cannot\ be\ empty\}\}\ ans\ 0\ why\ \{Data-driven\ design\ is\ easier\ to\ read,\ test\ and\ extend.\}\}\n\ \ \{kind\ mc\ q\ \{Why\ does\ `fire`\ return\ a\ new\ machine\ instead\ of\ changing\ one\ in\ place?\}\ choices\ \{\{Earlier\ states\ are\ never\ lost,\ so\ it\ is\ easy\ to\ test\ and\ undo\}\ \{It\ uses\ less\ memory\}\ \{Tcl\ forbids\ in-place\ changes\}\ \{It\ is\ required\ by\ dict\}\}\ ans\ 0\ why\ \{Values\ that\ are\ not\ modified\ cannot\ surprise\ you.\}\}\n\}\ncards\ \{\n\ \ \{\{What\ is\ a\ state\ machine?\}\ \{A\ set\ of\ states\ with\ rules:\ in\ this\ state,\ this\ event\ moves\ to\ that\ state.\}\}\n\ \ \{\{How\ do\ you\ represent\ transitions\ in\ Tcl?\}\ \{A\ dict\ of\ state\ to\ a\ dict\ of\ event\ to\ next\ state\;\ lookup\ with\ `dict\ get\ \$table\ \$state\ \$event`.\}\}\n\ \ \{\{How\ do\ you\ detect\ an\ illegal\ event?\}\ \{`dict\ exists\ \$table\ \$state\ \$event`\ is\ false.\}\}\n\}\n\}\n\ncontent::lesson\ 14.9\ 14\ \"Capstone:\ your\ own\ tested\ library\"\ \"Write\ a\ utility\ library\ with\ a\ test\ suite\ -\ the\ way\ professionals\ ship\ code.\"\ \{\npages\ \{\n\ \ \{head\ \"The\ brief\"\ body\ \{\n\ \ \ \ p\ \{For\ your\ capstone,\ write\ a\ small\ **string\ utility\ library**\ as\ a\ namespace\ `strutil`,\ together\ with\ a\ **test\ runner**\ that\ proves\ it\ works.\ This\ is\ the\ professional\ pattern:\ a\ library\ plus\ tests\ that\ run\ in\ one\ command\ and\ report\ pass\ or\ fail.\}\n\ \ \ \ p\ \{Functions\ to\ write:\}\n\ \ \ \ p\ \{-\ `pad\ text\ width\ ?char?`\ pad\ on\ the\ right\ to\ the\ given\ width\n-\ `center\ text\ width`\ centre\ text\ in\ a\ field\ (extra\ space\ goes\ to\ the\ right)\n-\ `truncate\ text\ max`\ shorten\ with\ `...`\ when\ longer\ than\ max\ (result\ never\ longer\ than\ max)\n-\ `wrap\ text\ width`\ break\ text\ into\ lines\ of\ at\ most\ `width`\ characters\ at\ spaces\n-\ `title\ text`\ capitalise\ each\ word\}\n\ \ \}\}\n\ \ \{head\ \"Design\"\ body\ \{\n\ \ \ \ p\ \{Write\ each\ function\ as\ a\ **pure**\ proc\ (text\ in,\ text\ out).\ Then\ a\ `selftest`\ proc\ runs\ a\ table\ of\ cases\ and\ returns\ the\ number\ of\ failures.\ The\ runner\ is\ the\ same\ idea\ as\ in\ the\ testing\ lesson:\}\n\ \ \ \ code\ \{namespace\ eval\ strutil\ \{\n\ \ \ \ proc\ pad\ \{text\ width\ \{char\ \"\ \"\}\}\ \{\n\ \ \ \ \ \ \ \ set\ n\ \[expr\ \{\$width\ -\ \[string\ length\ \$text\]\}\]\n\ \ \ \ \ \ \ \ if\ \{\$n\ <=\ 0\}\ \{return\ \$text\}\n\ \ \ \ \ \ \ \ return\ \$text\[string\ repeat\ \$char\ \$n\]\n\ \ \ \ \}\n\}\nputs\ \"<\[strutil::pad\ ab\ 5\]>\"\nputs\ \"<\[strutil::pad\ ab\ 5\ .\]>\"\}\n\ \ \ \ out\ \{<ab\ \ \ >\n<ab...>\}\n\ \ \ \ p\ \{Edge\ cases\ deserve\ their\ own\ tests:\ width\ smaller\ than\ the\ text,\ empty\ strings,\ and\ exact\ fits.\}\n\ \ \}\}\n\ \ \{head\ \"Tips\"\ body\ \{\n\ \ \ \ p\ \{-\ Write\ the\ tests\ **first**\ for\ each\ function,\ watch\ them\ fail,\ then\ write\ the\ code\n-\ `string\ repeat`,\ `string\ range`,\ `string\ totitle`\ and\ `split`/`join`\ do\ most\ of\ the\ work\n-\ For\ `wrap`,\ add\ words\ to\ the\ current\ line\ while\ it\ fits,\ else\ start\ a\ new\ line\n-\ A\ test\ table\ is\ data:\ `\{name\ script\ expected\}`\ triples\ are\ easy\ to\ extend\}\n\ \ \ \ tip\ \{When\ all\ your\ tests\ pass,\ change\ one\ function\ and\ run\ them\ again.\ That\ feeling\ of\ safety\ is\ why\ professionals\ write\ tests.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ code\ prompt\ \{**Step\ 1.**\ Write\ `strutil::pad\ text\ width\ ?char?`.\}\ starter\ \{namespace\ eval\ strutil\ \{\n\}\}\ solution\ \{namespace\ eval\ strutil\ \{\n\ \ \ \ proc\ pad\ \{text\ width\ \{char\ \"\ \"\}\}\ \{\n\ \ \ \ \ \ \ \ set\ n\ \[expr\ \{\$width\ -\ \[string\ length\ \$text\]\}\]\n\ \ \ \ \ \ \ \ if\ \{\$n\ <=\ 0\}\ \{return\ \$text\}\n\ \ \ \ \ \ \ \ return\ \$text\[string\ repeat\ \$char\ \$n\]\n\ \ \ \ \}\n\}\}\ tests\ \{\{strutil::pad\ ab\ 5\}\ \{ab\ \ \ \}\ \{strutil::pad\ ab\ 5\ .\}\ ab...\ \{strutil::pad\ abcdef\ 3\}\ abcdef\ \{strutil::pad\ \"\"\ 2\ -\}\ --\}\ why\ \{Compute\ the\ shortfall\;\ add\ that\ many\ characters\ if\ positive.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 2.**\ Add\ `strutil::center\ text\ width`\ (extra\ space\ goes\ to\ the\ right)\ and\ `strutil::truncate\ text\ max`\ (results\ longer\ than\ max\ are\ cut\ to\ `max`\ characters\ ending\ in\ `...`).\}\ starter\ \{namespace\ eval\ strutil\ \{\n\ \ \ \ proc\ pad\ \{text\ width\ \{char\ \"\ \"\}\}\ \{\n\ \ \ \ \ \ \ \ set\ n\ \[expr\ \{\$width\ -\ \[string\ length\ \$text\]\}\]\n\ \ \ \ \ \ \ \ if\ \{\$n\ <=\ 0\}\ \{return\ \$text\}\n\ \ \ \ \ \ \ \ return\ \$text\[string\ repeat\ \$char\ \$n\]\n\ \ \ \ \}\n\}\}\ solution\ \{namespace\ eval\ strutil\ \{\n\ \ \ \ proc\ pad\ \{text\ width\ \{char\ \"\ \"\}\}\ \{\n\ \ \ \ \ \ \ \ set\ n\ \[expr\ \{\$width\ -\ \[string\ length\ \$text\]\}\]\n\ \ \ \ \ \ \ \ if\ \{\$n\ <=\ 0\}\ \{return\ \$text\}\n\ \ \ \ \ \ \ \ return\ \$text\[string\ repeat\ \$char\ \$n\]\n\ \ \ \ \}\n\ \ \ \ proc\ center\ \{text\ width\}\ \{\n\ \ \ \ \ \ \ \ set\ n\ \[expr\ \{\$width\ -\ \[string\ length\ \$text\]\}\]\n\ \ \ \ \ \ \ \ if\ \{\$n\ <=\ 0\}\ \{return\ \$text\}\n\ \ \ \ \ \ \ \ set\ left\ \[expr\ \{\$n\ /\ 2\}\]\n\ \ \ \ \ \ \ \ return\ \[string\ repeat\ \"\ \"\ \$left\]\$text\[string\ repeat\ \"\ \"\ \[expr\ \{\$n\ -\ \$left\}\]\]\n\ \ \ \ \}\n\ \ \ \ proc\ truncate\ \{text\ max\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\[string\ length\ \$text\]\ <=\ \$max\}\ \{return\ \$text\}\n\ \ \ \ \ \ \ \ return\ \[string\ range\ \$text\ 0\ \[expr\ \{\$max\ -\ 4\}\]\]...\n\ \ \ \ \}\n\}\}\ tests\ \{\{strutil::center\ ab\ 6\}\ \{\ \ ab\ \ \}\ \{strutil::center\ abc\ 6\}\ \{\ abc\ \ \}\ \{strutil::truncate\ hello\ 10\}\ hello\ \{strutil::truncate\ \"hello\ world\"\ 8\}\ \{hello...\}\}\ why\ \{Half\ the\ padding\ goes\ left,\ the\ rest\ right.\ Truncation\ reserves\ 3\ characters\ for\ the\ dots.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 3.**\ Add\ `strutil::title\ text`\ (capitalise\ each\ space-separated\ word,\ lower-casing\ the\ rest)\ and\ `strutil::wrap\ text\ width`\ returning\ a\ list\ of\ lines,\ each\ at\ most\ `width`\ characters,\ breaking\ at\ spaces\ (a\ word\ longer\ than\ the\ width\ gets\ its\ own\ line).\}\ starter\ \{namespace\ eval\ strutil\ \{\n\}\}\ solution\ \{namespace\ eval\ strutil\ \{\n\ \ \ \ proc\ title\ \{text\}\ \{\n\ \ \ \ \ \ \ \ set\ out\ \{\}\n\ \ \ \ \ \ \ \ foreach\ w\ \[split\ \$text\ \"\ \"\]\ \{lappend\ out\ \[string\ totitle\ \$w\]\}\n\ \ \ \ \ \ \ \ return\ \[join\ \$out\ \"\ \"\]\n\ \ \ \ \}\n\ \ \ \ proc\ wrap\ \{text\ width\}\ \{\n\ \ \ \ \ \ \ \ set\ lines\ \{\}\n\ \ \ \ \ \ \ \ set\ cur\ \"\"\n\ \ \ \ \ \ \ \ foreach\ w\ \[split\ \$text\ \"\ \"\]\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{\$w\ eq\ \"\"\}\ continue\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{\$cur\ eq\ \"\"\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ set\ cur\ \$w\n\ \ \ \ \ \ \ \ \ \ \ \ \}\ elseif\ \{\[string\ length\ \$cur\]\ +\ 1\ +\ \[string\ length\ \$w\]\ <=\ \$width\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ append\ cur\ \"\ \"\ \$w\n\ \ \ \ \ \ \ \ \ \ \ \ \}\ else\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lappend\ lines\ \$cur\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ set\ cur\ \$w\n\ \ \ \ \ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ if\ \{\$cur\ ne\ \"\"\}\ \{lappend\ lines\ \$cur\}\n\ \ \ \ \ \ \ \ return\ \$lines\n\ \ \ \ \}\n\}\}\ tests\ \{\{strutil::title\ \"hELLO\ wORLD\"\}\ \{Hello\ World\}\ \{strutil::wrap\ \"the\ quick\ brown\ fox\ jumps\"\ 10\}\ \{\{the\ quick\}\ \{brown\ fox\}\ jumps\}\ \{strutil::wrap\ \"supercalifragilistic\ is\ long\"\ 8\}\ \{supercalifragilistic\ \{is\ long\}\}\}\ why\ \{Greedy\ line\ filling:\ add\ the\ word\ if\ it\ fits,\ otherwise\ start\ a\ new\ line.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 4\ -\ final.**\ Write\ the\ test\ runner\ `strutil::selftest`:\ it\ runs\ at\ least\ these\ cases\ against\ your\ functions\ and\ returns\ the\ number\ of\ **failures**\ (0\ when\ everything\ passes):\ `pad\ ab\ 4`\ gives\ `ab\ \ `\;\ `truncate\ \"hello\ world\"\ 8`\ gives\ `hello...`\;\ `title\ \"a\ b\"`\ gives\ `A\ B`.\ (Include\ working\ implementations\ of\ those\ three\ functions.)\}\ starter\ \{namespace\ eval\ strutil\ \{\n\ \ \ \ proc\ selftest\ \{\}\ \{\n\ \ \ \ \ \ \ \ return\ 99\n\ \ \ \ \}\n\}\}\ solution\ \{namespace\ eval\ strutil\ \{\n\ \ \ \ proc\ pad\ \{text\ width\ \{char\ \"\ \"\}\}\ \{\n\ \ \ \ \ \ \ \ set\ n\ \[expr\ \{\$width\ -\ \[string\ length\ \$text\]\}\]\n\ \ \ \ \ \ \ \ if\ \{\$n\ <=\ 0\}\ \{return\ \$text\}\n\ \ \ \ \ \ \ \ return\ \$text\[string\ repeat\ \$char\ \$n\]\n\ \ \ \ \}\n\ \ \ \ proc\ truncate\ \{text\ max\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\[string\ length\ \$text\]\ <=\ \$max\}\ \{return\ \$text\}\n\ \ \ \ \ \ \ \ return\ \[string\ range\ \$text\ 0\ \[expr\ \{\$max\ -\ 4\}\]\]...\n\ \ \ \ \}\n\ \ \ \ proc\ title\ \{text\}\ \{\n\ \ \ \ \ \ \ \ set\ out\ \{\}\n\ \ \ \ \ \ \ \ foreach\ w\ \[split\ \$text\ \"\ \"\]\ \{lappend\ out\ \[string\ totitle\ \$w\]\}\n\ \ \ \ \ \ \ \ return\ \[join\ \$out\ \"\ \"\]\n\ \ \ \ \}\n\ \ \ \ proc\ selftest\ \{\}\ \{\n\ \ \ \ \ \ \ \ set\ cases\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \{\{pad\ ab\ 4\}\ \{ab\ \ \}\}\n\ \ \ \ \ \ \ \ \ \ \ \ \{\{truncate\ \"hello\ world\"\ 8\}\ \{hello...\}\}\n\ \ \ \ \ \ \ \ \ \ \ \ \{\{title\ \"a\ b\"\}\ \{A\ B\}\}\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ set\ failed\ 0\n\ \ \ \ \ \ \ \ foreach\ c\ \$cases\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ lassign\ \$c\ script\ want\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{\[catch\ \{namespace\ eval\ ::strutil\ \$script\}\ got\]\ ||\ \$got\ ne\ \$want\}\ \{incr\ failed\}\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ return\ \$failed\n\ \ \ \ \}\n\}\}\ tests\ \{\{strutil::selftest\}\ 0\ \{strutil::pad\ ab\ 4\}\ \{ab\ \ \}\ \{strutil::title\ \"x\ y\"\}\ \{X\ Y\}\}\ why\ \{The\ runner\ is\ a\ table\ of\ cases\ evaluated\ inside\ the\ namespace,\ counting\ mismatches.\}\}\n\ \ \{kind\ predict\ code\ \{namespace\ eval\ s\ \{proc\ pad\ \{t\ w\}\ \{return\ \$t\[string\ repeat\ .\ \[expr\ \{\$w\ -\ \[string\ length\ \$t\]\}\]\]\}\}\nputs\ \[s::pad\ ab\ 4\]\}\ choices\ \{ab..\ ab....\ ..ab\ ab\}\ ans\ 0\ why\ \{Two\ characters\ short,\ so\ two\ dots\ are\ appended.\}\}\n\ \ \{kind\ mc\ q\ \{Why\ write\ the\ test\ for\ a\ function\ before\ the\ function\ itself?\}\ choices\ \{\{It\ defines\ exactly\ what\ \"correct\"\ means,\ and\ proves\ the\ test\ can\ fail\}\ \{It\ is\ required\ by\ namespaces\}\ \{Tests\ run\ faster\ first\}\ \{It\ is\ shorter\}\}\ ans\ 0\ why\ \{A\ test\ that\ has\ never\ failed\ has\ not\ been\ shown\ to\ detect\ anything.\}\}\n\ \ \{kind\ mc\ q\ \{What\ should\ a\ good\ test\ suite\ include\ for\ `pad`?\}\ choices\ \{\{Normal\ use,\ width\ smaller\ than\ the\ text,\ exact\ fit\ and\ the\ empty\ string\}\ \{Only\ one\ normal\ example\}\ \{Only\ error\ cases\}\ \{Only\ long\ strings\}\}\ ans\ 0\ why\ \{Edges\ are\ where\ bugs\ live.\}\}\n\}\ncards\ \{\n\ \ \{\{What\ is\ the\ professional\ pattern\ for\ a\ library?\}\ \{A\ namespace\ of\ pure\ functions\ plus\ a\ test\ suite\ that\ runs\ in\ one\ command\ and\ reports\ pass/fail.\}\}\n\ \ \{\{Which\ edge\ cases\ should\ you\ always\ test?\}\ \{Empty\ input,\ exact\ fit,\ too\ short\ or\ too\ long,\ and\ invalid\ input.\}\}\n\ \ \{\{Why\ write\ tests\ first?\}\ \{It\ defines\ \"correct\"\ up\ front\ and\ shows\ the\ test\ can\ detect\ failure.\}\}\n\}\n\}\n content/x01.tcl #\ Extra\ write-the-code\ exercises\ appended\ to\ existing\ lessons\ (ids\ continue\ each\ lesson's\ list).\n\n#\ ----------------------------------------------------------------\ unit\ 1\ncontent::addEx\ 1.1\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ program\ that\ prints\ **Hello,\ Tcl!**\}\ starter\ \{#\ write\ your\ program\ here\n\}\ solution\ \{puts\ \"Hello,\ Tcl!\"\}\ out\ \{Hello,\ Tcl!\}\ why\ \{One\ `puts`\ with\ the\ text\ in\ double\ quotes.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Print\ three\ lines:\ **Tcl**,\ then\ **is**,\ then\ **fun**.\}\ starter\ \{puts\ \"Tcl\"\n\}\ solution\ \{puts\ \"Tcl\"\nputs\ \"is\"\nputs\ \"fun\"\}\ out\ \{Tcl\nis\nfun\}\ why\ \{One\ `puts`\ per\ line,\ in\ order.\}\}\n\ncontent::addEx\ 1.2\ \\\n\ \ \{kind\ code\ prompt\ \{The\ line\ below\ fails.\ Fix\ it\ so\ it\ prints\ **Good\ morning,\ Tcl**\ (hint:\ quotes).\}\ starter\ \{puts\ Good\ morning,\ Tcl\}\ solution\ \{puts\ \"Good\ morning,\ Tcl\"\}\ out\ \{Good\ morning,\ Tcl\}\ why\ \{Without\ quotes\ `puts`\ receives\ three\ words.\ Quotes\ make\ them\ one\ argument.\}\}\n\ncontent::addEx\ 1.3\ \\\n\ \ \{kind\ code\ prompt\ \{Print\ exactly:\ **She\ said\ \"hi\"**\ (the\ quote\ marks\ are\ part\ of\ the\ output).\}\ starter\ \{puts\ \"She\ said\ hi\"\}\ solution\ \{puts\ \"She\ said\ \\\"hi\\\"\"\}\ out\ \{She\ said\ \"hi\"\}\ why\ \{A\ backslash\ before\ a\ quote\ mark\ prints\ it\ instead\ of\ ending\ the\ text.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Print\ **Loading...**\ on\ ONE\ line\ using\ two\ `puts`\ commands\ (use\ -nonewline).\}\ starter\ \{puts\ \"Loading\"\nputs\ \"...\"\}\ solution\ \{puts\ -nonewline\ \"Loading\"\nputs\ \"...\"\}\ out\ \{Loading...\}\ why\ \{`-nonewline`\ keeps\ the\ cursor\ on\ the\ same\ line.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 2\ncontent::addEx\ 2.1\ \\\n\ \ \{kind\ code\ prompt\ \{Set\ a\ variable\ called\ **city**\ to\ **Paris**,\ then\ print\ it.\}\ starter\ \{#\ set\ city,\ then\ print\ it\n\}\ solution\ \{set\ city\ Paris\nputs\ \$city\}\ out\ \{Paris\}\ why\ \{`set\ city\ Paris`\ stores\ the\ value\;\ `\$city`\ reads\ it.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Set\ **a**\ to\ 3\ and\ **b**\ to\ 4,\ then\ print\ them\ as:\ **3\ and\ 4**\}\ starter\ \{set\ a\ 3\nset\ b\ 4\}\ solution\ \{set\ a\ 3\nset\ b\ 4\nputs\ \"\$a\ and\ \$b\"\}\ out\ \{3\ and\ 4\}\ why\ \{Inside\ double\ quotes\ each\ variable\ is\ replaced\ by\ its\ value.\}\}\n\ncontent::addEx\ 2.2\ \\\n\ \ \{kind\ code\ prompt\ \{Print\ how\ many\ letters\ are\ in\ the\ word\ **programming**.\}\ starter\ \{puts\ \[string\ length\ programming\]x\}\ solution\ \{puts\ \[string\ length\ programming\]\}\ out\ \{11\}\ why\ \{`string\ length`\ returns\ the\ number\ of\ characters.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Set\ **word**\ to\ **tcl**\ and\ print\ it\ in\ capitals.\}\ starter\ \{set\ word\ tcl\nputs\ \$word\}\ solution\ \{set\ word\ tcl\nputs\ \[string\ toupper\ \$word\]\}\ out\ \{TCL\}\ why\ \{Wrap\ the\ variable\ in\ `\[string\ toupper\ ...\]`.\}\}\n\ncontent::addEx\ 2.3\ \\\n\ \ \{kind\ code\ prompt\ \{Use\ `append`\ to\ build\ **Hello,\ World**\ from\ the\ pieces\ and\ print\ it.\}\ starter\ \{set\ s\ Hello\nputs\ \$s\}\ solution\ \{set\ s\ Hello\nappend\ s\ \",\ World\"\nputs\ \$s\}\ out\ \{Hello,\ World\}\ why\ \{`append\ s\ text`\ adds\ to\ the\ end\ of\ the\ variable.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 3\ncontent::addEx\ 3.1\ \\\n\ \ \{kind\ code\ prompt\ \{Print\ the\ area\ of\ a\ circle\ with\ radius\ 2,\ using\ 3.14159\ for\ pi\ (area\ =\ pi\ *\ r\ squared).\}\ starter\ \{set\ r\ 2\nputs\ \$r\}\ solution\ \{set\ r\ 2\nputs\ \[expr\ \{3.14159\ *\ \$r\ **\ 2\}\]\}\ out\ \{12.56636\}\ why\ \{`**`\ is\ \"to\ the\ power\ of\".\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **fahrenheit**\ that\ converts\ Celsius\ to\ Fahrenheit:\ F\ =\ C\ *\ 9\ /\ 5\ +\ 32.\ Use\ `9.0`\ so\ the\ maths\ is\ not\ whole-number.\}\ starter\ \{proc\ fahrenheit\ \{c\}\ \{\n\ \ \ \ return\ \$c\n\}\}\ solution\ \{proc\ fahrenheit\ \{c\}\ \{\n\ \ \ \ return\ \[expr\ \{\$c\ *\ 9.0\ /\ 5\ +\ 32\}\]\n\}\}\ tests\ \{\{fahrenheit\ 100\}\ 212.0\ \{fahrenheit\ 0\}\ 32.0\}\ why\ \{Multiply,\ divide,\ then\ add\ -\ using\ a\ decimal\ 9.0\ avoids\ dropping\ the\ remainder.\}\}\n\ncontent::addEx\ 3.2\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **grade**\ taking\ a\ score:\ return\ **A**\ for\ 90\ or\ more,\ **B**\ for\ 80\ or\ more,\ otherwise\ **C**.\}\ starter\ \{proc\ grade\ \{score\}\ \{\n\ \ \ \ return\ C\n\}\}\ solution\ \{proc\ grade\ \{score\}\ \{\n\ \ \ \ if\ \{\$score\ >=\ 90\}\ \{return\ A\}\n\ \ \ \ if\ \{\$score\ >=\ 80\}\ \{return\ B\}\n\ \ \ \ return\ C\n\}\}\ tests\ \{\{grade\ 95\}\ A\ \{grade\ 85\}\ B\ \{grade\ 40\}\ C\}\ why\ \{Test\ the\ highest\ threshold\ first.\}\}\n\ncontent::addEx\ 3.3\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **daytype**\ that\ returns\ **weekend**\ for\ Sat\ or\ Sun\ and\ **weekday**\ otherwise,\ using\ `switch`.\}\ starter\ \{proc\ daytype\ \{d\}\ \{\n\ \ \ \ return\ weekday\n\}\}\ solution\ \{proc\ daytype\ \{d\}\ \{\n\ \ \ \ switch\ \$d\ \{\n\ \ \ \ \ \ \ \ Sat\ -\ Sun\ \{return\ weekend\}\n\ \ \ \ \ \ \ \ default\ \ \ \{return\ weekday\}\n\ \ \ \ \}\n\}\}\ tests\ \{\{daytype\ Sat\}\ weekend\ \{daytype\ Sun\}\ weekend\ \{daytype\ Mon\}\ weekday\}\ why\ \{`Sat\ -\ Sun`\ shares\ one\ body\ between\ two\ patterns.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 4\ncontent::addEx\ 4.1\ \\\n\ \ \{kind\ code\ prompt\ \{Use\ a\ **while**\ loop\ to\ print\ the\ numbers\ 1\ to\ 5,\ one\ per\ line.\}\ starter\ \{set\ i\ 1\}\ solution\ \{set\ i\ 1\nwhile\ \{\$i\ <=\ 5\}\ \{\n\ \ \ \ puts\ \$i\n\ \ \ \ incr\ i\n\}\}\ out\ \{1\n2\n3\n4\n5\}\ why\ \{Print,\ then\ `incr\ i`,\ until\ the\ condition\ is\ false.\}\}\n\ncontent::addEx\ 4.2\ \\\n\ \ \{kind\ code\ prompt\ \{Use\ a\ **for**\ loop\ to\ print\ the\ 3\ times\ table\ from\ 3\ x\ 1\ =\ 3\ up\ to\ 3\ x\ 4\ =\ 12.\}\ starter\ \{for\ \{set\ i\ 1\}\ \{\$i\ <=\ 4\}\ \{incr\ i\}\ \{\n\ \ \ \ puts\ \$i\n\}\}\ solution\ \{for\ \{set\ i\ 1\}\ \{\$i\ <=\ 4\}\ \{incr\ i\}\ \{\n\ \ \ \ puts\ \"3\ x\ \$i\ =\ \[expr\ \{3\ *\ \$i\}\]\"\n\}\}\ out\ \{3\ x\ 1\ =\ 3\n3\ x\ 2\ =\ 6\n3\ x\ 3\ =\ 9\n3\ x\ 4\ =\ 12\}\ why\ \{A\ command\ in\ brackets\ inside\ the\ quotes\ calculates\ each\ product.\}\}\n\ncontent::addEx\ 4.3\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **countbig**\ returning\ how\ many\ numbers\ in\ a\ list\ are\ greater\ than\ 10.\}\ starter\ \{proc\ countbig\ \{nums\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ countbig\ \{nums\}\ \{\n\ \ \ \ set\ n\ 0\n\ \ \ \ foreach\ x\ \$nums\ \{\n\ \ \ \ \ \ \ \ if\ \{\$x\ >\ 10\}\ \{incr\ n\}\n\ \ \ \ \}\n\ \ \ \ return\ \$n\n\}\}\ tests\ \{\{countbig\ \{5\ 12\ 30\ 7\ 11\}\}\ 3\ \{countbig\ \{\}\}\ 0\}\ why\ \{Keep\ a\ counter\ and\ increment\ it\ for\ each\ match.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Print\ the\ multiples\ of\ 3\ from\ 1\ to\ 12\ using\ `foreach`\ and\ `continue`\ (3,\ 6,\ 9,\ 12\ -\ one\ per\ line).\}\ starter\ \{foreach\ n\ \{1\ 2\ 3\ 4\ 5\ 6\ 7\ 8\ 9\ 10\ 11\ 12\}\ \{\n\ \ \ \ puts\ \$n\n\}\}\ solution\ \{foreach\ n\ \{1\ 2\ 3\ 4\ 5\ 6\ 7\ 8\ 9\ 10\ 11\ 12\}\ \{\n\ \ \ \ if\ \{\$n\ %\ 3\ !=\ 0\}\ \{continue\}\n\ \ \ \ puts\ \$n\n\}\}\ out\ \{3\n6\n9\n12\}\ why\ \{`continue`\ skips\ the\ numbers\ that\ are\ not\ multiples\ of\ 3.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 5\ncontent::addEx\ 5.1\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **maxof**\ that\ returns\ the\ larger\ of\ two\ numbers\ (do\ not\ use\ `max`).\}\ starter\ \{proc\ maxof\ \{a\ b\}\ \{\n\ \ \ \ return\ \$a\n\}\}\ solution\ \{proc\ maxof\ \{a\ b\}\ \{\n\ \ \ \ if\ \{\$a\ >\ \$b\}\ \{return\ \$a\}\n\ \ \ \ return\ \$b\n\}\}\ tests\ \{\{maxof\ 3\ 9\}\ 9\ \{maxof\ 9\ 3\}\ 9\ \{maxof\ 4\ 4\}\ 4\}\ why\ \{Compare\ the\ two\ and\ return\ the\ larger.\}\}\n\ncontent::addEx\ 5.2\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **joinwords**\ that\ joins\ its\ arguments\ with\ a\ single\ space:\ `joinwords\ a\ b\ c`\ gives\ `a\ b\ c`.\ Any\ number\ of\ arguments\ (use\ `args`).\}\ starter\ \{proc\ joinwords\ \{args\}\ \{\n\ \ \ \ return\ \"\"\n\}\}\ solution\ \{proc\ joinwords\ \{args\}\ \{\n\ \ \ \ return\ \[join\ \$args\ \"\ \"\]\n\}\}\ tests\ \{\{joinwords\ a\ b\ c\}\ \{a\ b\ c\}\ \{joinwords\ x\}\ x\}\ why\ \{`args`\ is\ a\ list,\ and\ `join`\ glues\ it\ back\ together.\}\}\n\ncontent::addEx\ 5.3\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ recursive\ proc\ **fib**\ returning\ the\ nth\ Fibonacci\ number:\ fib\ 0\ =\ 0,\ fib\ 1\ =\ 1,\ fib\ n\ =\ fib(n-1)\ +\ fib(n-2).\}\ starter\ \{proc\ fib\ \{n\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ fib\ \{n\}\ \{\n\ \ \ \ if\ \{\$n\ <\ 2\}\ \{return\ \$n\}\n\ \ \ \ return\ \[expr\ \{\[fib\ \[expr\ \{\$n\ -\ 1\}\]\]\ +\ \[fib\ \[expr\ \{\$n\ -\ 2\}\]\]\}\]\n\}\}\ tests\ \{\{fib\ 0\}\ 0\ \{fib\ 1\}\ 1\ \{fib\ 10\}\ 55\}\ why\ \{Two\ base\ cases\ (0\ and\ 1),\ then\ the\ sum\ of\ the\ two\ previous.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **gcd**\ using\ recursion\ (Euclid):\ gcd\ a\ 0\ is\ a,\ otherwise\ gcd\ b\ (a\ mod\ b).\}\ starter\ \{proc\ gcd\ \{a\ b\}\ \{\n\ \ \ \ return\ 1\n\}\}\ solution\ \{proc\ gcd\ \{a\ b\}\ \{\n\ \ \ \ if\ \{\$b\ ==\ 0\}\ \{return\ \$a\}\n\ \ \ \ return\ \[gcd\ \$b\ \[expr\ \{\$a\ %\ \$b\}\]\]\n\}\}\ tests\ \{\{gcd\ 12\ 18\}\ 6\ \{gcd\ 17\ 5\}\ 1\ \{gcd\ 9\ 0\}\ 9\}\ why\ \{Euclid's\ algorithm\ shrinks\ the\ problem\ each\ step.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 6\ncontent::addEx\ 6.1\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **lastitem**\ that\ returns\ the\ last\ item\ of\ a\ list.\}\ starter\ \{proc\ lastitem\ \{l\}\ \{\n\ \ \ \ return\ \[lindex\ \$l\ 0\]\n\}\}\ solution\ \{proc\ lastitem\ \{l\}\ \{\n\ \ \ \ return\ \[lindex\ \$l\ end\]\n\}\}\ tests\ \{\{lastitem\ \{a\ b\ c\}\}\ c\ \{lastitem\ \{x\}\}\ x\}\ why\ \{`end`\ means\ the\ last\ index.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **middle**\ that\ returns\ the\ list\ without\ its\ first\ and\ last\ items.\}\ starter\ \{proc\ middle\ \{l\}\ \{\n\ \ \ \ return\ \$l\n\}\}\ solution\ \{proc\ middle\ \{l\}\ \{\n\ \ \ \ return\ \[lrange\ \$l\ 1\ end-1\]\n\}\}\ tests\ \{\{middle\ \{1\ 2\ 3\ 4\ 5\}\}\ \{2\ 3\ 4\}\ \{middle\ \{a\ b\}\}\ \{\}\}\ why\ \{`end-1`\ is\ the\ second\ to\ last\ index.\}\}\n\ncontent::addEx\ 6.2\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **uniqsorted**\ that\ returns\ a\ list\ sorted\ alphabetically\ with\ duplicates\ removed.\}\ starter\ \{proc\ uniqsorted\ \{l\}\ \{\n\ \ \ \ return\ \$l\n\}\}\ solution\ \{proc\ uniqsorted\ \{l\}\ \{\n\ \ \ \ return\ \[lsort\ -unique\ \$l\]\n\}\}\ tests\ \{\{uniqsorted\ \{pear\ apple\ pear\ fig\ apple\}\}\ \{apple\ fig\ pear\}\}\ why\ \{`lsort\ -unique`\ sorts\ and\ drops\ duplicates\ in\ one\ go.\}\}\n\ncontent::addEx\ 6.3\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **zip**\ taking\ two\ lists\ of\ the\ same\ length\ and\ returning\ a\ list\ of\ pairs:\ `zip\ \{a\ b\}\ \{1\ 2\}`\ gives\ `\{a\ 1\}\ \{b\ 2\}`.\}\ starter\ \{proc\ zip\ \{a\ b\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ zip\ \{a\ b\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ foreach\ x\ \$a\ y\ \$b\ \{lappend\ r\ \[list\ \$x\ \$y\]\}\n\ \ \ \ return\ \$r\n\}\}\ tests\ \{\{zip\ \{a\ b\ c\}\ \{1\ 2\ 3\}\}\ \{\{a\ 1\}\ \{b\ 2\}\ \{c\ 3\}\}\}\ why\ \{`foreach`\ can\ walk\ two\ lists\ in\ step.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 7\ncontent::addEx\ 7.1\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **ispalin**\ returning\ 1\ if\ a\ word\ reads\ the\ same\ backwards,\ else\ 0.\}\ starter\ \{proc\ ispalin\ \{w\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ ispalin\ \{w\}\ \{\n\ \ \ \ return\ \[string\ equal\ \$w\ \[string\ reverse\ \$w\]\]\n\}\}\ tests\ \{\{ispalin\ level\}\ 1\ \{ispalin\ tcl\}\ 0\}\ why\ \{Compare\ the\ word\ with\ its\ reverse.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **capitalize**\ that\ upper-cases\ the\ first\ letter\ and\ lower-cases\ the\ rest:\ `capitalize\ tCL`\ gives\ `Tcl`.\}\ starter\ \{proc\ capitalize\ \{w\}\ \{\n\ \ \ \ return\ \$w\n\}\}\ solution\ \{proc\ capitalize\ \{w\}\ \{\n\ \ \ \ return\ \[string\ totitle\ \$w\]\n\}\}\ tests\ \{\{capitalize\ tCL\}\ Tcl\ \{capitalize\ ADA\}\ Ada\}\ why\ \{`string\ totitle`\ does\ exactly\ this.\}\}\n\ncontent::addEx\ 7.2\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **zeropad**\ that\ formats\ a\ number\ as\ 5\ digits\ with\ leading\ zeros:\ `zeropad\ 42`\ gives\ `00042`.\}\ starter\ \{proc\ zeropad\ \{n\}\ \{\n\ \ \ \ return\ \$n\n\}\}\ solution\ \{proc\ zeropad\ \{n\}\ \{\n\ \ \ \ return\ \[format\ %05d\ \$n\]\n\}\}\ tests\ \{\{zeropad\ 42\}\ 00042\ \{zeropad\ 7\}\ 00007\}\ why\ \{`%05d`\ pads\ with\ zeros\ to\ width\ 5.\}\}\n\ncontent::addEx\ 7.3\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **numbers**\ returning\ the\ list\ of\ all\ whole\ numbers\ found\ in\ a\ text:\ `numbers\ \{a1\ b22\ c333\}`\ gives\ `1\ 22\ 333`.\}\ starter\ \{proc\ numbers\ \{s\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ numbers\ \{s\}\ \{\n\ \ \ \ return\ \[regexp\ -all\ -inline\ \{\\d+\}\ \$s\]\n\}\}\ tests\ \{\{numbers\ \{a1\ b22\ c333\}\}\ \{1\ 22\ 333\}\ \{numbers\ none\}\ \{\}\}\ why\ \{`-all\ -inline`\ returns\ every\ match\ as\ a\ list.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **isdate**\ returning\ 1\ if\ a\ string\ looks\ like\ YYYY-MM-DD\ (four\ digits,\ dash,\ two\ digits,\ dash,\ two\ digits),\ else\ 0.\}\ starter\ \{proc\ isdate\ \{s\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ isdate\ \{s\}\ \{\n\ \ \ \ return\ \[regexp\ \{^\\d\{4\}-\\d\{2\}-\\d\{2\}\$\}\ \$s\]\n\}\}\ tests\ \{\{isdate\ 2024-05-17\}\ 1\ \{isdate\ 2024-5-17\}\ 0\ \{isdate\ x2024-05-17\}\ 0\}\ why\ \{Anchors\ `^`/`\$`\ make\ the\ whole\ string\ match,\ and\ `\\d\{4\}`\ means\ four\ digits.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 8\ncontent::addEx\ 8.1\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **invert**\ that\ swaps\ keys\ and\ values\ of\ a\ dict:\ `invert\ \{a\ 1\ b\ 2\}`\ gives\ `1\ a\ 2\ b`.\}\ starter\ \{proc\ invert\ \{d\}\ \{\n\ \ \ \ return\ \$d\n\}\}\ solution\ \{proc\ invert\ \{d\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ dict\ for\ \{k\ v\}\ \$d\ \{dict\ set\ r\ \$v\ \$k\}\n\ \ \ \ return\ \$r\n\}\}\ tests\ \{\{invert\ \{a\ 1\ b\ 2\}\}\ \{1\ a\ 2\ b\}\}\ why\ \{Loop\ with\ `dict\ for`\ and\ set\ each\ value\ as\ a\ key.\}\}\n\ncontent::addEx\ 8.2\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **total**\ that\ adds\ up\ the\ values\ of\ a\ dict\ of\ numbers.\}\ starter\ \{proc\ total\ \{d\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ total\ \{d\}\ \{\n\ \ \ \ set\ t\ 0\n\ \ \ \ dict\ for\ \{k\ v\}\ \$d\ \{incr\ t\ \$v\}\n\ \ \ \ return\ \$t\n\}\}\ tests\ \{\{total\ \{a\ 3\ b\ 4\ c\ 5\}\}\ 12\ \{total\ \{\}\}\ 0\}\ why\ \{Walk\ the\ values\ and\ keep\ a\ running\ sum.\}\}\n\ncontent::addEx\ 8.3\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **letters**\ that\ counts\ each\ letter\ of\ a\ word\ into\ a\ dict:\ `letters\ banana`\ gives\ `b\ 1\ a\ 3\ n\ 2`.\}\ starter\ \{proc\ letters\ \{w\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ letters\ \{w\}\ \{\n\ \ \ \ set\ d\ \{\}\n\ \ \ \ foreach\ c\ \[split\ \$w\ \"\"\]\ \{dict\ incr\ d\ \$c\}\n\ \ \ \ return\ \$d\n\}\}\ tests\ \{\{letters\ banana\}\ \{b\ 1\ a\ 3\ n\ 2\}\}\ why\ \{`split\ \$w\ \"\"`\ gives\ a\ list\ of\ characters\;\ `dict\ incr`\ counts\ them.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 9\ncontent::addEx\ 9.1\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **toint**\ that\ returns\ the\ number\ if\ its\ argument\ is\ a\ whole\ number,\ or\ the\ text\ **invalid**\ if\ not\ -\ without\ crashing.\}\ starter\ \{proc\ toint\ \{x\}\ \{\n\ \ \ \ return\ \[expr\ \{\$x\ +\ 0\}\]\n\}\}\ solution\ \{proc\ toint\ \{x\}\ \{\n\ \ \ \ if\ \{\[string\ is\ integer\ -strict\ \$x\]\}\ \{return\ \$x\}\n\ \ \ \ return\ invalid\n\}\}\ tests\ \{\{toint\ 42\}\ 42\ \{toint\ abc\}\ invalid\ \{toint\ \{\}\}\ invalid\}\ why\ \{`string\ is\ integer\ -strict`\ checks\ safely\ before\ using\ the\ value.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **mustpositive**\ that\ returns\ its\ argument,\ but\ raises\ the\ error\ **must\ be\ positive**\ when\ the\ number\ is\ 0\ or\ less.\}\ starter\ \{proc\ mustpositive\ \{n\}\ \{\n\ \ \ \ return\ \$n\n\}\}\ solution\ \{proc\ mustpositive\ \{n\}\ \{\n\ \ \ \ if\ \{\$n\ <=\ 0\}\ \{error\ \"must\ be\ positive\"\}\n\ \ \ \ return\ \$n\n\}\}\ tests\ \{\{mustpositive\ 5\}\ 5\ \{catch\ \{mustpositive\ -1\}\ m\;\ set\ m\}\ \{must\ be\ positive\}\}\ why\ \{`error\ \"message\"`\ raises\ the\ error\ that\ `catch`\ reports.\}\}\n\ncontent::addEx\ 9.2\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **linecount**\ that\ returns\ how\ many\ lines\ a\ file\ has.\}\ starter\ \{proc\ linecount\ \{name\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ linecount\ \{name\}\ \{\n\ \ \ \ set\ f\ \[open\ \$name\ r\]\n\ \ \ \ set\ n\ 0\n\ \ \ \ while\ \{\[gets\ \$f\ line\]\ >=\ 0\}\ \{incr\ n\}\n\ \ \ \ close\ \$f\n\ \ \ \ return\ \$n\n\}\}\ tests\ \{\{set\ f\ \[open\ t.txt\ w\]\;\ puts\ \$f\ a\;\ puts\ \$f\ b\;\ puts\ \$f\ c\;\ close\ \$f\;\ linecount\ t.txt\}\ 3\}\ why\ \{Read\ with\ `gets`\ until\ it\ returns\ -1,\ counting.\}\}\n\ncontent::addEx\ 9.3\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **parserow**\ that\ turns\ `ann,31,paris`\ into\ a\ dict\ with\ keys\ name,\ age,\ city.\}\ starter\ \{proc\ parserow\ \{line\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ parserow\ \{line\}\ \{\n\ \ \ \ lassign\ \[split\ \$line\ ,\]\ name\ age\ city\n\ \ \ \ return\ \[dict\ create\ name\ \$name\ age\ \$age\ city\ \$city\]\n\}\}\ tests\ \{\{parserow\ ann,31,paris\}\ \{name\ ann\ age\ 31\ city\ paris\}\}\ why\ \{Split\ on\ commas,\ unpack\ with\ `lassign`,\ build\ a\ dict.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 10\ncontent::addEx\ 10.1\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **callit**\ that\ runs\ a\ command\ given\ as\ its\ first\ argument\ with\ the\ remaining\ arguments,\ safely:\ `callit\ string\ toupper\ abc`\ gives\ `ABC`.\}\ starter\ \{proc\ callit\ \{cmd\ args\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ callit\ \{cmd\ args\}\ \{\n\ \ \ \ return\ \[\$cmd\ \{*\}\$args\]\n\}\}\ tests\ \{\{callit\ string\ toupper\ abc\}\ ABC\ \{callit\ expr\ 2\ +\ 3\}\ 5\}\ why\ \{`\{*\}\$args`\ spreads\ the\ arguments\ as\ separate\ words.\}\}\n\ncontent::addEx\ 10.2\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **appendto**\ taking\ a\ variable\ NAME\ and\ a\ value,\ adding\ the\ value\ to\ that\ list\ variable\ in\ the\ caller\ (use\ `upvar`).\}\ starter\ \{proc\ appendto\ \{name\ val\}\ \{\n\}\}\ solution\ \{proc\ appendto\ \{name\ val\}\ \{\n\ \ \ \ upvar\ 1\ \$name\ l\n\ \ \ \ lappend\ l\ \$val\n\}\}\ tests\ \{\{set\ x\ \{\}\;\ appendto\ x\ a\;\ appendto\ x\ b\;\ set\ x\}\ \{a\ b\}\}\ why\ \{`upvar\ 1\ \$name\ l`\ makes\ `l`\ the\ caller's\ variable.\}\}\n\ncontent::addEx\ 10.3\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **partial**\ taking\ a\ command\ prefix\ and\ some\ leading\ arguments\ and\ returning\ a\ new\ prefix\ with\ them\ added:\ `\{*\}\[partial\ \{string\ repeat\}\ ab\]\ 3`\ gives\ `ababab`.\}\ starter\ \{proc\ partial\ \{cmd\ args\}\ \{\n\ \ \ \ return\ \$cmd\n\}\}\ solution\ \{proc\ partial\ \{cmd\ args\}\ \{\n\ \ \ \ return\ \[list\ \{*\}\$cmd\ \{*\}\$args\]\n\}\}\ tests\ \{\{\{*\}\[partial\ \{string\ repeat\}\ ab\]\ 3\}\ ababab\}\ why\ \{A\ command\ prefix\ is\ just\ a\ list,\ so\ extend\ it\ with\ `list\ \{*\}...`.\}\}\n\ncontent::addEx\ 10.4\ \\\n\ \ \{kind\ code\ prompt\ \{Create\ a\ namespace\ **ticker**\ with\ a\ variable\ and\ a\ proc\ **next**\ that\ returns\ 1,\ 2,\ 3...\ on\ successive\ calls.\}\ starter\ \{namespace\ eval\ ticker\ \{\n\}\}\ solution\ \{namespace\ eval\ ticker\ \{\n\ \ \ \ variable\ n\ 0\n\ \ \ \ proc\ next\ \{\}\ \{\n\ \ \ \ \ \ \ \ variable\ n\n\ \ \ \ \ \ \ \ return\ \[incr\ n\]\n\ \ \ \ \}\n\}\}\ tests\ \{\{ticker::next\;\ ticker::next\;\ ticker::next\}\ 3\}\ why\ \{The\ namespace\ variable\ keeps\ its\ value\ between\ calls.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 11\ncontent::addEx\ 11.1\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **take**\ that\ calls\ a\ coroutine\ command\ n\ times\ and\ returns\ the\ list\ of\ results:\ `take\ gen\ 3`.\}\ starter\ \{proc\ take\ \{gen\ n\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ take\ \{gen\ n\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ for\ \{set\ i\ 0\}\ \{\$i\ <\ \$n\}\ \{incr\ i\}\ \{lappend\ r\ \[\$gen\]\}\n\ \ \ \ return\ \$r\n\}\}\ tests\ \{\{proc\ g\ \{\}\ \{yield\;\ set\ i\ 0\;\ while\ 1\ \{yield\ \[incr\ i\]\}\}\;\ coroutine\ cg\ g\;\ take\ cg\ 4\}\ \{1\ 2\ 3\ 4\}\}\ why\ \{Each\ call\ to\ the\ coroutine\ produces\ the\ next\ value.\}\}\n\ncontent::addEx\ 11.2\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ TclOO\ class\ **Stack**\ with\ methods\ **push**,\ **pop**\ and\ **size**.\}\ starter\ \{oo::class\ create\ Stack\ \{\n\}\}\ solution\ \{oo::class\ create\ Stack\ \{\n\ \ \ \ variable\ items\n\ \ \ \ constructor\ \{\}\ \{set\ items\ \{\}\}\n\ \ \ \ method\ push\ \{x\}\ \{lappend\ items\ \$x\}\n\ \ \ \ method\ pop\ \{\}\ \{\n\ \ \ \ \ \ \ \ set\ x\ \[lindex\ \$items\ end\]\n\ \ \ \ \ \ \ \ set\ items\ \[lrange\ \$items\ 0\ end-1\]\n\ \ \ \ \ \ \ \ return\ \$x\n\ \ \ \ \}\n\ \ \ \ method\ size\ \{\}\ \{return\ \[llength\ \$items\]\}\n\}\}\ tests\ \{\{set\ s\ \[Stack\ new\]\;\ \$s\ push\ a\;\ \$s\ push\ b\;\ list\ \[\$s\ pop\]\ \[\$s\ size\]\}\ \{b\ 1\}\}\ why\ \{The\ object's\ own\ variable\ keeps\ the\ list\ between\ method\ calls.\}\}\n\ncontent::addEx\ 11.3\ \\\n\ \ \{kind\ code\ prompt\ \{Make\ every\ write\ to\ the\ variable\ **v**\ increase\ the\ global\ counter\ **writes**.\ Define\ a\ handler\ proc\ **bump**\ and\ attach\ it\ with\ a\ write\ trace.\}\ starter\ \{set\ ::writes\ 0\nproc\ bump\ \{args\}\ \{\}\nset\ v\ 0\}\ solution\ \{set\ ::writes\ 0\nproc\ bump\ \{args\}\ \{incr\ ::writes\}\nset\ v\ 0\ntrace\ add\ variable\ v\ write\ bump\}\ tests\ \{\{set\ v\ 1\;\ set\ v\ 2\;\ set\ v\ 3\;\ set\ ::writes\}\ 3\}\ why\ \{A\ write\ trace\ runs\ the\ handler\ on\ every\ `set`.\}\}\n\ncontent::addEx\ 11.4\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **later**\ that\ waits\ 10\ ms\ (without\ blocking\ events)\ and\ then\ returns\ the\ text\ **done**,\ using\ `after`\ and\ `vwait`.\}\ starter\ \{proc\ later\ \{\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ later\ \{\}\ \{\n\ \ \ \ after\ 10\ \{set\ ::fin\ done\}\n\ \ \ \ vwait\ ::fin\n\ \ \ \ return\ \$::fin\n\}\}\ tests\ \{\{later\}\ done\}\ why\ \{`after`\ schedules,\ `vwait`\ runs\ the\ event\ loop\ until\ the\ variable\ is\ set.\}\}\n\ncontent::addEx\ 11.5\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **evalsafe**\ that\ evaluates\ a\ Tcl\ script\ in\ a\ brand\ new\ SAFE\ interpreter\ and\ returns\ the\ result\ (then\ deletes\ the\ interpreter).\}\ starter\ \{proc\ evalsafe\ \{script\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ evalsafe\ \{script\}\ \{\n\ \ \ \ set\ i\ \[interp\ create\ -safe\]\n\ \ \ \ set\ r\ \[\$i\ eval\ \$script\]\n\ \ \ \ interp\ delete\ \$i\n\ \ \ \ return\ \$r\n\}\}\ tests\ \{\{evalsafe\ \{expr\ \{6\ *\ 7\}\}\}\ 42\ \{evalsafe\ \{set\ x\ 5\;\ incr\ x\}\}\ 6\}\ why\ \{`interp\ create\ -safe`\ plus\ `eval`\ gives\ an\ isolated\ world.\}\}\n\ncontent::addEx\ 11.6\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **squares**\ that\ returns\ the\ list\ of\ squares\ 1..n\ efficiently,\ building\ the\ list\ with\ `lappend`.\}\ starter\ \{proc\ squares\ \{n\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ squares\ \{n\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ for\ \{set\ i\ 1\}\ \{\$i\ <=\ \$n\}\ \{incr\ i\}\ \{lappend\ r\ \[expr\ \{\$i\ *\ \$i\}\]\}\n\ \ \ \ return\ \$r\n\}\}\ tests\ \{\{squares\ 5\}\ \{1\ 4\ 9\ 16\ 25\}\ \{squares\ 0\}\ \{\}\}\ why\ \{`lappend`\ appends\ in\ place,\ so\ the\ loop\ stays\ fast\ even\ for\ large\ n.\}\}\n}
+} content/u14.tcl content::unit\ 14\ \"Read,\ debug\ and\ build\"\ \"Read\ other\ people's\ code,\ hunt\ bugs,\ and\ finish\ eight\ real\ projects.\"\ \"#EC4899\"\n\ncontent::lesson\ 14.1\ 14\ \"Reading\ and\ debugging\ real\ code\"\ \"The\ most\ underrated\ skill:\ understanding\ a\ program\ you\ did\ not\ write.\"\ \{\npages\ \{\n\ \ \{head\ \"How\ to\ read\ a\ program\"\ body\ \{\n\ \ \ \ p\ \{Experts\ spend\ more\ time\ **reading**\ code\ than\ writing\ it.\ A\ reliable\ method:\}\n\ \ \ \ p\ \{-\ Find\ the\ **data**:\ what\ shapes\ flow\ through\ the\ program\ (lists?\ dicts\ of\ dicts?)\n-\ Find\ the\ **entry\ point**:\ the\ lines\ that\ run\ when\ the\ program\ starts\n-\ Read\ each\ proc\ by\ its\ **name,\ parameters\ and\ return\ value**\ first,\ body\ second\n-\ **Trace**\ a\ tiny\ input\ by\ hand,\ writing\ down\ the\ variables\ as\ they\ change\}\n\ \ \ \ code\ \{proc\ parse\ \{text\}\ \{\n\ \ \ \ set\ rows\ \{\}\n\ \ \ \ foreach\ line\ \[split\ \[string\ trim\ \$text\]\ \"\\n\"\]\ \{\n\ \ \ \ \ \ \ \ lassign\ \[split\ \$line\ ,\]\ name\ dept\ pay\n\ \ \ \ \ \ \ \ lappend\ rows\ \[dict\ create\ name\ \$name\ dept\ \$dept\ pay\ \$pay\]\n\ \ \ \ \}\n\ \ \ \ return\ \$rows\n\}\nproc\ totals\ \{rows\}\ \{\n\ \ \ \ set\ t\ \{\}\n\ \ \ \ foreach\ r\ \$rows\ \{\n\ \ \ \ \ \ \ \ dict\ incr\ t\ \[dict\ get\ \$r\ dept\]\ \[dict\ get\ \$r\ pay\]\n\ \ \ \ \}\n\ \ \ \ return\ \$t\n\}\nset\ data\ \"ann,ops,30\nbob,dev,50\ncy,ops,20\"\ndict\ for\ \{d\ n\}\ \[totals\ \[parse\ \$data\]\]\ \{\n\ \ \ \ puts\ \"\$d:\ \$n\"\n\}\}\n\ \ \ \ out\ \{ops:\ 50\ndev:\ 50\}\n\ \ \ \ p\ \{Data\ first:\ `parse`\ turns\ CSV\ text\ into\ a\ list\ of\ dicts\;\ `totals`\ folds\ those\ into\ one\ dict\ of\ department\ to\ pay.\ The\ entry\ point\ is\ the\ last\ block.\ Tracing:\ ann\ adds\ 30\ to\ ops,\ bob\ adds\ 50\ to\ dev,\ cy\ adds\ 20\ to\ ops,\ giving\ ops\ 50\ and\ dev\ 50.\}\n\ \ \}\}\n\ \ \{head\ \"Recursion\ and\ tables\ of\ behaviour\"\ body\ \{\n\ \ \ \ p\ \{Two\ shapes\ you\ will\ meet\ constantly.\ **Recursive**\ code\ handles\ nested\ data\ by\ calling\ itself\ on\ the\ parts:\}\n\ \ \ \ code\ \{proc\ flatten\ \{l\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ foreach\ x\ \$l\ \{\n\ \ \ \ \ \ \ \ if\ \{\[llength\ \$x\]\ >\ 1\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ r\ \{*\}\[flatten\ \$x\]\n\ \ \ \ \ \ \ \ \}\ else\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ r\ \$x\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \}\n\ \ \ \ return\ \$r\n\}\nputs\ \[flatten\ \{1\ \{2\ 3\}\ \{4\ \{5\ 6\}\}\}\]\}\n\ \ \ \ out\ \{1\ 2\ 3\ 4\ 5\ 6\}\n\ \ \ \ p\ \{And\ **dispatch\ tables**\ replace\ long\ chains\ of\ `if`\ with\ a\ dict\ from\ name\ to\ behaviour:\}\n\ \ \ \ code\ \{set\ ops\ \[dict\ create\ \\\n\ \ \ \ add\ \{\{a\ b\}\ \{expr\ \{\$a\ +\ \$b\}\}\}\ \\\n\ \ \ \ mul\ \{\{a\ b\}\ \{expr\ \{\$a\ *\ \$b\}\}\}\ \\\n\ \ \ \ neg\ \{\{a\}\ \{expr\ \{-\$a\}\}\}\]\nproc\ calc\ \{op\ args\}\ \{\n\ \ \ \ global\ ops\n\ \ \ \ if\ \{!\[dict\ exists\ \$ops\ \$op\]\}\ \{error\ \"unknown\ op\ \$op\"\}\n\ \ \ \ apply\ \[dict\ get\ \$ops\ \$op\]\ \{*\}\$args\n\}\nputs\ \[calc\ add\ 2\ 3\]\nputs\ \[calc\ neg\ 5\]\nputs\ \[catch\ \{calc\ pow\ 2\ 3\}\ m\]\nputs\ \$m\}\n\ \ \ \ out\ \{5\n-5\n1\nunknown\ op\ pow\}\n\ \ \}\}\n\ \ \{head\ \"Debugging\"\ body\ \{\n\ \ \ \ p\ \{Most\ bugs\ fall\ into\ a\ few\ families.\ Learn\ to\ recognise\ them:\}\n\ \ \ \ p\ \{-\ **Off-by-one**:\ `<`\ where\ you\ meant\ `<=`,\ or\ indexes\ starting\ at\ 0\n-\ **Whole-number\ division**:\ `expr\ \{7\ /\ 2\}`\ is\ 3\n-\ **Scope**:\ a\ proc\ cannot\ see\ a\ global\ variable\ unless\ you\ say\ `global`\n-\ **Quoting**:\ braces\ versus\ quotes,\ and\ a\ missing\ `\$`\n-\ **Mutation**:\ forgetting\ that\ `lappend`/`set`\ change\ the\ variable\ but\ `lsort`\ returns\ a\ new\ list\}\n\ \ \ \ p\ \{Debug\ scientifically:\ reproduce\ the\ bug\ with\ the\ **smallest**\ input,\ print\ the\ intermediate\ values\ with\ `puts`,\ form\ a\ guess,\ test\ the\ guess,\ repeat.\ Do\ not\ change\ code\ at\ random.\}\n\ \ \ \ tip\ \{`puts\ stderr\ \"x=\$x\"`\ is\ a\ perfectly\ good\ debugger.\ `info\ body`,\ `info\ args`\ and\ `trace\ add\ execution`\ are\ better\ ones.\ And\ `catch`\ plus\ `puts\ \$::errorInfo`\ shows\ the\ whole\ call\ stack\ of\ an\ error.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ predict\ code\ \{proc\ flatten\ \{l\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ foreach\ x\ \$l\ \{\n\ \ \ \ \ \ \ \ if\ \{\[llength\ \$x\]\ >\ 1\}\ \{lappend\ r\ \{*\}\[flatten\ \$x\]\}\ else\ \{lappend\ r\ \$x\}\n\ \ \ \ \}\n\ \ \ \ return\ \$r\n\}\nputs\ \[llength\ \[flatten\ \{a\ \{b\ c\}\ \{d\ \{e\ f\ g\}\}\}\]\]\}\ choices\ \{7\ 5\ 3\ 4\}\ ans\ 0\ why\ \{Seven\ leaves:\ a\ b\ c\ d\ e\ f\ g.\}\}\n\ \ \{kind\ predict\ code\ \{set\ ops\ \[dict\ create\ sq\ \{\{x\}\ \{expr\ \{\$x\ *\ \$x\}\}\}\ inc\ \{\{x\}\ \{expr\ \{\$x\ +\ 1\}\}\}\]\nputs\ \[apply\ \[dict\ get\ \$ops\ sq\]\ \[apply\ \[dict\ get\ \$ops\ inc\]\ 4\]\]\}\ choices\ \{25\ 17\ 20\ 5\}\ ans\ 0\ why\ \{inc\ 4\ =\ 5,\ then\ sq\ 5\ =\ 25.\}\}\n\ \ \{kind\ predict\ code\ \{proc\ totals\ \{rows\}\ \{\n\ \ \ \ set\ t\ \{\}\n\ \ \ \ foreach\ r\ \$rows\ \{dict\ incr\ t\ \[lindex\ \$r\ 0\]\ \[lindex\ \$r\ 1\]\}\n\ \ \ \ return\ \$t\n\}\nputs\ \[totals\ \{\{a\ 1\}\ \{b\ 2\}\ \{a\ 3\}\}\]\}\ choices\ \{\{a\ 4\ b\ 2\}\ \{a\ 1\ b\ 2\ a\ 3\}\ \{a\ 3\ b\ 2\}\ \{4\ 2\}\}\ ans\ 0\ why\ \{Amounts\ for\ the\ same\ key\ are\ added.\}\}\n\ \ \{kind\ mc\ q\ \{You\ find\ `for\ \{set\ i\ 0\}\ \{\$i\ <=\ \[llength\ \$l\]\}\ \{incr\ i\}`\ while\ reading\ a\ program.\ What\ is\ the\ likely\ bug?\}\ choices\ \{\{Off-by-one:\ it\ runs\ once\ too\ many\ (indexes\ go\ 0\ to\ llength-1)\}\ \{It\ runs\ too\ few\ times\}\ \{It\ never\ runs\}\ \{There\ is\ no\ bug\}\}\ ans\ 0\ why\ \{A\ list\ with\ n\ items\ has\ indexes\ 0\ ..\ n-1.\}\}\n\ \ \{kind\ mc\ q\ \{A\ proc\ reads\ a\ variable\ `count`\ that\ is\ set\ at\ the\ top\ of\ the\ script,\ but\ fails\ with\ \"no\ such\ variable\".\ Why?\}\ choices\ \{\{Procs\ have\ their\ own\ scope\;\ it\ needs\ `global\ count`\}\ \{Variables\ cannot\ be\ read\ in\ procs\}\ \{count\ is\ a\ reserved\ word\}\ \{The\ script\ must\ be\ saved\ first\}\}\ ans\ 0\ why\ \{Without\ `global`\ (or\ `::count`)\ the\ proc\ looks\ in\ its\ own\ local\ scope.\}\}\n\ \ \{kind\ mc\ q\ \{What\ is\ the\ best\ first\ step\ when\ you\ find\ a\ bug?\}\ choices\ \{\{Reproduce\ it\ with\ the\ smallest\ possible\ input\}\ \{Rewrite\ the\ whole\ function\}\ \{Add\ random\ changes\ until\ it\ works\}\ \{Ignore\ it\}\}\ ans\ 0\ why\ \{A\ small\ reproduction\ makes\ the\ cause\ visible.\}\}\n\ \ \{kind\ code\ prompt\ \{**Fix\ the\ bug.**\ `average`\ should\ return\ a\ decimal\ result,\ but\ whole-number\ division\ throws\ away\ the\ fraction.\}\ starter\ \{proc\ average\ \{l\}\ \{\n\ \ \ \ set\ t\ 0\n\ \ \ \ foreach\ x\ \$l\ \{incr\ t\ \$x\}\n\ \ \ \ return\ \[expr\ \{\$t\ /\ \[llength\ \$l\]\}\]\n\}\}\ solution\ \{proc\ average\ \{l\}\ \{\n\ \ \ \ set\ t\ 0\n\ \ \ \ foreach\ x\ \$l\ \{incr\ t\ \$x\}\n\ \ \ \ return\ \[expr\ \{double(\$t)\ /\ \[llength\ \$l\]\}\]\n\}\}\ tests\ \{\{average\ \{1\ 2\}\}\ 1.5\ \{average\ \{4\}\}\ 4.0\}\ why\ \{Making\ one\ operand\ a\ double\ forces\ decimal\ division.\}\}\n\ \ \{kind\ code\ prompt\ \{**Fix\ the\ bug.**\ `range\ 3`\ should\ return\ `1\ 2\ 3`,\ but\ it\ stops\ one\ short.\}\ starter\ \{proc\ range\ \{n\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ for\ \{set\ i\ 1\}\ \{\$i\ <\ \$n\}\ \{incr\ i\}\ \{lappend\ r\ \$i\}\n\ \ \ \ return\ \$r\n\}\}\ solution\ \{proc\ range\ \{n\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ for\ \{set\ i\ 1\}\ \{\$i\ <=\ \$n\}\ \{incr\ i\}\ \{lappend\ r\ \$i\}\n\ \ \ \ return\ \$r\n\}\}\ tests\ \{\{range\ 3\}\ \{1\ 2\ 3\}\ \{range\ 1\}\ 1\ \{range\ 0\}\ \{\}\}\ why\ \{The\ test\ must\ be\ `<=`\ so\ n\ itself\ is\ included.\}\}\n\ \ \{kind\ code\ prompt\ \{**Fix\ the\ bug.**\ `hit`\ should\ increase\ the\ global\ `count`,\ but\ it\ fails\ because\ of\ scope.\}\ starter\ \{proc\ hit\ \{\}\ \{\n\ \ \ \ incr\ count\n\}\}\ solution\ \{proc\ hit\ \{\}\ \{\n\ \ \ \ global\ count\n\ \ \ \ incr\ count\n\}\}\ tests\ \{\{set\ count\ 0\;\ hit\;\ hit\;\ set\ count\}\ 2\}\ why\ \{`global\ count`\ links\ the\ name\ to\ the\ global\ variable.\}\}\n\ \ \{kind\ code\ prompt\ \{**Fix\ the\ bug.**\ `sorted`\ should\ return\ the\ list\ in\ order,\ but\ the\ result\ is\ thrown\ away.\}\ starter\ \{proc\ sorted\ \{l\}\ \{\n\ \ \ \ lsort\ \$l\n\ \ \ \ return\ \$l\n\}\}\ solution\ \{proc\ sorted\ \{l\}\ \{\n\ \ \ \ return\ \[lsort\ \$l\]\n\}\}\ tests\ \{\{sorted\ \{c\ a\ b\}\}\ \{a\ b\ c\}\}\ why\ \{`lsort`\ returns\ a\ new\ list\;\ it\ does\ not\ change\ the\ original.\}\}\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **depth**\ returning\ how\ deeply\ a\ list\ is\ nested.\ A\ single\ word\ has\ depth\ 0\;\ a\ list\ is\ 1\ plus\ the\ depth\ of\ its\ deepest\ item.\ So\ `depth\ x`\ is\ 0,\ `depth\ \{a\ b\}`\ is\ 1\ and\ `depth\ \{a\ \{b\ \{c\ d\}\}\}`\ is\ 3.\}\ starter\ \{proc\ depth\ \{x\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ depth\ \{x\}\ \{\n\ \ \ \ if\ \{\[llength\ \$x\]\ <=\ 1\ &&\ \[lindex\ \$x\ 0\]\ eq\ \$x\}\ \{return\ 0\}\n\ \ \ \ set\ d\ 0\n\ \ \ \ foreach\ i\ \$x\ \{\n\ \ \ \ \ \ \ \ set\ di\ \[depth\ \$i\]\n\ \ \ \ \ \ \ \ if\ \{\$di\ >\ \$d\}\ \{set\ d\ \$di\}\n\ \ \ \ \}\n\ \ \ \ return\ \[expr\ \{\$d\ +\ 1\}\]\n\}\}\ tests\ \{\{depth\ x\}\ 0\ \{depth\ \{a\ b\}\}\ 1\ \{depth\ \{a\ \{b\ \{c\ d\}\}\}\}\ 3\}\ why\ \{Recurse\ into\ each\ item,\ keep\ the\ deepest,\ add\ one.\}\}\n\}\ncards\ \{\n\ \ \{\{What\ is\ a\ reliable\ method\ for\ reading\ unfamiliar\ code?\}\ \{Find\ the\ data\ shapes,\ find\ the\ entry\ point,\ read\ each\ proc's\ name/parameters/return\ first,\ then\ trace\ a\ tiny\ input\ by\ hand.\}\}\n\ \ \{\{Name\ common\ bug\ families.\}\ \{Off-by-one,\ whole-number\ division,\ missing\ `global`\ (scope),\ quoting\ mistakes,\ and\ forgetting\ `lsort`/`string`\ return\ new\ values.\}\}\n\ \ \{\{What\ is\ a\ dispatch\ table?\}\ \{A\ dict\ from\ a\ name\ to\ behaviour\ (a\ lambda),\ replacing\ a\ long\ if/elseif\ chain:\ `apply\ \[dict\ get\ \$ops\ \$name\]\ \{*\}\$args`.\}\}\n\ \ \{\{How\ should\ you\ debug?\}\ \{Reproduce\ with\ the\ smallest\ input,\ print\ intermediate\ values,\ guess,\ test\ the\ guess,\ repeat\ -\ never\ change\ code\ at\ random.\}\}\n\}\n\}\n\ncontent::lesson\ 14.2\ 14\ \"Project\ 1:\ a\ to-do\ manager\"\ \"Lists,\ dicts,\ namespaces\ and\ procs\ working\ together.\"\ \{\npages\ \{\n\ \ \{head\ \"The\ brief\"\ body\ \{\n\ \ \ \ p\ \{Build\ a\ small\ **to-do\ manager**\ as\ a\ namespace\ called\ `todo`.\ It\ must:\}\n\ \ \ \ p\ \{-\ `todo::reset`\ empties\ the\ list\n-\ `todo::add\ title`\ adds\ an\ item\ and\ returns\ its\ id\ (1,\ 2,\ 3,\ ...)\n-\ `todo::complete\ id`\ marks\ an\ item\ done,\ or\ raises\ the\ error\ `no\ such\ item`\ for\ an\ unknown\ id\n-\ `todo::pending`\ returns\ the\ titles\ of\ the\ items\ not\ yet\ done,\ in\ id\ order\n-\ `todo::report`\ returns\ a\ text\ listing,\ one\ line\ per\ item,\ like\ `\[x\]\ 1\ milk`\ (done)\ or\ `\[\ \]\ 2\ eggs`\}\n\ \ \ \ p\ \{Work\ in\ small\ steps:\ each\ exercise\ below\ adds\ one\ feature,\ and\ you\ can\ always\ run\ it\ in\ the\ **Playground**\ first.\}\n\ \ \}\}\n\ \ \{head\ \"Design\"\ body\ \{\n\ \ \ \ p\ \{Store\ the\ items\ in\ a\ **dict\ keyed\ by\ id**,\ each\ value\ a\ dict\ with\ `title`\ and\ `done`.\ A\ separate\ counter\ gives\ the\ next\ id.\ A\ namespace\ keeps\ all\ of\ it\ private:\}\n\ \ \ \ code\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ variable\ next\n\ \ \ \ \ \ \ \ set\ items\ \{\}\n\ \ \ \ \ \ \ \ set\ next\ 1\n\ \ \ \ \}\n\}\nputs\ \[dict\ size\ \$todo::items\]\}\n\ \ \ \ out\ \{0\}\n\ \ \ \ p\ \{Each\ public\ proc\ starts\ with\ `variable\ items\ next`\ to\ reach\ the\ namespace's\ data.\ Because\ the\ dict\ is\ keyed\ by\ id,\ finding\ or\ updating\ an\ item\ is\ a\ single\ `dict`\ call.\}\n\ \ \}\}\n\ \ \{head\ \"Tips\"\ body\ \{\n\ \ \ \ p\ \{-\ Create\ the\ next\ id\ with\ `incr\ next`\ and\ use\ the\ value\ **before**\ incrementing\n-\ `dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]`\ stores\ a\ record\n-\ For\ `report`,\ `dict\ for`\ walks\ the\ items\ in\ insertion\ order,\ which\ is\ id\ order\ here\n-\ Use\ `error\ \"no\ such\ item\"`\ and\ test\ it\ with\ `catch`\}\n\ \ \ \ tip\ \{Think\ about\ the\ unhappy\ paths\ early:\ unknown\ ids,\ empty\ lists,\ and\ titles\ containing\ spaces.\ Tests\ for\ those\ catch\ the\ most\ bugs.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ code\ prompt\ \{**Step\ 1.**\ Create\ the\ namespace\ `todo`\ with\ `reset`\ and\ `add`.\ `add\ title`\ stores\ the\ item\ and\ returns\ its\ id.\}\ starter\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\}\}\ solution\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ variable\ next\n\ \ \ \ \ \ \ \ set\ items\ \{\}\n\ \ \ \ \ \ \ \ set\ next\ 1\n\ \ \ \ \}\n\ \ \ \ proc\ add\ \{title\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ variable\ next\n\ \ \ \ \ \ \ \ set\ id\ \$next\n\ \ \ \ \ \ \ \ incr\ next\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]\n\ \ \ \ \ \ \ \ return\ \$id\n\ \ \ \ \}\n\}\}\ tests\ \{\{todo::reset\;\ todo::add\ milk\;\ todo::add\ eggs\}\ 2\ \{todo::reset\;\ todo::add\ milk\}\ 1\}\ why\ \{Read\ `next`\ for\ the\ id,\ increment\ it,\ and\ store\ a\ record\ under\ that\ id.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 2.**\ Add\ `complete\ id`.\ It\ sets\ `done`\ to\ 1,\ and\ raises\ `no\ such\ item`\ if\ the\ id\ does\ not\ exist.\ (Your\ namespace\ from\ step\ 1\ is\ included.)\}\ starter\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{variable\ items\;\ variable\ next\;\ set\ items\ \{\}\;\ set\ next\ 1\}\n\ \ \ \ proc\ add\ \{title\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\;\ variable\ next\n\ \ \ \ \ \ \ \ set\ id\ \$next\;\ incr\ next\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]\n\ \ \ \ \ \ \ \ return\ \$id\n\ \ \ \ \}\n\}\}\ solution\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{variable\ items\;\ variable\ next\;\ set\ items\ \{\}\;\ set\ next\ 1\}\n\ \ \ \ proc\ add\ \{title\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\;\ variable\ next\n\ \ \ \ \ \ \ \ set\ id\ \$next\;\ incr\ next\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]\n\ \ \ \ \ \ \ \ return\ \$id\n\ \ \ \ \}\n\ \ \ \ proc\ complete\ \{id\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$items\ \$id\]\}\ \{error\ \"no\ such\ item\"\}\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ done\ 1\n\ \ \ \ \}\n\}\}\ tests\ \{\{todo::reset\;\ set\ a\ \[todo::add\ x\]\;\ todo::complete\ \$a\;\ dict\ get\ \$todo::items\ \$a\ done\}\ 1\ \{todo::reset\;\ catch\ \{todo::complete\ 9\}\ m\;\ set\ m\}\ \{no\ such\ item\}\}\ why\ \{Check\ with\ `dict\ exists`\ first.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 3.**\ Add\ `pending`,\ returning\ the\ titles\ of\ items\ that\ are\ not\ done,\ in\ id\ order.\}\ starter\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{variable\ items\;\ variable\ next\;\ set\ items\ \{\}\;\ set\ next\ 1\}\n\ \ \ \ proc\ add\ \{title\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\;\ variable\ next\n\ \ \ \ \ \ \ \ set\ id\ \$next\;\ incr\ next\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]\n\ \ \ \ \ \ \ \ return\ \$id\n\ \ \ \ \}\n\ \ \ \ proc\ complete\ \{id\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$items\ \$id\]\}\ \{error\ \"no\ such\ item\"\}\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ done\ 1\n\ \ \ \ \}\n\}\}\ solution\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{variable\ items\;\ variable\ next\;\ set\ items\ \{\}\;\ set\ next\ 1\}\n\ \ \ \ proc\ add\ \{title\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\;\ variable\ next\n\ \ \ \ \ \ \ \ set\ id\ \$next\;\ incr\ next\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]\n\ \ \ \ \ \ \ \ return\ \$id\n\ \ \ \ \}\n\ \ \ \ proc\ complete\ \{id\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$items\ \$id\]\}\ \{error\ \"no\ such\ item\"\}\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ done\ 1\n\ \ \ \ \}\n\ \ \ \ proc\ pending\ \{\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ set\ r\ \{\}\n\ \ \ \ \ \ \ \ dict\ for\ \{id\ rec\}\ \$items\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{!\[dict\ get\ \$rec\ done\]\}\ \{lappend\ r\ \[dict\ get\ \$rec\ title\]\}\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ return\ \$r\n\ \ \ \ \}\n\}\}\ tests\ \{\{todo::reset\;\ todo::add\ milk\;\ set\ b\ \[todo::add\ eggs\]\;\ todo::add\ bread\;\ todo::complete\ \$b\;\ todo::pending\}\ \{milk\ bread\}\}\ why\ \{Walk\ the\ records\ and\ collect\ titles\ whose\ `done`\ is\ 0.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 4.**\ Add\ `report`:\ one\ line\ per\ item,\ `\[x\]\ 1\ milk`\ for\ done\ and\ `\[\ \]\ 2\ eggs`\ for\ pending,\ joined\ with\ newlines.\}\ starter\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{variable\ items\;\ variable\ next\;\ set\ items\ \{\}\;\ set\ next\ 1\}\n\ \ \ \ proc\ add\ \{title\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\;\ variable\ next\n\ \ \ \ \ \ \ \ set\ id\ \$next\;\ incr\ next\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]\n\ \ \ \ \ \ \ \ return\ \$id\n\ \ \ \ \}\n\ \ \ \ proc\ complete\ \{id\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$items\ \$id\]\}\ \{error\ \"no\ such\ item\"\}\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ done\ 1\n\ \ \ \ \}\n\}\}\ solution\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{variable\ items\;\ variable\ next\;\ set\ items\ \{\}\;\ set\ next\ 1\}\n\ \ \ \ proc\ add\ \{title\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\;\ variable\ next\n\ \ \ \ \ \ \ \ set\ id\ \$next\;\ incr\ next\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]\n\ \ \ \ \ \ \ \ return\ \$id\n\ \ \ \ \}\n\ \ \ \ proc\ complete\ \{id\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$items\ \$id\]\}\ \{error\ \"no\ such\ item\"\}\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ done\ 1\n\ \ \ \ \}\n\ \ \ \ proc\ report\ \{\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ set\ lines\ \{\}\n\ \ \ \ \ \ \ \ dict\ for\ \{id\ rec\}\ \$items\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ set\ mark\ \[expr\ \{\[dict\ get\ \$rec\ done\]\ ?\ \"x\"\ :\ \"\ \"\}\]\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ lines\ \"\\\[\$mark\\\]\ \$id\ \[dict\ get\ \$rec\ title\]\"\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ return\ \[join\ \$lines\ \"\\n\"\]\n\ \ \ \ \}\n\}\}\ tests\ \{\{todo::reset\;\ todo::add\ milk\;\ set\ b\ \[todo::add\ eggs\]\;\ todo::complete\ \$b\;\ todo::report\}\ \{\[\ \]\ 1\ milk\n\[x\]\ 2\ eggs\}\}\ why\ \{Build\ each\ line\ with\ a\ conditional\ mark,\ then\ `join`\ the\ lines\ with\ newlines.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 5\ -\ final.**\ Put\ it\ all\ together\ in\ one\ namespace:\ reset,\ add,\ complete,\ pending\ and\ report,\ with\ a\ **count**\ proc\ returning\ how\ many\ items\ are\ not\ done.\}\ starter\ \{namespace\ eval\ todo\ \{\n\}\}\ solution\ \{namespace\ eval\ todo\ \{\n\ \ \ \ variable\ items\ \{\}\n\ \ \ \ variable\ next\ 1\n\ \ \ \ proc\ reset\ \{\}\ \{variable\ items\;\ variable\ next\;\ set\ items\ \{\}\;\ set\ next\ 1\}\n\ \ \ \ proc\ add\ \{title\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\;\ variable\ next\n\ \ \ \ \ \ \ \ set\ id\ \$next\;\ incr\ next\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ \[dict\ create\ title\ \$title\ done\ 0\]\n\ \ \ \ \ \ \ \ return\ \$id\n\ \ \ \ \}\n\ \ \ \ proc\ complete\ \{id\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$items\ \$id\]\}\ \{error\ \"no\ such\ item\"\}\n\ \ \ \ \ \ \ \ dict\ set\ items\ \$id\ done\ 1\n\ \ \ \ \}\n\ \ \ \ proc\ pending\ \{\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ set\ r\ \{\}\n\ \ \ \ \ \ \ \ dict\ for\ \{id\ rec\}\ \$items\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{!\[dict\ get\ \$rec\ done\]\}\ \{lappend\ r\ \[dict\ get\ \$rec\ title\]\}\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ return\ \$r\n\ \ \ \ \}\n\ \ \ \ proc\ report\ \{\}\ \{\n\ \ \ \ \ \ \ \ variable\ items\n\ \ \ \ \ \ \ \ set\ lines\ \{\}\n\ \ \ \ \ \ \ \ dict\ for\ \{id\ rec\}\ \$items\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ set\ mark\ \[expr\ \{\[dict\ get\ \$rec\ done\]\ ?\ \"x\"\ :\ \"\ \"\}\]\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ lines\ \"\\\[\$mark\\\]\ \$id\ \[dict\ get\ \$rec\ title\]\"\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ return\ \[join\ \$lines\ \"\\n\"\]\n\ \ \ \ \}\n\ \ \ \ proc\ count\ \{\}\ \{return\ \[llength\ \[pending\]\]\}\n\}\}\ tests\ \{\{todo::reset\;\ todo::add\ a\;\ todo::add\ b\;\ todo::add\ c\;\ todo::complete\ 2\;\ todo::count\}\ 2\ \{todo::reset\;\ todo::count\}\ 0\ \{todo::reset\;\ todo::add\ \"buy\ milk\"\;\ todo::pending\}\ \{\{buy\ milk\}\}\}\ why\ \{`count`\ reuses\ `pending`\ -\ small\ procs\ that\ build\ on\ each\ other.\}\}\n\ \ \{kind\ mc\ q\ \{Why\ store\ items\ in\ a\ dict\ keyed\ by\ id\ rather\ than\ a\ list\ of\ titles?\}\ choices\ \{\{Looking\ up\ or\ updating\ one\ item\ is\ a\ single\ dict\ call,\ and\ ids\ stay\ stable\ if\ items\ are\ removed\}\ \{Dicts\ are\ always\ faster\}\ \{Lists\ cannot\ hold\ text\}\ \{It\ uses\ less\ memory\}\}\ ans\ 0\ why\ \{Stable\ ids\ and\ direct\ lookup\ are\ the\ point.\}\}\n\ \ \{kind\ predict\ code\ \{namespace\ eval\ t\ \{variable\ n\ 1\;\ proc\ next\ \{\}\ \{variable\ n\;\ set\ id\ \$n\;\ incr\ n\;\ return\ \$id\}\}\nputs\ \"\[t::next\]\[t::next\]\[t::next\]\"\}\ choices\ \{123\ 111\ 321\ 333\}\ ans\ 0\ why\ \{Read\ the\ value,\ then\ increment\ -\ so\ ids\ go\ 1,\ 2,\ 3.\}\}\n\}\ncards\ \{\n\ \ \{\{How\ do\ you\ give\ items\ stable\ ids?\}\ \{Keep\ a\ `next`\ counter\ in\ the\ namespace\;\ use\ its\ value\ as\ the\ id,\ then\ `incr`\ it.\}\}\n\ \ \{\{How\ do\ you\ raise\ a\ clear\ error\ for\ an\ unknown\ id?\}\ \{`if\ \{!\[dict\ exists\ \$items\ \$id\]\}\ \{error\ \"no\ such\ item\"\}`\}\}\n\ \ \{\{Why\ use\ a\ namespace\ for\ a\ module?\}\ \{It\ keeps\ the\ data\ and\ procs\ together\ and\ private,\ avoiding\ clashes\ with\ other\ code.\}\}\n\}\n\}\n\ncontent::lesson\ 14.3\ 14\ \"Project\ 2:\ a\ word-frequency\ analyser\"\ \"Text\ processing\ with\ regular\ expressions,\ dicts\ and\ sorting.\"\ \{\npages\ \{\n\ \ \{head\ \"The\ brief\"\ body\ \{\n\ \ \ \ p\ \{Write\ the\ core\ of\ a\ **text\ analyser**.\ Given\ any\ text\ it\ should:\}\n\ \ \ \ p\ \{-\ `tokenize\ text`\ split\ it\ into\ lower-case\ words\ (letters\ and\ apostrophes\ only\;\ punctuation\ and\ numbers\ are\ dropped)\n-\ `count\ words`\ return\ a\ dict\ of\ how\ often\ each\ word\ appears\n-\ `top\ counts\ n`\ the\ n\ most\ frequent\ words,\ most\ frequent\ first\ (ties\ keep\ first-seen\ order)\n-\ `drop\ counts\ stopwords`\ remove\ common\ words\ such\ as\ `the`\ and\ `a`\}\n\ \ \}\}\n\ \ \{head\ \"Design\"\ body\ \{\n\ \ \ \ p\ \{The\ pipeline\ is\ four\ small\ pure\ functions,\ each\ easy\ to\ test\ on\ its\ own:\ **text\ ->\ words\ ->\ counts\ ->\ ranking**.\ A\ `regexp\ -all\ -inline`\ does\ the\ tokenising\ in\ one\ line:\}\n\ \ \ \ code\ \{puts\ \[regexp\ -all\ -inline\ \{\[a-z'\]+\}\ \[string\ tolower\ \"It's\ a\ dog-eat-dog\ world,\ 2\ times!\"\]\]\}\n\ \ \ \ out\ \{it's\ a\ dog\ eat\ dog\ world\ times\}\n\ \ \ \ p\ \{Note\ how\ the\ hyphen,\ comma,\ digit\ and\ exclamation\ mark\ all\ act\ as\ separators.\}\n\ \ \}\}\n\ \ \{head\ \"Tips\"\ body\ \{\n\ \ \ \ p\ \{-\ Always\ lower-case\ **before**\ matching,\ so\ `\[a-z'\]`\ is\ enough\n-\ `dict\ incr\ counts\ \$w`\ counts\ without\ any\ `if`\n-\ `lsort\ -stride\ 2\ -index\ 1\ -integer\ -decreasing`\ ranks\ a\ flat\ dict,\ keeping\ ties\ in\ first-seen\ order\ because\ `lsort`\ is\ stable\n-\ To\ drop\ stop\ words\ use\ `dict\ remove`\ or\ skip\ them\ in\ a\ `foreach`\}\n\ \ \ \ tip\ \{Small,\ pure\ functions\ (input\ in,\ result\ out,\ no\ globals)\ are\ the\ easiest\ code\ to\ test\ and\ reuse.\ The\ whole\ analyser\ needs\ no\ global\ state\ at\ all.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ code\ prompt\ \{**Step\ 1.**\ Write\ `tokenize`.\}\ starter\ \{proc\ tokenize\ \{text\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ tokenize\ \{text\}\ \{\n\ \ \ \ return\ \[regexp\ -all\ -inline\ \{\[a-z'\]+\}\ \[string\ tolower\ \$text\]\]\n\}\}\ tests\ \{\{tokenize\ \"It's\ a\ dog-eat-dog\ world,\ 2\ times!\"\}\ \{it's\ a\ dog\ eat\ dog\ world\ times\}\ \{tokenize\ \"123\ !!\"\}\ \{\}\}\ why\ \{Lower-case,\ then\ collect\ runs\ of\ letters\ and\ apostrophes.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 2.**\ Write\ `count`,\ returning\ a\ dict\ of\ word\ counts\ from\ a\ list\ of\ words.\}\ starter\ \{proc\ count\ \{words\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ count\ \{words\}\ \{\n\ \ \ \ set\ d\ \{\}\n\ \ \ \ foreach\ w\ \$words\ \{dict\ incr\ d\ \$w\}\n\ \ \ \ return\ \$d\n\}\}\ tests\ \{\{count\ \{a\ b\ a\ c\ a\ b\}\}\ \{a\ 3\ b\ 2\ c\ 1\}\ \{count\ \{\}\}\ \{\}\}\ why\ \{`dict\ incr`\ creates\ missing\ keys\ at\ zero.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 3.**\ Write\ `top\ counts\ n`,\ returning\ the\ n\ most\ frequent\ words,\ highest\ first.\}\ starter\ \{proc\ top\ \{counts\ n\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ top\ \{counts\ n\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ foreach\ \{w\ c\}\ \[lsort\ -stride\ 2\ -index\ 1\ -integer\ -decreasing\ \$counts\]\ \{lappend\ r\ \$w\}\n\ \ \ \ return\ \[lrange\ \$r\ 0\ \[expr\ \{\$n\ -\ 1\}\]\]\n\}\}\ tests\ \{\{top\ \{a\ 3\ b\ 5\ c\ 4\ d\ 1\}\ 2\}\ \{b\ c\}\ \{top\ \{x\ 1\ y\ 1\ z\ 1\}\ 2\}\ \{x\ y\}\}\ why\ \{Stable\ sorting\ keeps\ ties\ in\ their\ original\ order.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 4.**\ Write\ `drop\ counts\ stopwords`,\ returning\ the\ dict\ without\ any\ word\ in\ the\ stopword\ list.\}\ starter\ \{proc\ drop\ \{counts\ stop\}\ \{\n\ \ \ \ return\ \$counts\n\}\}\ solution\ \{proc\ drop\ \{counts\ stop\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ dict\ for\ \{w\ c\}\ \$counts\ \{\n\ \ \ \ \ \ \ \ if\ \{\$w\ ni\ \$stop\}\ \{dict\ set\ r\ \$w\ \$c\}\n\ \ \ \ \}\n\ \ \ \ return\ \$r\n\}\}\ tests\ \{\{drop\ \{the\ 5\ cat\ 2\ a\ 3\ dog\ 1\}\ \{the\ a\}\}\ \{cat\ 2\ dog\ 1\}\}\ why\ \{The\ `ni`\ operator\ tests\ \"not\ in\"\ a\ list.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 5\ -\ final.**\ Write\ `analyse\ text\ n\ stopwords`,\ returning\ the\ n\ most\ frequent\ non-stop\ words\ of\ the\ text,\ using\ all\ four\ steps.\}\ starter\ \{proc\ analyse\ \{text\ n\ stop\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ analyse\ \{text\ n\ stop\}\ \{\n\ \ \ \ set\ counts\ \{\}\n\ \ \ \ foreach\ w\ \[regexp\ -all\ -inline\ \{\[a-z'\]+\}\ \[string\ tolower\ \$text\]\]\ \{\n\ \ \ \ \ \ \ \ if\ \{\$w\ in\ \$stop\}\ continue\n\ \ \ \ \ \ \ \ dict\ incr\ counts\ \$w\n\ \ \ \ \}\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ foreach\ \{w\ c\}\ \[lsort\ -stride\ 2\ -index\ 1\ -integer\ -decreasing\ \$counts\]\ \{lappend\ r\ \$w\}\n\ \ \ \ return\ \[lrange\ \$r\ 0\ \[expr\ \{\$n\ -\ 1\}\]\]\n\}\}\ tests\ \{\{analyse\ \"The\ cat\ and\ the\ hat\ and\ the\ bat.\ The\ cat\ sat.\"\ 2\ \{the\ and\}\}\ \{cat\ hat\}\ \{analyse\ \"\"\ 3\ \{\}\}\ \{\}\}\ why\ \{Chain\ the\ pipeline:\ tokenise,\ filter,\ count,\ rank,\ take\ n.\}\}\n\ \ \{kind\ predict\ code\ \{puts\ \[regexp\ -all\ -inline\ \{\[a-z'\]+\}\ \"don't\ stop-believin'\"\]\}\ choices\ \{\{don't\ stop\ believin'\}\ \{don't\ stop-believin'\}\ \{dont\ stop\ believin\}\ \{don't\}\}\ ans\ 0\ why\ \{Apostrophes\ are\ kept\;\ the\ hyphen\ separates\ words.\}\}\n\ \ \{kind\ mc\ q\ \{Why\ lower-case\ the\ text\ before\ tokenising?\}\ choices\ \{\{So\ \"The\"\ and\ \"the\"\ count\ as\ the\ same\ word\}\ \{Regular\ expressions\ require\ it\}\ \{It\ makes\ the\ program\ faster\}\ \{Tcl\ cannot\ match\ capitals\}\}\ ans\ 0\ why\ \{Normalising\ input\ is\ the\ first\ step\ of\ most\ text\ pipelines.\}\}\n\}\ncards\ \{\n\ \ \{\{How\ do\ you\ split\ text\ into\ words\ with\ a\ regex?\}\ \{`regexp\ -all\ -inline\ \{\[a-z'\]+\}\ \[string\ tolower\ \$text\]`\}\}\n\ \ \{\{How\ do\ you\ rank\ a\ flat\ dict\ by\ value?\}\ \{`lsort\ -stride\ 2\ -index\ 1\ -integer\ -decreasing\ \$dict`\ (stable,\ so\ ties\ keep\ order).\}\}\n\ \ \{\{What\ makes\ a\ function\ easy\ to\ test?\}\ \{Pure:\ input\ in,\ result\ out,\ no\ hidden\ global\ state.\}\}\n\}\n\}\n\ncontent::lesson\ 14.4\ 14\ \"Project\ 3:\ an\ RPN\ calculator\"\ \"A\ stack\ machine\ with\ careful\ error\ handling.\"\ \{\npages\ \{\n\ \ \{head\ \"The\ brief\"\ body\ \{\n\ \ \ \ p\ \{**Reverse\ Polish\ Notation**\ writes\ the\ operator\ after\ its\ numbers:\ `3\ 4\ +`\ means\ 3\ plus\ 4,\ and\ `3\ 4\ +\ 2\ *`\ means\ (3\ +\ 4)\ times\ 2.\ It\ needs\ no\ brackets\ and\ is\ trivially\ evaluated\ with\ a\ **stack**:\ numbers\ are\ pushed\;\ an\ operator\ pops\ two,\ computes,\ and\ pushes\ the\ result.\}\n\ \ \ \ p\ \{Write\ `rpn\ expression`\ supporting\ `+\ -\ *\ /`,\ with\ these\ rules:\}\n\ \ \ \ p\ \{-\ the\ result\ is\ the\ single\ value\ left\ on\ the\ stack\n-\ an\ operator\ without\ two\ numbers\ raises\ `stack\ underflow`\n-\ an\ unknown\ word\ raises\ `bad\ token:\ X`\n-\ leftovers\ (more\ than\ one\ value\ at\ the\ end)\ raise\ `too\ many\ values`\}\n\ \ \}\}\n\ \ \{head\ \"Design\"\ body\ \{\n\ \ \ \ p\ \{Keep\ the\ stack\ as\ a\ list\ and\ use\ `lindex\ ...\ end`\ and\ `lrange`\ to\ pop.\ A\ small\ loop\ over\ the\ tokens\ does\ everything:\}\n\ \ \ \ code\ \{set\ stack\ \{\}\nforeach\ tok\ \{3\ 4\ +\}\ \{\n\ \ \ \ if\ \{\[string\ is\ double\ -strict\ \$tok\]\}\ \{\n\ \ \ \ \ \ \ \ lappend\ stack\ \$tok\n\ \ \ \ \}\ else\ \{\n\ \ \ \ \ \ \ \ set\ b\ \[lindex\ \$stack\ end\]\n\ \ \ \ \ \ \ \ set\ a\ \[lindex\ \$stack\ end-1\]\n\ \ \ \ \ \ \ \ set\ stack\ \[lrange\ \$stack\ 0\ end-2\]\n\ \ \ \ \ \ \ \ lappend\ stack\ \[expr\ \"\$a\ \$tok\ \$b\"\]\n\ \ \ \ \}\n\}\nputs\ \$stack\}\n\ \ \ \ out\ \{7\}\n\ \ \ \ p\ \{The\ operand\ order\ matters\ for\ `-`\ and\ `/`:\ the\ **second-from-top**\ is\ the\ left\ operand.\}\n\ \ \}\}\n\ \ \{head\ \"Tips\"\ body\ \{\n\ \ \ \ p\ \{-\ Check\ the\ stack\ size\ **before**\ popping,\ so\ underflow\ is\ a\ clean\ error\ rather\ than\ an\ `expr`\ crash\n-\ Build\ the\ expression\ with\ `expr\ \{\$a\ +\ \$b\}`-style\ code,\ or\ use\ `switch`\ on\ the\ operator\ for\ safety\n-\ `/`\ should\ produce\ a\ decimal\ when\ needed\;\ use\ `double(\$a)\ /\ \$b`\n-\ Raise\ errors\ with\ `error\ \"...\"`\ and\ test\ them\ with\ `catch`\}\n\ \ \ \ warn\ \{`expr\ \"\$a\ \$tok\ \$b\"`\ would\ evaluate\ whatever\ the\ token\ says\ if\ it\ were\ not\ validated.\ Always\ check\ the\ token\ against\ the\ allowed\ operators\ first\ -\ never\ pass\ user\ input\ straight\ to\ `expr`.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ code\ prompt\ \{**Step\ 1.**\ Write\ `rpn`\ for\ numbers\ and\ `+`\ only.\}\ starter\ \{proc\ rpn\ \{text\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ rpn\ \{text\}\ \{\n\ \ \ \ set\ stack\ \{\}\n\ \ \ \ foreach\ tok\ \$text\ \{\n\ \ \ \ \ \ \ \ if\ \{\$tok\ eq\ \"+\"\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ set\ b\ \[lindex\ \$stack\ end\]\n\ \ \ \ \ \ \ \ \ \ \ \ set\ a\ \[lindex\ \$stack\ end-1\]\n\ \ \ \ \ \ \ \ \ \ \ \ set\ stack\ \[lrange\ \$stack\ 0\ end-2\]\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ stack\ \[expr\ \{\$a\ +\ \$b\}\]\n\ \ \ \ \ \ \ \ \}\ else\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ stack\ \$tok\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \}\n\ \ \ \ return\ \[lindex\ \$stack\ end\]\n\}\}\ tests\ \{\{rpn\ \"3\ 4\ +\"\}\ 7\ \{rpn\ \"1\ 2\ +\ 3\ +\"\}\ 6\}\ why\ \{Push\ numbers\;\ on\ `+`\ pop\ two\ and\ push\ the\ sum.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 2.**\ Support\ `+\ -\ *\ /`\ using\ a\ `switch`\ on\ the\ operator.\ Division\ should\ give\ a\ decimal:\ `rpn\ \"7\ 2\ /\"`\ is\ 3.5.\}\ starter\ \{proc\ rpn\ \{text\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ rpn\ \{text\}\ \{\n\ \ \ \ set\ stack\ \{\}\n\ \ \ \ foreach\ tok\ \$text\ \{\n\ \ \ \ \ \ \ \ switch\ --\ \$tok\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ +\ -\ -\ -\ *\ -\ /\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ set\ b\ \[lindex\ \$stack\ end\]\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ set\ a\ \[lindex\ \$stack\ end-1\]\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ set\ stack\ \[lrange\ \$stack\ 0\ end-2\]\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ switch\ --\ \$tok\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ \ \{set\ r\ \[expr\ \{\$a\ +\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ -\ \ \{set\ r\ \[expr\ \{\$a\ -\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *\ \ \{set\ r\ \[expr\ \{\$a\ *\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ /\ \ \{set\ r\ \[expr\ \{double(\$a)\ /\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lappend\ stack\ \$r\n\ \ \ \ \ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ \ \ \ \ default\ \{lappend\ stack\ \$tok\}\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \}\n\ \ \ \ return\ \[lindex\ \$stack\ end\]\n\}\}\ tests\ \{\{rpn\ \"3\ 4\ +\ 2\ *\"\}\ 14\ \{rpn\ \"10\ 4\ -\"\}\ 6\ \{rpn\ \"7\ 2\ /\"\}\ 3.5\}\ why\ \{Operand\ order:\ the\ second-from-top\ is\ the\ left\ operand.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 3.**\ Add\ errors:\ `stack\ underflow`\ when\ an\ operator\ lacks\ two\ values,\ and\ `bad\ token:\ X`\ for\ anything\ that\ is\ neither\ a\ number\ nor\ an\ operator.\}\ starter\ \{proc\ rpn\ \{text\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ rpn\ \{text\}\ \{\n\ \ \ \ set\ stack\ \{\}\n\ \ \ \ foreach\ tok\ \$text\ \{\n\ \ \ \ \ \ \ \ if\ \{\[string\ is\ double\ -strict\ \$tok\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ stack\ \$tok\n\ \ \ \ \ \ \ \ \}\ elseif\ \{\$tok\ in\ \{+\ -\ *\ /\}\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{\[llength\ \$stack\]\ <\ 2\}\ \{error\ \"stack\ underflow\"\}\n\ \ \ \ \ \ \ \ \ \ \ \ set\ b\ \[lindex\ \$stack\ end\]\n\ \ \ \ \ \ \ \ \ \ \ \ set\ a\ \[lindex\ \$stack\ end-1\]\n\ \ \ \ \ \ \ \ \ \ \ \ set\ stack\ \[lrange\ \$stack\ 0\ end-2\]\n\ \ \ \ \ \ \ \ \ \ \ \ switch\ --\ \$tok\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ \ \{set\ r\ \[expr\ \{\$a\ +\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ -\ \ \{set\ r\ \[expr\ \{\$a\ -\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *\ \ \{set\ r\ \[expr\ \{\$a\ *\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ /\ \ \{set\ r\ \[expr\ \{double(\$a)\ /\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ stack\ \$r\n\ \ \ \ \ \ \ \ \}\ else\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ error\ \"bad\ token:\ \$tok\"\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \}\n\ \ \ \ return\ \[lindex\ \$stack\ end\]\n\}\}\ tests\ \{\{rpn\ \"3\ 4\ +\"\}\ 7\ \{catch\ \{rpn\ \"3\ +\"\}\ m\;\ set\ m\}\ \{stack\ underflow\}\ \{catch\ \{rpn\ \"3\ x\"\}\ m\;\ set\ m\}\ \{bad\ token:\ x\}\}\ why\ \{Validate\ before\ popping,\ and\ reject\ unknown\ words.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 4\ -\ final.**\ Add\ the\ `too\ many\ values`\ error\ when\ more\ than\ one\ value\ is\ left,\ and\ an\ empty\ expression\ should\ raise\ `empty\ expression`.\}\ starter\ \{proc\ rpn\ \{text\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ rpn\ \{text\}\ \{\n\ \ \ \ if\ \{\[llength\ \$text\]\ ==\ 0\}\ \{error\ \"empty\ expression\"\}\n\ \ \ \ set\ stack\ \{\}\n\ \ \ \ foreach\ tok\ \$text\ \{\n\ \ \ \ \ \ \ \ if\ \{\[string\ is\ double\ -strict\ \$tok\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ stack\ \$tok\n\ \ \ \ \ \ \ \ \}\ elseif\ \{\$tok\ in\ \{+\ -\ *\ /\}\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{\[llength\ \$stack\]\ <\ 2\}\ \{error\ \"stack\ underflow\"\}\n\ \ \ \ \ \ \ \ \ \ \ \ set\ b\ \[lindex\ \$stack\ end\]\n\ \ \ \ \ \ \ \ \ \ \ \ set\ a\ \[lindex\ \$stack\ end-1\]\n\ \ \ \ \ \ \ \ \ \ \ \ set\ stack\ \[lrange\ \$stack\ 0\ end-2\]\n\ \ \ \ \ \ \ \ \ \ \ \ switch\ --\ \$tok\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ +\ \ \{set\ r\ \[expr\ \{\$a\ +\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ -\ \ \{set\ r\ \[expr\ \{\$a\ -\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ *\ \ \{set\ r\ \[expr\ \{\$a\ *\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ /\ \ \{set\ r\ \[expr\ \{double(\$a)\ /\ \$b\}\]\}\n\ \ \ \ \ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ \ \ \ \ lappend\ stack\ \$r\n\ \ \ \ \ \ \ \ \}\ else\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ error\ \"bad\ token:\ \$tok\"\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \}\n\ \ \ \ if\ \{\[llength\ \$stack\]\ !=\ 1\}\ \{error\ \"too\ many\ values\"\}\n\ \ \ \ return\ \[lindex\ \$stack\ 0\]\n\}\}\ tests\ \{\{rpn\ \"5\ 1\ 2\ +\ 4\ *\ +\ 3\ -\"\}\ 14\ \{catch\ \{rpn\ \"1\ 2\"\}\ m\;\ set\ m\}\ \{too\ many\ values\}\ \{catch\ \{rpn\ \"\"\}\ m\;\ set\ m\}\ \{empty\ expression\}\}\ why\ \{A\ valid\ expression\ leaves\ exactly\ one\ value.\}\}\n\ \ \{kind\ predict\ code\ \{set\ stack\ \{1\ 2\ 3\}\nset\ b\ \[lindex\ \$stack\ end\]\nset\ a\ \[lindex\ \$stack\ end-1\]\nset\ stack\ \[lrange\ \$stack\ 0\ end-2\]\nputs\ \"\$a\ \$b\ \$stack\"\}\ choices\ \{\{2\ 3\ 1\}\ \{1\ 2\ 3\}\ \{3\ 2\ 1\}\ \{2\ 3\ \{\}\}\}\ ans\ 0\ why\ \{Pop\ two\ from\ the\ end\;\ one\ item\ (1)\ remains.\}\}\n\ \ \{kind\ mc\ q\ \{Why\ validate\ each\ token\ before\ using\ `expr`?\}\ choices\ \{\{Passing\ unchecked\ input\ to\ `expr`\ could\ run\ unintended\ code\}\ \{expr\ is\ slow\}\ \{Tokens\ must\ be\ numbers\}\ \{It\ is\ required\ by\ switch\}\}\ ans\ 0\ why\ \{Never\ evaluate\ input\ you\ have\ not\ checked.\}\}\n\ \ \{kind\ mc\ q\ \{For\ `10\ 4\ -`,\ which\ value\ is\ the\ left\ operand?\}\ choices\ \{\{10\ (the\ second-from-top)\}\ \{4\}\ \{Either\}\ \{Neither\}\}\ ans\ 0\ why\ \{Operators\ take\ the\ older\ value\ first,\ so\ 10\ -\ 4.\}\}\n\}\ncards\ \{\n\ \ \{\{How\ does\ RPN\ evaluation\ work?\}\ \{Push\ numbers\ on\ a\ stack\;\ an\ operator\ pops\ two\ values,\ computes,\ and\ pushes\ the\ result.\}\}\n\ \ \{\{Why\ check\ the\ stack\ size\ before\ popping?\}\ \{To\ raise\ a\ clean\ `stack\ underflow`\ error\ instead\ of\ a\ confusing\ crash.\}\}\n\ \ \{\{Why\ never\ pass\ raw\ input\ to\ expr?\}\ \{It\ evaluates\ whatever\ it\ is\ given,\ so\ unvalidated\ input\ can\ run\ unintended\ code.\}\}\n\}\n\}\n\ncontent::lesson\ 14.5\ 14\ \"Project\ 4:\ a\ config-file\ parser\"\ \"Parsing\ a\ real\ file\ format,\ with\ line-numbered\ errors.\"\ \{\npages\ \{\n\ \ \{head\ \"The\ brief\"\ body\ \{\n\ \ \ \ p\ \{Parse\ an\ **INI-style**\ configuration\ into\ a\ nested\ dict:\}\n\ \ \ \ code\ \{set\ text\ \{#\ demo\ config\n\[server\]\nhost\ =\ example.com\nport\ =\ 8080\n\n\[log\]\nlevel\ =\ debug\}\nforeach\ line\ \[split\ \$text\ \"\\n\"\]\ \{\n\ \ \ \ puts\ \"<\$line>\"\n\}\}\n\ \ \ \ out\ \{<#\ demo\ config>\n<\[server\]>\n<host\ =\ example.com>\n<port\ =\ 8080>\n<>\n<\[log\]>\n<level\ =\ debug>\}\n\ \ \ \ p\ \{Write\ `parseini\ text`\ returning\ a\ dict\ of\ sections,\ each\ a\ dict\ of\ keys,\ e.g.\ `server\ \{host\ example.com\ port\ 8080\}\ log\ \{level\ debug\}`.\ Comment\ lines\ (starting\ with\ `#`)\ and\ blank\ lines\ are\ ignored.\ Keys\ before\ any\ section\ go\ in\ a\ section\ named\ `global`.\ A\ bad\ line\ raises\ `line\ N:\ bad\ syntax`,\ where\ N\ counts\ from\ 1.\}\n\ \ \}\}\n\ \ \{head\ \"Design\"\ body\ \{\n\ \ \ \ p\ \{Walk\ the\ lines\ with\ a\ counter.\ For\ each\ line,\ **trim**,\ then\ decide:\ blank\ or\ comment\ (skip),\ `\[name\]`\ (new\ section),\ `key\ =\ value`\ (store),\ or\ anything\ else\ (error).\ Regular\ expressions\ classify\ lines\ neatly:\}\n\ \ \ \ code\ \{foreach\ line\ \{\{\[server\]\}\ \{host\ =\ a\ b\}\ \{#\ note\}\ \{oops\}\}\ \{\n\ \ \ \ if\ \{\[regexp\ \{^\\\[(\\w+)\\\]\$\}\ \$line\ ->\ sec\]\}\ \{\n\ \ \ \ \ \ \ \ puts\ \"section\ \$sec\"\n\ \ \ \ \}\ elseif\ \{\[regexp\ \{^(\\w+)\\s*=\\s*(.*)\$\}\ \$line\ ->\ k\ v\]\}\ \{\n\ \ \ \ \ \ \ \ puts\ \"pair\ \$k\ =\ \$v\"\n\ \ \ \ \}\ else\ \{\n\ \ \ \ \ \ \ \ puts\ \"other:\ \$line\"\n\ \ \ \ \}\n\}\}\n\ \ \ \ out\ \{section\ server\npair\ host\ =\ a\ b\nother:\ #\ note\nother:\ oops\}\n\ \ \ \ p\ \{`->`\ is\ a\ conventional\ name\ for\ \"the\ whole\ match,\ which\ I\ do\ not\ need\".\}\n\ \ \}\}\n\ \ \{head\ \"Tips\"\ body\ \{\n\ \ \ \ p\ \{-\ Keep\ the\ current\ section\ in\ a\ variable\;\ `dict\ set\ result\ \$section\ \$key\ \$value`\ creates\ nested\ dicts\ automatically\n-\ Do\ the\ comment/blank\ test\ **first**\n-\ `string\ trim`\ the\ value\ so\ stray\ spaces\ vanish\n-\ Count\ lines\ with\ `incr\ n`\ in\ the\ loop\ so\ errors\ can\ say\ which\ line\}\n\ \ \ \ tip\ \{A\ hand-written\ parser\ is\ often\ shorter\ and\ clearer\ than\ a\ heavy\ tool\ for\ small\ formats.\ For\ big\ ones,\ use\ a\ real\ parsing\ package\ -\ but\ you\ will\ understand\ it\ better\ having\ done\ this.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ code\ prompt\ \{**Step\ 1.**\ Write\ `parseini`\ for\ sections\ and\ `key\ =\ value`\ lines\ (no\ comments\ or\ errors\ yet).\}\ starter\ \{proc\ parseini\ \{text\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ parseini\ \{text\}\ \{\n\ \ \ \ set\ result\ \{\}\n\ \ \ \ set\ sec\ global\n\ \ \ \ foreach\ line\ \[split\ \$text\ \"\\n\"\]\ \{\n\ \ \ \ \ \ \ \ set\ line\ \[string\ trim\ \$line\]\n\ \ \ \ \ \ \ \ if\ \{\$line\ eq\ \"\"\}\ continue\n\ \ \ \ \ \ \ \ if\ \{\[regexp\ \{^\\\[(\\w+)\\\]\$\}\ \$line\ ->\ s\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ set\ sec\ \$s\n\ \ \ \ \ \ \ \ \}\ elseif\ \{\[regexp\ \{^(\\w+)\\s*=\\s*(.*)\$\}\ \$line\ ->\ k\ v\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ dict\ set\ result\ \$sec\ \$k\ \$v\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \}\n\ \ \ \ return\ \$result\n\}\}\ tests\ \{\{parseini\ \"\\\[a\\\]\\nx\ =\ 1\\ny\ =\ 2\\n\\\[b\\\]\\nz\ =\ 3\"\}\ \{a\ \{x\ 1\ y\ 2\}\ b\ \{z\ 3\}\}\}\ why\ \{Track\ the\ current\ section\;\ `dict\ set`\ builds\ the\ nested\ structure.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 2.**\ Ignore\ blank\ lines\ and\ `#`\ comments,\ and\ put\ keys\ that\ appear\ before\ any\ section\ into\ `global`.\}\ starter\ \{proc\ parseini\ \{text\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ parseini\ \{text\}\ \{\n\ \ \ \ set\ result\ \{\}\n\ \ \ \ set\ sec\ global\n\ \ \ \ foreach\ line\ \[split\ \$text\ \"\\n\"\]\ \{\n\ \ \ \ \ \ \ \ set\ line\ \[string\ trim\ \$line\]\n\ \ \ \ \ \ \ \ if\ \{\$line\ eq\ \"\"\ ||\ \[string\ index\ \$line\ 0\]\ eq\ \"#\"\}\ continue\n\ \ \ \ \ \ \ \ if\ \{\[regexp\ \{^\\\[(\\w+)\\\]\$\}\ \$line\ ->\ s\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ set\ sec\ \$s\n\ \ \ \ \ \ \ \ \}\ elseif\ \{\[regexp\ \{^(\\w+)\\s*=\\s*(.*)\$\}\ \$line\ ->\ k\ v\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ dict\ set\ result\ \$sec\ \$k\ \[string\ trim\ \$v\]\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \}\n\ \ \ \ return\ \$result\n\}\}\ tests\ \{\{parseini\ \"#\ top\\nname\ =\ demo\\n\\n\\\[s\\\]\\n#\ note\\nk\ =\ v\"\}\ \{global\ \{name\ demo\}\ s\ \{k\ v\}\}\}\ why\ \{Skip\ comments\ and\ blanks\ first\;\ `global`\ is\ just\ the\ starting\ section\ name.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 3.**\ Raise\ `line\ N:\ bad\ syntax`\ for\ any\ line\ that\ is\ none\ of\ the\ accepted\ forms\ (N\ counts\ from\ 1,\ including\ blank\ and\ comment\ lines).\}\ starter\ \{proc\ parseini\ \{text\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ parseini\ \{text\}\ \{\n\ \ \ \ set\ result\ \{\}\n\ \ \ \ set\ sec\ global\n\ \ \ \ set\ n\ 0\n\ \ \ \ foreach\ line\ \[split\ \$text\ \"\\n\"\]\ \{\n\ \ \ \ \ \ \ \ incr\ n\n\ \ \ \ \ \ \ \ set\ line\ \[string\ trim\ \$line\]\n\ \ \ \ \ \ \ \ if\ \{\$line\ eq\ \"\"\ ||\ \[string\ index\ \$line\ 0\]\ eq\ \"#\"\}\ continue\n\ \ \ \ \ \ \ \ if\ \{\[regexp\ \{^\\\[(\\w+)\\\]\$\}\ \$line\ ->\ s\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ set\ sec\ \$s\n\ \ \ \ \ \ \ \ \}\ elseif\ \{\[regexp\ \{^(\\w+)\\s*=\\s*(.*)\$\}\ \$line\ ->\ k\ v\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ dict\ set\ result\ \$sec\ \$k\ \[string\ trim\ \$v\]\n\ \ \ \ \ \ \ \ \}\ else\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ error\ \"line\ \$n:\ bad\ syntax\"\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \}\n\ \ \ \ return\ \$result\n\}\}\ tests\ \{\{parseini\ \"a\ =\ 1\\n\\\[s\\\]\\nb\ =\ 2\"\}\ \{global\ \{a\ 1\}\ s\ \{b\ 2\}\}\ \{catch\ \{parseini\ \"a\ =\ 1\\n\\n???\"\}\ m\;\ set\ m\}\ \{line\ 3:\ bad\ syntax\}\}\ why\ \{Keep\ a\ line\ counter\ and\ fall\ through\ to\ an\ error.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 4.**\ Write\ `cfgget\ cfg\ section\ key\ default`\ returning\ the\ value,\ or\ the\ default\ when\ the\ section\ or\ key\ is\ missing.\}\ starter\ \{proc\ cfgget\ \{cfg\ section\ key\ default\}\ \{\n\ \ \ \ return\ \$default\n\}\}\ solution\ \{proc\ cfgget\ \{cfg\ section\ key\ default\}\ \{\n\ \ \ \ if\ \{\[dict\ exists\ \$cfg\ \$section\ \$key\]\}\ \{\n\ \ \ \ \ \ \ \ return\ \[dict\ get\ \$cfg\ \$section\ \$key\]\n\ \ \ \ \}\n\ \ \ \ return\ \$default\n\}\}\ tests\ \{\{cfgget\ \{s\ \{k\ v\}\}\ s\ k\ none\}\ v\ \{cfgget\ \{s\ \{k\ v\}\}\ s\ x\ none\}\ none\ \{cfgget\ \{\}\ q\ k\ 7\}\ 7\}\ why\ \{`dict\ exists`\ accepts\ a\ whole\ path\ of\ keys.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 5\ -\ final.**\ Write\ `validate\ cfg\ required`\ where\ `required`\ is\ a\ list\ of\ `section.key`\ names\;\ return\ the\ list\ of\ those\ that\ are\ missing\ (empty\ list\ if\ all\ present).\}\ starter\ \{proc\ validate\ \{cfg\ required\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ validate\ \{cfg\ required\}\ \{\n\ \ \ \ set\ missing\ \{\}\n\ \ \ \ foreach\ item\ \$required\ \{\n\ \ \ \ \ \ \ \ lassign\ \[split\ \$item\ .\]\ sec\ key\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$cfg\ \$sec\ \$key\]\}\ \{lappend\ missing\ \$item\}\n\ \ \ \ \}\n\ \ \ \ return\ \$missing\n\}\}\ tests\ \{\{validate\ \{server\ \{host\ a\ port\ 1\}\ log\ \{level\ x\}\}\ \{server.host\ log.level\ log.file\ db.url\}\}\ \{log.file\ db.url\}\ \{validate\ \{a\ \{b\ 1\}\}\ \{a.b\}\}\ \{\}\}\ why\ \{Split\ each\ name\ into\ section\ and\ key,\ and\ test\ with\ `dict\ exists`.\}\}\n\ \ \{kind\ predict\ code\ \{regexp\ \{^(\\w+)\\s*=\\s*(.*)\$\}\ \"port\ \ =\ \ 8080\ \"\ ->\ k\ v\nputs\ \"<\$k>\ <\[string\ trim\ \$v\]>\"\}\ choices\ \{\{<port>\ <8080>\}\ \{<port\ >\ <8080>\}\ \{<port>\ <8080\ >\}\ \{<>\ <>\}\}\ ans\ 0\ why\ \{`\\s*`\ absorbs\ the\ spaces\;\ the\ value\ is\ trimmed.\}\}\n\ \ \{kind\ mc\ q\ \{Why\ report\ the\ line\ number\ in\ the\ error\ message?\}\ choices\ \{\{The\ user\ can\ find\ and\ fix\ the\ exact\ problem\}\ \{Line\ numbers\ are\ required\ by\ `error`\}\ \{It\ makes\ parsing\ faster\}\ \{It\ hides\ the\ cause\}\}\ ans\ 0\ why\ \{Good\ errors\ say\ where,\ not\ just\ what.\}\}\n\}\ncards\ \{\n\ \ \{\{How\ do\ you\ classify\ lines\ in\ a\ simple\ parser?\}\ \{Skip\ blanks/comments,\ then\ try\ regular\ expressions\ for\ each\ accepted\ form,\ and\ raise\ an\ error\ for\ anything\ else.\}\}\n\ \ \{\{How\ does\ `dict\ set\ d\ a\ b\ c`\ behave?\}\ \{It\ creates\ the\ nested\ dicts\ as\ needed:\ d\ becomes\ `a\ \{b\ c\}`.\}\}\n\ \ \{\{Why\ give\ a\ parse\ error\ a\ line\ number?\}\ \{So\ the\ user\ can\ locate\ the\ problem\ immediately.\}\}\n\}\n\}\n\ncontent::lesson\ 14.6\ 14\ \"Project\ 5:\ a\ bank\ with\ TclOO\"\ \"Classes,\ inheritance,\ error\ handling\ and\ consistency.\"\ \{\npages\ \{\n\ \ \{head\ \"The\ brief\"\ body\ \{\n\ \ \ \ p\ \{Model\ a\ tiny\ **bank**\ with\ TclOO:\}\n\ \ \ \ p\ \{-\ `Account`:\ constructor\ takes\ an\ opening\ balance\;\ `deposit\ n`,\ `withdraw\ n`\ (raises\ `insufficient\ funds`),\ `balance`\n-\ `Savings`\ inherits\ from\ `Account`\ and\ adds\ `addinterest\ rate`,\ which\ deposits\ balance\ times\ rate\n-\ `Bank`\ holds\ accounts\ by\ name:\ `open\ name\ balance`,\ `get\ name`,\ and\ `transfer\ from\ to\ amount`\}\n\ \ \ \ p\ \{The\ important\ rule:\ a\ **transfer\ must\ be\ all-or-nothing**.\ If\ the\ withdrawal\ fails,\ nothing\ must\ change.\}\n\ \ \}\}\n\ \ \{head\ \"Design\"\ body\ \{\n\ \ \ \ p\ \{Each\ class\ owns\ its\ data\ with\ `variable`.\ `Savings`\ uses\ `superclass\ Account`\ and\ calls\ inherited\ methods\ through\ `my`.\ The\ bank\ stores\ objects\ in\ a\ dict\ by\ name:\}\n\ \ \ \ code\ \{oo::class\ create\ Account\ \{\n\ \ \ \ variable\ bal\n\ \ \ \ constructor\ \{start\}\ \{set\ bal\ \$start\}\n\ \ \ \ method\ deposit\ \{n\}\ \{incr\ bal\ \$n\}\n\ \ \ \ method\ balance\ \{\}\ \{return\ \$bal\}\n\}\noo::class\ create\ Savings\ \{\n\ \ \ \ superclass\ Account\n\ \ \ \ method\ addinterest\ \{rate\}\ \{\n\ \ \ \ \ \ \ \ my\ deposit\ \[expr\ \{int(\[my\ balance\]\ *\ \$rate)\}\]\n\ \ \ \ \}\n\}\nset\ s\ \[Savings\ new\ 1000\]\n\$s\ addinterest\ 0.05\nputs\ \[\$s\ balance\]\}\n\ \ \ \ out\ \{1050\}\n\ \ \ \ p\ \{`Savings`\ got\ `deposit`\ and\ `balance`\ for\ free\ and\ added\ only\ what\ is\ new.\}\n\ \ \}\}\n\ \ \{head\ \"Tips\"\ body\ \{\n\ \ \ \ p\ \{-\ Check\ funds\ **before**\ changing\ anything\;\ an\ error\ raised\ first\ leaves\ the\ object\ untouched\n-\ In\ `transfer`,\ withdraw\ first\ (it\ may\ fail),\ then\ deposit\n-\ A\ missing\ account\ should\ raise\ `no\ such\ account`\n-\ Test\ the\ failure\ paths:\ they\ are\ where\ money\ bugs\ hide\}\n\ \ \ \ tip\ \{All-or-nothing\ operations\ are\ called\ **atomic**.\ Ordering\ your\ steps\ so\ the\ risky\ one\ comes\ first,\ as\ here,\ is\ the\ simplest\ way\ to\ get\ atomicity\ without\ any\ special\ machinery.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ code\ prompt\ \{**Step\ 1.**\ Write\ the\ `Account`\ class.\}\ starter\ \{oo::class\ create\ Account\ \{\n\}\}\ solution\ \{oo::class\ create\ Account\ \{\n\ \ \ \ variable\ bal\n\ \ \ \ constructor\ \{start\}\ \{set\ bal\ \$start\}\n\ \ \ \ method\ deposit\ \{n\}\ \{incr\ bal\ \$n\}\n\ \ \ \ method\ withdraw\ \{n\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\$n\ >\ \$bal\}\ \{error\ \"insufficient\ funds\"\}\n\ \ \ \ \ \ \ \ incr\ bal\ -\$n\n\ \ \ \ \}\n\ \ \ \ method\ balance\ \{\}\ \{return\ \$bal\}\n\}\}\ tests\ \{\{set\ a\ \[Account\ new\ 100\]\;\ \$a\ deposit\ 20\;\ \$a\ withdraw\ 50\;\ \$a\ balance\}\ 70\ \{set\ a\ \[Account\ new\ 10\]\;\ catch\ \{\$a\ withdraw\ 11\}\ m\;\ list\ \$m\ \[\$a\ balance\]\}\ \{\{insufficient\ funds\}\ 10\}\}\ why\ \{Validate\ before\ changing\ the\ balance.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 2.**\ Add\ `Savings`,\ inheriting\ from\ `Account`\ (the\ class\ is\ included\ below),\ with\ `addinterest\ rate`.\}\ starter\ \{oo::class\ create\ Account\ \{\n\ \ \ \ variable\ bal\n\ \ \ \ constructor\ \{start\}\ \{set\ bal\ \$start\}\n\ \ \ \ method\ deposit\ \{n\}\ \{incr\ bal\ \$n\}\n\ \ \ \ method\ withdraw\ \{n\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\$n\ >\ \$bal\}\ \{error\ \"insufficient\ funds\"\}\n\ \ \ \ \ \ \ \ incr\ bal\ -\$n\n\ \ \ \ \}\n\ \ \ \ method\ balance\ \{\}\ \{return\ \$bal\}\n\}\}\ solution\ \{oo::class\ create\ Account\ \{\n\ \ \ \ variable\ bal\n\ \ \ \ constructor\ \{start\}\ \{set\ bal\ \$start\}\n\ \ \ \ method\ deposit\ \{n\}\ \{incr\ bal\ \$n\}\n\ \ \ \ method\ withdraw\ \{n\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\$n\ >\ \$bal\}\ \{error\ \"insufficient\ funds\"\}\n\ \ \ \ \ \ \ \ incr\ bal\ -\$n\n\ \ \ \ \}\n\ \ \ \ method\ balance\ \{\}\ \{return\ \$bal\}\n\}\noo::class\ create\ Savings\ \{\n\ \ \ \ superclass\ Account\n\ \ \ \ method\ addinterest\ \{rate\}\ \{\n\ \ \ \ \ \ \ \ my\ deposit\ \[expr\ \{int(\[my\ balance\]\ *\ \$rate)\}\]\n\ \ \ \ \}\n\}\}\ tests\ \{\{set\ s\ \[Savings\ new\ 1000\]\;\ \$s\ addinterest\ 0.05\;\ \$s\ balance\}\ 1050\ \{set\ s\ \[Savings\ new\ 100\]\;\ \$s\ withdraw\ 30\;\ \$s\ balance\}\ 70\}\ why\ \{Inherited\ methods\ are\ available\ through\ `my`.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 3.**\ Write\ `Bank`\ with\ `open\ name\ balance`\ (creates\ an\ Account),\ `get\ name`\ (raises\ `no\ such\ account`\ if\ missing)\ and\ `total`\ (the\ sum\ of\ all\ balances).\ The\ Account\ class\ is\ included.\}\ starter\ \{oo::class\ create\ Account\ \{\n\ \ \ \ variable\ bal\n\ \ \ \ constructor\ \{start\}\ \{set\ bal\ \$start\}\n\ \ \ \ method\ deposit\ \{n\}\ \{incr\ bal\ \$n\}\n\ \ \ \ method\ withdraw\ \{n\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\$n\ >\ \$bal\}\ \{error\ \"insufficient\ funds\"\}\n\ \ \ \ \ \ \ \ incr\ bal\ -\$n\n\ \ \ \ \}\n\ \ \ \ method\ balance\ \{\}\ \{return\ \$bal\}\n\}\}\ solution\ \{oo::class\ create\ Account\ \{\n\ \ \ \ variable\ bal\n\ \ \ \ constructor\ \{start\}\ \{set\ bal\ \$start\}\n\ \ \ \ method\ deposit\ \{n\}\ \{incr\ bal\ \$n\}\n\ \ \ \ method\ withdraw\ \{n\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\$n\ >\ \$bal\}\ \{error\ \"insufficient\ funds\"\}\n\ \ \ \ \ \ \ \ incr\ bal\ -\$n\n\ \ \ \ \}\n\ \ \ \ method\ balance\ \{\}\ \{return\ \$bal\}\n\}\noo::class\ create\ Bank\ \{\n\ \ \ \ variable\ accts\n\ \ \ \ constructor\ \{\}\ \{set\ accts\ \{\}\}\n\ \ \ \ method\ open\ \{name\ bal\}\ \{dict\ set\ accts\ \$name\ \[Account\ new\ \$bal\]\}\n\ \ \ \ method\ get\ \{name\}\ \{\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$accts\ \$name\]\}\ \{error\ \"no\ such\ account\"\}\n\ \ \ \ \ \ \ \ return\ \[dict\ get\ \$accts\ \$name\]\n\ \ \ \ \}\n\ \ \ \ method\ total\ \{\}\ \{\n\ \ \ \ \ \ \ \ set\ t\ 0\n\ \ \ \ \ \ \ \ dict\ for\ \{n\ a\}\ \$accts\ \{incr\ t\ \[\$a\ balance\]\}\n\ \ \ \ \ \ \ \ return\ \$t\n\ \ \ \ \}\n\}\}\ tests\ \{\{set\ b\ \[Bank\ new\]\;\ \$b\ open\ ann\ 100\;\ \$b\ open\ bob\ 50\;\ \$b\ total\}\ 150\ \{set\ b\ \[Bank\ new\]\;\ catch\ \{\$b\ get\ zed\}\ m\;\ set\ m\}\ \{no\ such\ account\}\}\ why\ \{A\ dict\ of\ name\ to\ object\;\ `total`\ asks\ each\ object\ for\ its\ balance.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 4\ -\ final.**\ Add\ `transfer\ from\ to\ amount`\ to\ `Bank`.\ It\ must\ be\ all-or-nothing:\ if\ the\ withdrawal\ fails\ (or\ an\ account\ is\ missing),\ nothing\ changes\ anywhere.\ (Account\ and\ the\ rest\ of\ Bank\ are\ included.)\}\ starter\ \{oo::class\ create\ Account\ \{\n\ \ \ \ variable\ bal\n\ \ \ \ constructor\ \{start\}\ \{set\ bal\ \$start\}\n\ \ \ \ method\ deposit\ \{n\}\ \{incr\ bal\ \$n\}\n\ \ \ \ method\ withdraw\ \{n\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\$n\ >\ \$bal\}\ \{error\ \"insufficient\ funds\"\}\n\ \ \ \ \ \ \ \ incr\ bal\ -\$n\n\ \ \ \ \}\n\ \ \ \ method\ balance\ \{\}\ \{return\ \$bal\}\n\}\noo::class\ create\ Bank\ \{\n\ \ \ \ variable\ accts\n\ \ \ \ constructor\ \{\}\ \{set\ accts\ \{\}\}\n\ \ \ \ method\ open\ \{name\ bal\}\ \{dict\ set\ accts\ \$name\ \[Account\ new\ \$bal\]\}\n\ \ \ \ method\ get\ \{name\}\ \{\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$accts\ \$name\]\}\ \{error\ \"no\ such\ account\"\}\n\ \ \ \ \ \ \ \ return\ \[dict\ get\ \$accts\ \$name\]\n\ \ \ \ \}\n\}\}\ solution\ \{oo::class\ create\ Account\ \{\n\ \ \ \ variable\ bal\n\ \ \ \ constructor\ \{start\}\ \{set\ bal\ \$start\}\n\ \ \ \ method\ deposit\ \{n\}\ \{incr\ bal\ \$n\}\n\ \ \ \ method\ withdraw\ \{n\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\$n\ >\ \$bal\}\ \{error\ \"insufficient\ funds\"\}\n\ \ \ \ \ \ \ \ incr\ bal\ -\$n\n\ \ \ \ \}\n\ \ \ \ method\ balance\ \{\}\ \{return\ \$bal\}\n\}\noo::class\ create\ Bank\ \{\n\ \ \ \ variable\ accts\n\ \ \ \ constructor\ \{\}\ \{set\ accts\ \{\}\}\n\ \ \ \ method\ open\ \{name\ bal\}\ \{dict\ set\ accts\ \$name\ \[Account\ new\ \$bal\]\}\n\ \ \ \ method\ get\ \{name\}\ \{\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$accts\ \$name\]\}\ \{error\ \"no\ such\ account\"\}\n\ \ \ \ \ \ \ \ return\ \[dict\ get\ \$accts\ \$name\]\n\ \ \ \ \}\n\ \ \ \ method\ transfer\ \{from\ to\ amount\}\ \{\n\ \ \ \ \ \ \ \ set\ a\ \[my\ get\ \$from\]\n\ \ \ \ \ \ \ \ set\ b\ \[my\ get\ \$to\]\n\ \ \ \ \ \ \ \ \$a\ withdraw\ \$amount\n\ \ \ \ \ \ \ \ \$b\ deposit\ \$amount\n\ \ \ \ \}\n\}\}\ tests\ \{\{set\ b\ \[Bank\ new\]\;\ \$b\ open\ a\ 100\;\ \$b\ open\ c\ 5\;\ \$b\ transfer\ a\ c\ 40\;\ list\ \[\[\$b\ get\ a\]\ balance\]\ \[\[\$b\ get\ c\]\ balance\]\}\ \{60\ 45\}\ \{set\ b\ \[Bank\ new\]\;\ \$b\ open\ a\ 10\;\ \$b\ open\ c\ 5\;\ catch\ \{\$b\ transfer\ a\ c\ 99\}\;\ list\ \[\[\$b\ get\ a\]\ balance\]\ \[\[\$b\ get\ c\]\ balance\]\}\ \{10\ 5\}\ \{set\ b\ \[Bank\ new\]\;\ \$b\ open\ a\ 10\;\ catch\ \{\$b\ transfer\ a\ nobody\ 1\}\ m\;\ list\ \$m\ \[\[\$b\ get\ a\]\ balance\]\}\ \{\{no\ such\ account\}\ 10\}\}\ why\ \{Look\ up\ both\ accounts\ and\ withdraw\ first\ -\ the\ step\ that\ can\ fail\ -\ before\ depositing.\}\}\n\ \ \{kind\ predict\ code\ \{oo::class\ create\ A\ \{\n\ \ \ \ variable\ n\n\ \ \ \ constructor\ \{\}\ \{set\ n\ 0\}\n\ \ \ \ method\ up\ \{\}\ \{incr\ n\}\n\}\noo::class\ create\ B\ \{superclass\ A\}\nset\ b\ \[B\ new\]\n\$b\ up\nputs\ \[\$b\ up\]\}\ choices\ \{2\ 1\ 0\ \{\}\}\ ans\ 0\ why\ \{B\ inherits\ the\ constructor\ and\ `up`\;\ two\ calls\ give\ 2.\}\}\n\ \ \{kind\ mc\ q\ \{Why\ should\ `transfer`\ withdraw\ before\ it\ deposits?\}\ choices\ \{\{The\ withdrawal\ can\ fail\;\ failing\ first\ leaves\ everything\ unchanged\}\ \{Deposits\ are\ slower\}\ \{Withdrawals\ are\ logged\}\ \{Order\ never\ matters\}\}\ ans\ 0\ why\ \{Put\ the\ step\ that\ can\ fail\ first,\ so\ there\ is\ nothing\ to\ undo.\}\}\n\ \ \{kind\ mc\ q\ \{What\ does\ `superclass\ Account`\ give\ the\ `Savings`\ class?\}\ choices\ \{\{All\ of\ Account's\ methods,\ plus\ its\ constructor\}\ \{Only\ the\ variables\}\ \{A\ copy\ of\ one\ object\}\ \{Nothing\ until\ instantiated\}\}\ ans\ 0\ why\ \{Inheritance\ reuses\ behaviour.\}\}\n\}\ncards\ \{\n\ \ \{\{How\ do\ you\ make\ a\ multi-step\ operation\ all-or-nothing?\}\ \{Do\ the\ step\ that\ can\ fail\ first\;\ check\ preconditions\ before\ changing\ state.\}\}\n\ \ \{\{How\ does\ a\ TclOO\ subclass\ reuse\ behaviour?\}\ \{`superclass\ Parent`\;\ call\ inherited\ methods\ with\ `my\ method`\ (or\ `next`).\}\}\n\ \ \{\{Why\ test\ failure\ paths\ in\ particular?\}\ \{That\ is\ where\ state-corruption\ bugs\ hide:\ money\ moved\ without\ the\ other\ half.\}\}\n\}\n\}\n\ncontent::lesson\ 14.7\ 14\ \"Project\ 6:\ a\ cooperative\ scheduler\"\ \"Coroutines\ as\ lightweight\ tasks,\ scheduled\ round-robin.\"\ \{\npages\ \{\n\ \ \{head\ \"The\ brief\"\ body\ \{\n\ \ \ \ p\ \{Write\ a\ tiny\ **cooperative\ multitasking**\ scheduler.\ Each\ **task**\ is\ a\ coroutine\ that\ does\ a\ little\ work,\ then\ `yield`s\ to\ let\ others\ run.\ The\ scheduler\ runs\ the\ tasks\ in\ turn,\ round-robin,\ until\ all\ have\ finished,\ and\ returns\ a\ **log**\ of\ what\ each\ did.\}\n\ \ \ \ p\ \{-\ `spawn\ name\ body`\ registers\ a\ task.\ Inside\ the\ body,\ `log\ text`\ records\ a\ line\ and\ `yield`\ hands\ control\ back\n-\ `runall`\ runs\ the\ tasks\ round-robin\ and\ returns\ the\ combined\ log,\ in\ the\ order\ things\ happened\}\n\ \ \}\}\n\ \ \{head\ \"Design\"\ body\ \{\n\ \ \ \ p\ \{A\ coroutine\ is\ a\ proc\ that\ can\ pause.\ Run\ in\ a\ loop,\ three\ such\ tasks\ interleave\ perfectly\ with\ no\ threads\ and\ no\ locks:\}\n\ \ \ \ code\ \{proc\ worker\ \{name\ n\}\ \{\n\ \ \ \ yield\n\ \ \ \ for\ \{set\ i\ 1\}\ \{\$i\ <=\ \$n\}\ \{incr\ i\}\ \{\n\ \ \ \ \ \ \ \ yield\ \"\$name\$i\"\n\ \ \ \ \}\n\ \ \ \ return\ done\n\}\ncoroutine\ A\ worker\ A\ 2\ncoroutine\ B\ worker\ B\ 3\nset\ out\ \{\}\nforeach\ c\ \{A\ B\ A\ B\ A\ B\ B\}\ \{\n\ \ \ \ lappend\ out\ \[\$c\]\n\}\nputs\ \$out\}\n\ \ \ \ out\ \{A1\ B1\ A2\ B2\ done\ B3\ done\}\n\ \ \ \ p\ \{Each\ call\ resumes\ the\ task\ until\ its\ next\ `yield`\;\ when\ the\ body\ ends\ the\ final\ value\ is\ returned\ and\ the\ coroutine\ disappears.\}\n\ \ \}\}\n\ \ \{head\ \"Tips\"\ body\ \{\n\ \ \ \ p\ \{-\ Keep\ a\ list\ of\ live\ task\ names\;\ each\ pass,\ resume\ each\ one\ and\ remove\ those\ that\ finished\n-\ Detect\ a\ finished\ coroutine\ with\ `info\ commands\ \$name`:\ it\ is\ empty\ once\ the\ coroutine\ ends\n-\ Append\ what\ a\ task\ yields\ to\ the\ log,\ but\ ignore\ the\ final\ `done`\n-\ Deterministic\ order\ makes\ cooperative\ code\ easy\ to\ test\ -\ there\ is\ no\ timing\ involved\}\n\ \ \ \ tip\ \{This\ model\ -\ many\ logical\ tasks,\ one\ thread,\ explicit\ switch\ points\ -\ is\ the\ idea\ behind\ async/await\ in\ other\ languages,\ and\ behind\ most\ Tcl\ network\ servers.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ code\ prompt\ \{**Step\ 1.**\ Write\ `ticker\ name\ n`\ as\ a\ coroutine\ body:\ it\ yields\ once\ to\ start,\ then\ yields\ `name1\ name2\ ...\ namen`,\ then\ returns\ `done`.\}\ starter\ \{proc\ ticker\ \{name\ n\}\ \{\n\ \ \ \ return\ done\n\}\}\ solution\ \{proc\ ticker\ \{name\ n\}\ \{\n\ \ \ \ yield\n\ \ \ \ for\ \{set\ i\ 1\}\ \{\$i\ <=\ \$n\}\ \{incr\ i\}\ \{\n\ \ \ \ \ \ \ \ yield\ \"\$name\$i\"\n\ \ \ \ \}\n\ \ \ \ return\ done\n\}\}\ tests\ \{\{coroutine\ T1\ ticker\ X\ 2\;\ list\ \[T1\]\ \[T1\]\ \[T1\]\}\ \{X1\ X2\ done\}\}\ why\ \{The\ first\ `yield`\ is\ the\ starting\ gate\;\ the\ rest\ hand\ back\ values.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 2.**\ Write\ `runtask\ name`\ that\ resumes\ the\ coroutine\ `name`\ once\ and\ returns\ its\ value,\ or\ the\ empty\ string\ if\ it\ has\ already\ finished.\}\ starter\ \{proc\ runtask\ \{name\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ runtask\ \{name\}\ \{\n\ \ \ \ if\ \{\[info\ commands\ \$name\]\ eq\ \"\"\}\ \{return\ \"\"\}\n\ \ \ \ return\ \[\$name\]\n\}\}\ tests\ \{\{proc\ t\ \{\}\ \{yield\;\ yield\ a\;\ return\ z\}\;\ coroutine\ Q\ t\;\ list\ \[runtask\ Q\]\ \[runtask\ Q\]\ \[runtask\ Q\]\}\ \{a\ z\ \{\}\}\}\ why\ \{A\ finished\ coroutine\ no\ longer\ exists\ as\ a\ command.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 3.**\ Write\ `roundrobin\ names`\ that\ resumes\ each\ named\ coroutine\ in\ turn,\ again\ and\ again,\ collecting\ every\ yielded\ value\ (not\ the\ final\ return)\ until\ all\ tasks\ are\ finished.\ Return\ the\ list\ of\ collected\ values.\}\ starter\ \{proc\ roundrobin\ \{names\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ roundrobin\ \{names\}\ \{\n\ \ \ \ set\ log\ \{\}\n\ \ \ \ set\ live\ \$names\n\ \ \ \ while\ \{\[llength\ \$live\]\}\ \{\n\ \ \ \ \ \ \ \ set\ next\ \{\}\n\ \ \ \ \ \ \ \ foreach\ n\ \$live\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ set\ v\ \[\$n\]\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{\[info\ commands\ \$n\]\ ne\ \"\"\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lappend\ log\ \$v\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lappend\ next\ \$n\n\ \ \ \ \ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ set\ live\ \$next\n\ \ \ \ \}\n\ \ \ \ return\ \$log\n\}\}\ tests\ \{\{proc\ w\ \{name\ n\}\ \{yield\;\ for\ \{set\ i\ 1\}\ \{\$i\ <=\ \$n\}\ \{incr\ i\}\ \{yield\ \$name\$i\}\;\ return\ done\}\;\ coroutine\ A\ w\ A\ 2\;\ coroutine\ B\ w\ B\ 3\;\ roundrobin\ \{A\ B\}\}\ \{A1\ B1\ A2\ B2\ B3\}\}\ why\ \{After\ each\ resume,\ a\ coroutine\ that\ still\ exists\ yielded\ a\ value\;\ one\ that\ has\ gone\ had\ just\ returned.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 4\ -\ final.**\ Write\ `schedule\ tasks`\ where\ `tasks`\ is\ a\ dict\ of\ task\ name\ to\ a\ list\ of\ items.\ Each\ task,\ when\ run,\ produces\ its\ items\ one\ per\ turn.\ Use\ coroutines\ and\ round-robin\ scheduling,\ and\ return\ the\ combined\ log\ as\ `name:item`\ entries.\}\ starter\ \{proc\ schedule\ \{tasks\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ schedule\ \{tasks\}\ \{\n\ \ \ \ set\ names\ \{\}\n\ \ \ \ dict\ for\ \{name\ items\}\ \$tasks\ \{\n\ \ \ \ \ \ \ \ proc\ ::body_\$name\ \{name\ items\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ yield\n\ \ \ \ \ \ \ \ \ \ \ \ foreach\ i\ \$items\ \{yield\ \"\$name:\$i\"\}\n\ \ \ \ \ \ \ \ \ \ \ \ return\ done\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ coroutine\ ::co_\$name\ ::body_\$name\ \$name\ \$items\n\ \ \ \ \ \ \ \ lappend\ names\ ::co_\$name\n\ \ \ \ \}\n\ \ \ \ set\ log\ \{\}\n\ \ \ \ set\ live\ \$names\n\ \ \ \ while\ \{\[llength\ \$live\]\}\ \{\n\ \ \ \ \ \ \ \ set\ next\ \{\}\n\ \ \ \ \ \ \ \ foreach\ n\ \$live\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ set\ v\ \[\$n\]\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{\[info\ commands\ \$n\]\ ne\ \"\"\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lappend\ log\ \$v\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lappend\ next\ \$n\n\ \ \ \ \ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ set\ live\ \$next\n\ \ \ \ \}\n\ \ \ \ return\ \$log\n\}\}\ tests\ \{\{schedule\ \{a\ \{1\ 2\}\ b\ \{x\ y\ z\}\}\}\ \{a:1\ b:x\ a:2\ b:y\ b:z\}\ \{schedule\ \{\}\}\ \{\}\}\ why\ \{Create\ one\ coroutine\ per\ task,\ then\ drive\ them\ all\ round-robin.\}\}\n\ \ \{kind\ predict\ code\ \{proc\ g\ \{\}\ \{yield\;\ yield\ 1\;\ yield\ 2\;\ return\ 3\}\ncoroutine\ c\ g\nputs\ \"\[c\]\ \[c\]\ \[c\]\"\}\ choices\ \{\{1\ 2\ 3\}\ \{2\ 3\ \{\}\}\ \{1\ 2\ \{\}\}\ \{3\}\}\ ans\ 0\ why\ \{The\ first\ call\ returns\ the\ first\ yielded\ value\ 1,\ then\ 2,\ then\ the\ final\ return\ 3.\}\}\n\ \ \{kind\ predict\ code\ \{proc\ g\ \{\}\ \{yield\;\ return\ x\}\ncoroutine\ c\ g\nc\nputs\ \[llength\ \[info\ commands\ c\]\]\}\ choices\ \{0\ 1\ 2\ c\}\ ans\ 0\ why\ \{After\ the\ body\ returns,\ the\ coroutine\ command\ is\ deleted.\}\}\n\ \ \{kind\ mc\ q\ \{What\ does\ \"cooperative\"\ multitasking\ mean?\}\ choices\ \{\{Tasks\ switch\ only\ where\ they\ choose\ to\ yield\}\ \{The\ system\ interrupts\ tasks\ at\ random\}\ \{Tasks\ run\ on\ separate\ CPUs\}\ \{Tasks\ cannot\ share\ data\}\}\ ans\ 0\ why\ \{Switch\ points\ are\ explicit,\ which\ makes\ behaviour\ deterministic.\}\}\n\}\ncards\ \{\n\ \ \{\{How\ does\ a\ coroutine-based\ scheduler\ work?\}\ \{Keep\ a\ list\ of\ live\ tasks\;\ resume\ each\ in\ turn\;\ drop\ those\ that\ have\ finished.\}\}\n\ \ \{\{How\ do\ you\ know\ a\ coroutine\ has\ finished?\}\ \{Its\ command\ disappears:\ `info\ commands\ \$name`\ is\ empty.\}\}\n\ \ \{\{Why\ is\ cooperative\ scheduling\ easy\ to\ test?\}\ \{The\ switch\ points\ are\ explicit,\ so\ the\ order\ of\ events\ is\ deterministic.\}\}\n\}\n\}\n\ncontent::lesson\ 14.8\ 14\ \"Project\ 7:\ a\ state\ machine\"\ \"Model\ behaviour\ as\ states\ and\ transitions\ -\ and\ make\ illegal\ moves\ impossible.\"\ \{\npages\ \{\n\ \ \{head\ \"The\ brief\"\ body\ \{\n\ \ \ \ p\ \{Many\ programs\ are\ really\ **state\ machines**:\ a\ door\ is\ open,\ closed\ or\ locked\;\ an\ order\ is\ placed,\ paid,\ shipped.\ The\ rules\ are\ a\ table:\ *in\ this\ state,\ this\ event\ moves\ to\ that\ state.*\ Write\ a\ generic\ machine\ plus\ a\ vending-machine\ example.\}\n\ \ \ \ p\ \{-\ `machine::new\ transitions\ initial`\ returns\ a\ machine\ (a\ dict)\n-\ `machine::fire\ m\ event`\ returns\ the\ machine\ moved\ to\ its\ new\ state,\ or\ raises\ `illegal:\ EVENT\ in\ STATE`\n-\ `machine::state\ m`\ returns\ the\ current\ state\}\n\ \ \}\}\n\ \ \{head\ \"Design\"\ body\ \{\n\ \ \ \ p\ \{The\ whole\ behaviour\ is\ **data**:\ a\ dict\ mapping\ state\ to\ a\ dict\ of\ event\ to\ next\ state.\ The\ code\ is\ just\ a\ lookup.\}\n\ \ \ \ code\ \{set\ door\ \{\n\ \ \ \ closed\ \{open\ opened\ lock\ locked\}\n\ \ \ \ opened\ \{close\ closed\}\n\ \ \ \ locked\ \{unlock\ closed\}\n\}\nset\ s\ closed\nforeach\ ev\ \{open\ close\ lock\ unlock\}\ \{\n\ \ \ \ set\ s\ \[dict\ get\ \$door\ \$s\ \$ev\]\n\ \ \ \ puts\ \"\$ev\ ->\ \$s\"\n\}\}\n\ \ \ \ out\ \{open\ ->\ opened\nclose\ ->\ closed\nlock\ ->\ locked\nunlock\ ->\ closed\}\n\ \ \ \ p\ \{Adding\ a\ state\ or\ rule\ means\ editing\ the\ table,\ not\ the\ code.\ And\ impossible\ moves,\ like\ unlocking\ an\ open\ door,\ simply\ are\ not\ in\ the\ table.\}\n\ \ \}\}\n\ \ \{head\ \"Tips\"\ body\ \{\n\ \ \ \ p\ \{-\ `dict\ exists\ \$table\ \$state\ \$event`\ tells\ you\ whether\ a\ move\ is\ legal\n-\ Represent\ the\ machine\ as\ a\ dict\ with\ `table`\ and\ `state`\ so\ it\ can\ be\ passed\ around\ as\ a\ plain\ value\n-\ Return\ a\ **new**\ dict\ from\ `fire`\ (functional\ style)\ so\ earlier\ states\ are\ never\ lost\n-\ List\ all\ legal\ events\ for\ a\ state\ with\ `dict\ keys\ \[dict\ get\ \$table\ \$state\]`\}\n\ \ \ \ tip\ \{Drawing\ the\ states\ and\ arrows\ on\ paper\ first\ is\ the\ best\ design\ step.\ The\ code\ is\ then\ almost\ a\ transcription\ of\ the\ picture.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ code\ prompt\ \{**Step\ 1.**\ Create\ the\ namespace\ `machine`\ with\ `new\ transitions\ initial`\ returning\ a\ dict\ with\ keys\ `table`\ and\ `state`,\ and\ `state\ m`\ returning\ the\ current\ state.\}\ starter\ \{namespace\ eval\ machine\ \{\n\}\}\ solution\ \{namespace\ eval\ machine\ \{\n\ \ \ \ proc\ new\ \{table\ initial\}\ \{\n\ \ \ \ \ \ \ \ return\ \[dict\ create\ table\ \$table\ state\ \$initial\]\n\ \ \ \ \}\n\ \ \ \ proc\ state\ \{m\}\ \{\n\ \ \ \ \ \ \ \ return\ \[dict\ get\ \$m\ state\]\n\ \ \ \ \}\n\}\}\ tests\ \{\{machine::state\ \[machine::new\ \{a\ \{go\ b\}\}\ a\]\}\ a\}\ why\ \{A\ machine\ is\ just\ a\ dict\ holding\ its\ rules\ and\ its\ state.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 2.**\ Add\ `fire\ m\ event`,\ returning\ the\ machine\ in\ its\ new\ state,\ or\ raising\ `illegal:\ EVENT\ in\ STATE`.\}\ starter\ \{namespace\ eval\ machine\ \{\n\ \ \ \ proc\ new\ \{table\ initial\}\ \{return\ \[dict\ create\ table\ \$table\ state\ \$initial\]\}\n\ \ \ \ proc\ state\ \{m\}\ \{return\ \[dict\ get\ \$m\ state\]\}\n\}\}\ solution\ \{namespace\ eval\ machine\ \{\n\ \ \ \ proc\ new\ \{table\ initial\}\ \{return\ \[dict\ create\ table\ \$table\ state\ \$initial\]\}\n\ \ \ \ proc\ state\ \{m\}\ \{return\ \[dict\ get\ \$m\ state\]\}\n\ \ \ \ proc\ fire\ \{m\ event\}\ \{\n\ \ \ \ \ \ \ \ set\ s\ \[dict\ get\ \$m\ state\]\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$m\ table\ \$s\ \$event\]\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ error\ \"illegal:\ \$event\ in\ \$s\"\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ dict\ set\ m\ state\ \[dict\ get\ \$m\ table\ \$s\ \$event\]\n\ \ \ \ \ \ \ \ return\ \$m\n\ \ \ \ \}\n\}\}\ tests\ \{\{set\ m\ \[machine::new\ \{a\ \{go\ b\}\ b\ \{back\ a\}\}\ a\]\;\ machine::state\ \[machine::fire\ \$m\ go\]\}\ b\ \{set\ m\ \[machine::new\ \{a\ \{go\ b\}\}\ a\]\;\ catch\ \{machine::fire\ \$m\ nope\}\ e\;\ set\ e\}\ \{illegal:\ nope\ in\ a\}\}\ why\ \{A\ legal\ move\ exists\ in\ the\ table\;\ anything\ else\ is\ an\ error.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 3.**\ Add\ `events\ m`,\ returning\ the\ sorted\ list\ of\ legal\ events\ in\ the\ current\ state,\ and\ `run\ m\ eventlist`\ which\ fires\ each\ event\ in\ turn\ and\ returns\ the\ final\ state.\}\ starter\ \{namespace\ eval\ machine\ \{\n\ \ \ \ proc\ new\ \{table\ initial\}\ \{return\ \[dict\ create\ table\ \$table\ state\ \$initial\]\}\n\ \ \ \ proc\ state\ \{m\}\ \{return\ \[dict\ get\ \$m\ state\]\}\n\ \ \ \ proc\ fire\ \{m\ event\}\ \{\n\ \ \ \ \ \ \ \ set\ s\ \[dict\ get\ \$m\ state\]\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$m\ table\ \$s\ \$event\]\}\ \{error\ \"illegal:\ \$event\ in\ \$s\"\}\n\ \ \ \ \ \ \ \ dict\ set\ m\ state\ \[dict\ get\ \$m\ table\ \$s\ \$event\]\n\ \ \ \ \ \ \ \ return\ \$m\n\ \ \ \ \}\n\}\}\ solution\ \{namespace\ eval\ machine\ \{\n\ \ \ \ proc\ new\ \{table\ initial\}\ \{return\ \[dict\ create\ table\ \$table\ state\ \$initial\]\}\n\ \ \ \ proc\ state\ \{m\}\ \{return\ \[dict\ get\ \$m\ state\]\}\n\ \ \ \ proc\ fire\ \{m\ event\}\ \{\n\ \ \ \ \ \ \ \ set\ s\ \[dict\ get\ \$m\ state\]\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$m\ table\ \$s\ \$event\]\}\ \{error\ \"illegal:\ \$event\ in\ \$s\"\}\n\ \ \ \ \ \ \ \ dict\ set\ m\ state\ \[dict\ get\ \$m\ table\ \$s\ \$event\]\n\ \ \ \ \ \ \ \ return\ \$m\n\ \ \ \ \}\n\ \ \ \ proc\ events\ \{m\}\ \{\n\ \ \ \ \ \ \ \ return\ \[lsort\ \[dict\ keys\ \[dict\ get\ \$m\ table\ \[dict\ get\ \$m\ state\]\]\]\]\n\ \ \ \ \}\n\ \ \ \ proc\ run\ \{m\ evs\}\ \{\n\ \ \ \ \ \ \ \ foreach\ e\ \$evs\ \{set\ m\ \[fire\ \$m\ \$e\]\}\n\ \ \ \ \ \ \ \ return\ \[state\ \$m\]\n\ \ \ \ \}\n\}\}\ tests\ \{\{set\ d\ \{closed\ \{open\ opened\ lock\ locked\}\ opened\ \{close\ closed\}\ locked\ \{unlock\ closed\}\}\;\ machine::events\ \[machine::new\ \$d\ closed\]\}\ \{lock\ open\}\ \{set\ d\ \{closed\ \{open\ opened\ lock\ locked\}\ opened\ \{close\ closed\}\ locked\ \{unlock\ closed\}\}\;\ machine::run\ \[machine::new\ \$d\ closed\]\ \{open\ close\ lock\ unlock\}\}\ closed\}\ why\ \{`dict\ keys`\ of\ the\ current\ state's\ row\ lists\ the\ legal\ events.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 4\ -\ final.**\ Use\ your\ machine\ to\ model\ a\ vending\ machine\ with\ states\ `idle`,\ `paid`,\ `dispensing`\ and\ events\ `coin`\ (idle\ to\ paid),\ `select`\ (paid\ to\ dispensing),\ `done`\ (dispensing\ to\ idle),\ `refund`\ (paid\ to\ idle).\ Write\ `vend\ events`\ that\ runs\ the\ given\ events\ from\ `idle`\ and\ returns\ the\ final\ state,\ raising\ the\ machine's\ error\ for\ an\ illegal\ move.\ (A\ complete\ `machine`\ namespace\ is\ included.)\}\ starter\ \{namespace\ eval\ machine\ \{\n\ \ \ \ proc\ new\ \{table\ initial\}\ \{return\ \[dict\ create\ table\ \$table\ state\ \$initial\]\}\n\ \ \ \ proc\ state\ \{m\}\ \{return\ \[dict\ get\ \$m\ state\]\}\n\ \ \ \ proc\ fire\ \{m\ event\}\ \{\n\ \ \ \ \ \ \ \ set\ s\ \[dict\ get\ \$m\ state\]\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$m\ table\ \$s\ \$event\]\}\ \{error\ \"illegal:\ \$event\ in\ \$s\"\}\n\ \ \ \ \ \ \ \ dict\ set\ m\ state\ \[dict\ get\ \$m\ table\ \$s\ \$event\]\n\ \ \ \ \ \ \ \ return\ \$m\n\ \ \ \ \}\n\}\nproc\ vend\ \{events\}\ \{\n\ \ \ \ return\ idle\n\}\}\ solution\ \{namespace\ eval\ machine\ \{\n\ \ \ \ proc\ new\ \{table\ initial\}\ \{return\ \[dict\ create\ table\ \$table\ state\ \$initial\]\}\n\ \ \ \ proc\ state\ \{m\}\ \{return\ \[dict\ get\ \$m\ state\]\}\n\ \ \ \ proc\ fire\ \{m\ event\}\ \{\n\ \ \ \ \ \ \ \ set\ s\ \[dict\ get\ \$m\ state\]\n\ \ \ \ \ \ \ \ if\ \{!\[dict\ exists\ \$m\ table\ \$s\ \$event\]\}\ \{error\ \"illegal:\ \$event\ in\ \$s\"\}\n\ \ \ \ \ \ \ \ dict\ set\ m\ state\ \[dict\ get\ \$m\ table\ \$s\ \$event\]\n\ \ \ \ \ \ \ \ return\ \$m\n\ \ \ \ \}\n\}\nproc\ vend\ \{events\}\ \{\n\ \ \ \ set\ table\ \{\n\ \ \ \ \ \ \ \ idle\ \{coin\ paid\}\n\ \ \ \ \ \ \ \ paid\ \{select\ dispensing\ refund\ idle\}\n\ \ \ \ \ \ \ \ dispensing\ \{done\ idle\}\n\ \ \ \ \}\n\ \ \ \ set\ m\ \[machine::new\ \$table\ idle\]\n\ \ \ \ foreach\ e\ \$events\ \{set\ m\ \[machine::fire\ \$m\ \$e\]\}\n\ \ \ \ return\ \[machine::state\ \$m\]\n\}\}\ tests\ \{\{vend\ \{coin\ select\ done\}\}\ idle\ \{vend\ \{coin\ refund\}\}\ idle\ \{vend\ \{coin\}\}\ paid\ \{catch\ \{vend\ \{select\}\}\ e\;\ set\ e\}\ \{illegal:\ select\ in\ idle\}\}\ why\ \{The\ vending\ rules\ are\ just\ a\ table\ handed\ to\ the\ generic\ machine.\}\}\n\ \ \{kind\ predict\ code\ \{set\ t\ \{a\ \{x\ b\}\ b\ \{y\ a\}\}\nset\ s\ a\nforeach\ e\ \{x\ y\ x\}\ \{set\ s\ \[dict\ get\ \$t\ \$s\ \$e\]\}\nputs\ \$s\}\ choices\ \{b\ a\ \{\}\ x\}\ ans\ 0\ why\ \{a\ -x->\ b\ -y->\ a\ -x->\ b.\}\}\n\ \ \{kind\ mc\ q\ \{Why\ store\ the\ transition\ rules\ as\ data\ rather\ than\ as\ `if`\ statements?\}\ choices\ \{\{Changing\ behaviour\ means\ editing\ a\ table,\ and\ illegal\ moves\ are\ simply\ absent\}\ \{Tables\ run\ faster\}\ \{if\ statements\ are\ not\ allowed\}\ \{Dicts\ cannot\ be\ empty\}\}\ ans\ 0\ why\ \{Data-driven\ design\ is\ easier\ to\ read,\ test\ and\ extend.\}\}\n\ \ \{kind\ mc\ q\ \{Why\ does\ `fire`\ return\ a\ new\ machine\ instead\ of\ changing\ one\ in\ place?\}\ choices\ \{\{Earlier\ states\ are\ never\ lost,\ so\ it\ is\ easy\ to\ test\ and\ undo\}\ \{It\ uses\ less\ memory\}\ \{Tcl\ forbids\ in-place\ changes\}\ \{It\ is\ required\ by\ dict\}\}\ ans\ 0\ why\ \{Values\ that\ are\ not\ modified\ cannot\ surprise\ you.\}\}\n\}\ncards\ \{\n\ \ \{\{What\ is\ a\ state\ machine?\}\ \{A\ set\ of\ states\ with\ rules:\ in\ this\ state,\ this\ event\ moves\ to\ that\ state.\}\}\n\ \ \{\{How\ do\ you\ represent\ transitions\ in\ Tcl?\}\ \{A\ dict\ of\ state\ to\ a\ dict\ of\ event\ to\ next\ state\;\ lookup\ with\ `dict\ get\ \$table\ \$state\ \$event`.\}\}\n\ \ \{\{How\ do\ you\ detect\ an\ illegal\ event?\}\ \{`dict\ exists\ \$table\ \$state\ \$event`\ is\ false.\}\}\n\}\n\}\n\ncontent::lesson\ 14.9\ 14\ \"Capstone:\ your\ own\ tested\ library\"\ \"Write\ a\ utility\ library\ with\ a\ test\ suite\ -\ the\ way\ professionals\ ship\ code.\"\ \{\npages\ \{\n\ \ \{head\ \"The\ brief\"\ body\ \{\n\ \ \ \ p\ \{For\ your\ capstone,\ write\ a\ small\ **string\ utility\ library**\ as\ a\ namespace\ `strutil`,\ together\ with\ a\ **test\ runner**\ that\ proves\ it\ works.\ This\ is\ the\ professional\ pattern:\ a\ library\ plus\ tests\ that\ run\ in\ one\ command\ and\ report\ pass\ or\ fail.\}\n\ \ \ \ p\ \{Functions\ to\ write:\}\n\ \ \ \ p\ \{-\ `pad\ text\ width\ ?char?`\ pad\ on\ the\ right\ to\ the\ given\ width\n-\ `center\ text\ width`\ centre\ text\ in\ a\ field\ (extra\ space\ goes\ to\ the\ right)\n-\ `truncate\ text\ max`\ shorten\ with\ `...`\ when\ longer\ than\ max\ (result\ never\ longer\ than\ max)\n-\ `wrap\ text\ width`\ break\ text\ into\ lines\ of\ at\ most\ `width`\ characters\ at\ spaces\n-\ `title\ text`\ capitalise\ each\ word\}\n\ \ \}\}\n\ \ \{head\ \"Design\"\ body\ \{\n\ \ \ \ p\ \{Write\ each\ function\ as\ a\ **pure**\ proc\ (text\ in,\ text\ out).\ Then\ a\ `selftest`\ proc\ runs\ a\ table\ of\ cases\ and\ returns\ the\ number\ of\ failures.\ The\ runner\ is\ the\ same\ idea\ as\ in\ the\ testing\ lesson:\}\n\ \ \ \ code\ \{namespace\ eval\ strutil\ \{\n\ \ \ \ proc\ pad\ \{text\ width\ \{char\ \"\ \"\}\}\ \{\n\ \ \ \ \ \ \ \ set\ n\ \[expr\ \{\$width\ -\ \[string\ length\ \$text\]\}\]\n\ \ \ \ \ \ \ \ if\ \{\$n\ <=\ 0\}\ \{return\ \$text\}\n\ \ \ \ \ \ \ \ return\ \$text\[string\ repeat\ \$char\ \$n\]\n\ \ \ \ \}\n\}\nputs\ \"<\[strutil::pad\ ab\ 5\]>\"\nputs\ \"<\[strutil::pad\ ab\ 5\ .\]>\"\}\n\ \ \ \ out\ \{<ab\ \ \ >\n<ab...>\}\n\ \ \ \ p\ \{Edge\ cases\ deserve\ their\ own\ tests:\ width\ smaller\ than\ the\ text,\ empty\ strings,\ and\ exact\ fits.\}\n\ \ \}\}\n\ \ \{head\ \"Tips\"\ body\ \{\n\ \ \ \ p\ \{-\ Write\ the\ tests\ **first**\ for\ each\ function,\ watch\ them\ fail,\ then\ write\ the\ code\n-\ `string\ repeat`,\ `string\ range`,\ `string\ totitle`\ and\ `split`/`join`\ do\ most\ of\ the\ work\n-\ For\ `wrap`,\ add\ words\ to\ the\ current\ line\ while\ it\ fits,\ else\ start\ a\ new\ line\n-\ A\ test\ table\ is\ data:\ `\{name\ script\ expected\}`\ triples\ are\ easy\ to\ extend\}\n\ \ \ \ tip\ \{When\ all\ your\ tests\ pass,\ change\ one\ function\ and\ run\ them\ again.\ That\ feeling\ of\ safety\ is\ why\ professionals\ write\ tests.\}\n\ \ \}\}\n\}\nex\ \{\n\ \ \{kind\ code\ prompt\ \{**Step\ 1.**\ Write\ `strutil::pad\ text\ width\ ?char?`.\}\ starter\ \{namespace\ eval\ strutil\ \{\n\}\}\ solution\ \{namespace\ eval\ strutil\ \{\n\ \ \ \ proc\ pad\ \{text\ width\ \{char\ \"\ \"\}\}\ \{\n\ \ \ \ \ \ \ \ set\ n\ \[expr\ \{\$width\ -\ \[string\ length\ \$text\]\}\]\n\ \ \ \ \ \ \ \ if\ \{\$n\ <=\ 0\}\ \{return\ \$text\}\n\ \ \ \ \ \ \ \ return\ \$text\[string\ repeat\ \$char\ \$n\]\n\ \ \ \ \}\n\}\}\ tests\ \{\{strutil::pad\ ab\ 5\}\ \{ab\ \ \ \}\ \{strutil::pad\ ab\ 5\ .\}\ ab...\ \{strutil::pad\ abcdef\ 3\}\ abcdef\ \{strutil::pad\ \"\"\ 2\ -\}\ --\}\ why\ \{Compute\ the\ shortfall\;\ add\ that\ many\ characters\ if\ positive.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 2.**\ Add\ `strutil::center\ text\ width`\ (extra\ space\ goes\ to\ the\ right)\ and\ `strutil::truncate\ text\ max`\ (results\ longer\ than\ max\ are\ cut\ to\ `max`\ characters\ ending\ in\ `...`).\}\ starter\ \{namespace\ eval\ strutil\ \{\n\ \ \ \ proc\ pad\ \{text\ width\ \{char\ \"\ \"\}\}\ \{\n\ \ \ \ \ \ \ \ set\ n\ \[expr\ \{\$width\ -\ \[string\ length\ \$text\]\}\]\n\ \ \ \ \ \ \ \ if\ \{\$n\ <=\ 0\}\ \{return\ \$text\}\n\ \ \ \ \ \ \ \ return\ \$text\[string\ repeat\ \$char\ \$n\]\n\ \ \ \ \}\n\}\}\ solution\ \{namespace\ eval\ strutil\ \{\n\ \ \ \ proc\ pad\ \{text\ width\ \{char\ \"\ \"\}\}\ \{\n\ \ \ \ \ \ \ \ set\ n\ \[expr\ \{\$width\ -\ \[string\ length\ \$text\]\}\]\n\ \ \ \ \ \ \ \ if\ \{\$n\ <=\ 0\}\ \{return\ \$text\}\n\ \ \ \ \ \ \ \ return\ \$text\[string\ repeat\ \$char\ \$n\]\n\ \ \ \ \}\n\ \ \ \ proc\ center\ \{text\ width\}\ \{\n\ \ \ \ \ \ \ \ set\ n\ \[expr\ \{\$width\ -\ \[string\ length\ \$text\]\}\]\n\ \ \ \ \ \ \ \ if\ \{\$n\ <=\ 0\}\ \{return\ \$text\}\n\ \ \ \ \ \ \ \ set\ left\ \[expr\ \{\$n\ /\ 2\}\]\n\ \ \ \ \ \ \ \ return\ \[string\ repeat\ \"\ \"\ \$left\]\$text\[string\ repeat\ \"\ \"\ \[expr\ \{\$n\ -\ \$left\}\]\]\n\ \ \ \ \}\n\ \ \ \ proc\ truncate\ \{text\ max\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\[string\ length\ \$text\]\ <=\ \$max\}\ \{return\ \$text\}\n\ \ \ \ \ \ \ \ return\ \[string\ range\ \$text\ 0\ \[expr\ \{\$max\ -\ 4\}\]\]...\n\ \ \ \ \}\n\}\}\ tests\ \{\{strutil::center\ ab\ 6\}\ \{\ \ ab\ \ \}\ \{strutil::center\ abc\ 6\}\ \{\ abc\ \ \}\ \{strutil::truncate\ hello\ 10\}\ hello\ \{strutil::truncate\ \"hello\ world\"\ 8\}\ \{hello...\}\}\ why\ \{Half\ the\ padding\ goes\ left,\ the\ rest\ right.\ Truncation\ reserves\ 3\ characters\ for\ the\ dots.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 3.**\ Add\ `strutil::title\ text`\ (capitalise\ each\ space-separated\ word,\ lower-casing\ the\ rest)\ and\ `strutil::wrap\ text\ width`\ returning\ a\ list\ of\ lines,\ each\ at\ most\ `width`\ characters,\ breaking\ at\ spaces\ (a\ word\ longer\ than\ the\ width\ gets\ its\ own\ line).\}\ starter\ \{namespace\ eval\ strutil\ \{\n\}\}\ solution\ \{namespace\ eval\ strutil\ \{\n\ \ \ \ proc\ title\ \{text\}\ \{\n\ \ \ \ \ \ \ \ set\ out\ \{\}\n\ \ \ \ \ \ \ \ foreach\ w\ \[split\ \$text\ \"\ \"\]\ \{lappend\ out\ \[string\ totitle\ \$w\]\}\n\ \ \ \ \ \ \ \ return\ \[join\ \$out\ \"\ \"\]\n\ \ \ \ \}\n\ \ \ \ proc\ wrap\ \{text\ width\}\ \{\n\ \ \ \ \ \ \ \ set\ lines\ \{\}\n\ \ \ \ \ \ \ \ set\ cur\ \"\"\n\ \ \ \ \ \ \ \ foreach\ w\ \[split\ \$text\ \"\ \"\]\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{\$w\ eq\ \"\"\}\ continue\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{\$cur\ eq\ \"\"\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ set\ cur\ \$w\n\ \ \ \ \ \ \ \ \ \ \ \ \}\ elseif\ \{\[string\ length\ \$cur\]\ +\ 1\ +\ \[string\ length\ \$w\]\ <=\ \$width\}\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ append\ cur\ \"\ \"\ \$w\n\ \ \ \ \ \ \ \ \ \ \ \ \}\ else\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ lappend\ lines\ \$cur\n\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ set\ cur\ \$w\n\ \ \ \ \ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ if\ \{\$cur\ ne\ \"\"\}\ \{lappend\ lines\ \$cur\}\n\ \ \ \ \ \ \ \ return\ \$lines\n\ \ \ \ \}\n\}\}\ tests\ \{\{strutil::title\ \"hELLO\ wORLD\"\}\ \{Hello\ World\}\ \{strutil::wrap\ \"the\ quick\ brown\ fox\ jumps\"\ 10\}\ \{\{the\ quick\}\ \{brown\ fox\}\ jumps\}\ \{strutil::wrap\ \"supercalifragilistic\ is\ long\"\ 8\}\ \{supercalifragilistic\ \{is\ long\}\}\}\ why\ \{Greedy\ line\ filling:\ add\ the\ word\ if\ it\ fits,\ otherwise\ start\ a\ new\ line.\}\}\n\ \ \{kind\ code\ prompt\ \{**Step\ 4\ -\ final.**\ Write\ the\ test\ runner\ `strutil::selftest`:\ it\ runs\ at\ least\ these\ cases\ against\ your\ functions\ and\ returns\ the\ number\ of\ **failures**\ (0\ when\ everything\ passes):\ `pad\ ab\ 4`\ gives\ `ab\ \ `\;\ `truncate\ \"hello\ world\"\ 8`\ gives\ `hello...`\;\ `title\ \"a\ b\"`\ gives\ `A\ B`.\ (Include\ working\ implementations\ of\ those\ three\ functions.)\}\ starter\ \{namespace\ eval\ strutil\ \{\n\ \ \ \ proc\ selftest\ \{\}\ \{\n\ \ \ \ \ \ \ \ return\ 99\n\ \ \ \ \}\n\}\}\ solution\ \{namespace\ eval\ strutil\ \{\n\ \ \ \ proc\ pad\ \{text\ width\ \{char\ \"\ \"\}\}\ \{\n\ \ \ \ \ \ \ \ set\ n\ \[expr\ \{\$width\ -\ \[string\ length\ \$text\]\}\]\n\ \ \ \ \ \ \ \ if\ \{\$n\ <=\ 0\}\ \{return\ \$text\}\n\ \ \ \ \ \ \ \ return\ \$text\[string\ repeat\ \$char\ \$n\]\n\ \ \ \ \}\n\ \ \ \ proc\ truncate\ \{text\ max\}\ \{\n\ \ \ \ \ \ \ \ if\ \{\[string\ length\ \$text\]\ <=\ \$max\}\ \{return\ \$text\}\n\ \ \ \ \ \ \ \ return\ \[string\ range\ \$text\ 0\ \[expr\ \{\$max\ -\ 4\}\]\]...\n\ \ \ \ \}\n\ \ \ \ proc\ title\ \{text\}\ \{\n\ \ \ \ \ \ \ \ set\ out\ \{\}\n\ \ \ \ \ \ \ \ foreach\ w\ \[split\ \$text\ \"\ \"\]\ \{lappend\ out\ \[string\ totitle\ \$w\]\}\n\ \ \ \ \ \ \ \ return\ \[join\ \$out\ \"\ \"\]\n\ \ \ \ \}\n\ \ \ \ proc\ selftest\ \{\}\ \{\n\ \ \ \ \ \ \ \ set\ cases\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ \{\{pad\ ab\ 4\}\ \{ab\ \ \}\}\n\ \ \ \ \ \ \ \ \ \ \ \ \{\{truncate\ \"hello\ world\"\ 8\}\ \{hello...\}\}\n\ \ \ \ \ \ \ \ \ \ \ \ \{\{title\ \"a\ b\"\}\ \{A\ B\}\}\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ set\ failed\ 0\n\ \ \ \ \ \ \ \ foreach\ c\ \$cases\ \{\n\ \ \ \ \ \ \ \ \ \ \ \ lassign\ \$c\ script\ want\n\ \ \ \ \ \ \ \ \ \ \ \ if\ \{\[catch\ \{namespace\ eval\ ::strutil\ \$script\}\ got\]\ ||\ \$got\ ne\ \$want\}\ \{incr\ failed\}\n\ \ \ \ \ \ \ \ \}\n\ \ \ \ \ \ \ \ return\ \$failed\n\ \ \ \ \}\n\}\}\ tests\ \{\{strutil::selftest\}\ 0\ \{strutil::pad\ ab\ 4\}\ \{ab\ \ \}\ \{strutil::title\ \"x\ y\"\}\ \{X\ Y\}\}\ why\ \{The\ runner\ is\ a\ table\ of\ cases\ evaluated\ inside\ the\ namespace,\ counting\ mismatches.\}\}\n\ \ \{kind\ predict\ code\ \{namespace\ eval\ s\ \{proc\ pad\ \{t\ w\}\ \{return\ \$t\[string\ repeat\ .\ \[expr\ \{\$w\ -\ \[string\ length\ \$t\]\}\]\]\}\}\nputs\ \[s::pad\ ab\ 4\]\}\ choices\ \{ab..\ ab....\ ..ab\ ab\}\ ans\ 0\ why\ \{Two\ characters\ short,\ so\ two\ dots\ are\ appended.\}\}\n\ \ \{kind\ mc\ q\ \{Why\ write\ the\ test\ for\ a\ function\ before\ the\ function\ itself?\}\ choices\ \{\{It\ defines\ exactly\ what\ \"correct\"\ means,\ and\ proves\ the\ test\ can\ fail\}\ \{It\ is\ required\ by\ namespaces\}\ \{Tests\ run\ faster\ first\}\ \{It\ is\ shorter\}\}\ ans\ 0\ why\ \{A\ test\ that\ has\ never\ failed\ has\ not\ been\ shown\ to\ detect\ anything.\}\}\n\ \ \{kind\ mc\ q\ \{What\ should\ a\ good\ test\ suite\ include\ for\ `pad`?\}\ choices\ \{\{Normal\ use,\ width\ smaller\ than\ the\ text,\ exact\ fit\ and\ the\ empty\ string\}\ \{Only\ one\ normal\ example\}\ \{Only\ error\ cases\}\ \{Only\ long\ strings\}\}\ ans\ 0\ why\ \{Edges\ are\ where\ bugs\ live.\}\}\n\}\ncards\ \{\n\ \ \{\{What\ is\ the\ professional\ pattern\ for\ a\ library?\}\ \{A\ namespace\ of\ pure\ functions\ plus\ a\ test\ suite\ that\ runs\ in\ one\ command\ and\ reports\ pass/fail.\}\}\n\ \ \{\{Which\ edge\ cases\ should\ you\ always\ test?\}\ \{Empty\ input,\ exact\ fit,\ too\ short\ or\ too\ long,\ and\ invalid\ input.\}\}\n\ \ \{\{Why\ write\ tests\ first?\}\ \{It\ defines\ \"correct\"\ up\ front\ and\ shows\ the\ test\ can\ detect\ failure.\}\}\n\}\n\}\n content/u15.tcl {content::unit 15 "Language deep-dives" "The corners of Tcl that complete your command of the language." "#60A5FA"
+
+content::lesson 15.1 15 "Numbers in depth" "Integers of any size, floating-point surprises, rounding and operators as commands." {
+pages {
+  {head "Integers, bignums and floats" body {
+    p {Tcl integers have **no fixed size**: they grow as needed, so you can compute with enormous numbers. Decimal numbers are 64-bit floating point, which cannot represent every fraction exactly - the same in every language.}
+    code {puts [expr {2**100}]
+puts [expr {0.1 + 0.2}]
+puts [expr {7 == 7.0}]
+puts [expr {1/3.0}]
+puts [format %.3f [expr {1/3.0}]]}
+    out {1267650600228229401496703205376
+0.30000000000000004
+1
+0.3333333333333333
+0.333}
+    p {`0.1 + 0.2` is not exactly 0.3 because 0.1 has no exact binary form. Never compare floats with `==` for equality of calculations; compare the **difference** with a small tolerance, and use `format` for display.}
+  }}
+  {head "Division, remainder and rounding" body {
+    p {Integer division **floors** (rounds toward minus infinity), and the remainder takes the sign of the divisor, so that `(a / b) * b + (a % b) == a` always holds. Conversion and rounding functions:}
+    code {puts [expr {-7 / 2}]
+puts [expr {-7 % 3}]
+puts [expr {int(-3.9)}]
+puts [expr {round(2.5)}]
+puts [expr {round(-2.5)}]
+puts [expr {floor(-1.5)}]
+puts [expr {ceil(1.2)}]
+puts [expr {isqrt(99)}]}
+    out {-4
+2
+-3
+3
+-3
+-2.0
+2.0
+9}
+    p {`int()` truncates toward zero, `round()` rounds halves away from zero, `floor()` and `ceil()` return floats. `isqrt` is an exact integer square root.}
+  }}
+  {head "Maths functions and operators as commands" body {
+    p {Every maths function is a command in `::tcl::mathfunc`, and every operator is a command in `::tcl::mathop`. That means operators work with `{*}` and `lmap`, and you can **define your own maths function**.}
+    code {puts [::tcl::mathop::+ 1 2 3]
+puts [::tcl::mathop::* {*}{2 3 4}]
+puts [expr {max(1, 5.5, 3)}]
+puts [expr {hypot(3, 4)}]
+proc ::tcl::mathfunc::twice {x} {expr {$x * 2}}
+puts [expr {twice(21)}]}
+    out {6
+24
+5.5
+5.0
+42}
+    tip {Prefix operators such as `::tcl::mathop::+` accept any number of arguments, so `+ {*}$list` adds up a whole list.}
+  }}
+}
+ex {
+  {kind predict code {puts [expr {2**10}]} choices {1024 20 100 2048} ans 0 why {`**` is exponentiation.}}
+  {kind predict code {puts [expr {-7 / 2}]} choices {-4 -3 -3.5 3} ans 0 why {Integer division floors toward minus infinity.}}
+  {kind predict code {puts [expr {-7 % 3}]} choices {2 -1 1 -2} ans 0 why {The remainder takes the sign of the divisor: -7 = -3 * 3 + 2.}}
+  {kind predict code {puts [expr {int(-3.9)}]} choices {-3 -4 -3.0 3} ans 0 why {`int()` truncates toward zero.}}
+  {kind predict code {puts [expr {round(2.5)}]} choices {3 2 2.5 3.0} ans 0 why {Halves round away from zero.}}
+  {kind predict code {puts [expr {floor(-1.5)}]} choices {-2.0 -1.0 -2 -1} ans 0 why {`floor` returns a float, rounded toward minus infinity.}}
+  {kind predict code {puts [expr {isqrt(99)}]} choices {9 10 9.9 99} ans 0 why {The integer part of the square root.}}
+  {kind predict code {puts [::tcl::mathop::+ 1 2 3]} choices {6 {1 2 3} 123 +} ans 0 why {The `+` operator command adds all its arguments.}}
+  {kind predict code {puts [expr {0.1 + 0.2 == 0.3}]} choices {0 1 true false} ans 0 why {Floating-point rounding makes the two sides differ slightly.}}
+  {kind mc q {Why is `0.1 + 0.2` not exactly `0.3` in Tcl?} choices {{0.1 cannot be represented exactly in binary floating point} {Tcl has a bug} {`+` rounds up} {The numbers are strings}} ans 0 why {The same happens in every language that uses IEEE floating point.}}
+  {kind mc q {How should you compare two computed floats?} choices {{Check that their difference is smaller than a small tolerance} {Always with ==} {Convert both to strings} {With eq}} ans 0 why {`expr {abs($a - $b) < 1e-9}`.}}
+  {kind blank q {Add up all the numbers in a list with one operator command.} code {set nums {1 2 3 4}
+puts [::tcl::mathop::+ ___$nums]} answers {{{*}}} extra {{...} {@} {&}} out {10} why {`{*}$nums` spreads the list as separate arguments.}}
+  {kind code prompt {Write a proc **sumlist** that adds a list of numbers using `::tcl::mathop::+` and `{*}` (an empty list gives 0).} starter {proc sumlist {l} {
+    return 0
+}} solution {proc sumlist {l} {
+    if {[llength $l] == 0} {return 0}
+    return [::tcl::mathop::+ {*}$l]
+}} tests {{sumlist {1 2 3}} 6 {sumlist {}} 0 {sumlist {2.5 2.5}} 5.0} why {`+` with no arguments returns 0 as well, but being explicit is clearer.}}
+  {kind code prompt {Define a new maths function **cube** (use `::tcl::mathfunc::cube`) so that `expr {cube(3)}` is 27.} starter {# define it here
+} solution {proc ::tcl::mathfunc::cube {x} {expr {$x * $x * $x}}} tests {{expr {cube(3)}} 27 {expr {cube(2) + 1}} 9} why {Procs in `::tcl::mathfunc` become functions inside `expr`.}}
+  {kind code prompt {Write a proc **close** returning 1 when two numbers differ by less than 1e-9, else 0.} starter {proc close {a b} {
+    return [expr {$a == $b}]
+}} solution {proc close {a b} {
+    return [expr {abs($a - $b) < 1e-9}]
+}} tests {{close [expr {0.1 + 0.2}] 0.3} 1 {close 1 2} 0} why {Compare the difference, not the values.}}
+}
+cards {
+  {{How big can a Tcl integer be?} {Arbitrarily big - integers grow as needed (`expr {2**100}` works).}}
+  {{What does integer division do with negatives?} {It floors: `-7 / 2` is -4, and `-7 % 3` is 2.}}
+  {{How do you compare floats?} {Check `abs($a - $b) < tolerance`, never `==`.}}
+  {{Where do maths functions and operators live as commands?} {`::tcl::mathfunc::name` and `::tcl::mathop::op`; you can define your own functions there.}}
+}
+}
+
+content::lesson 15.2 15 "The dict toolbox" "Everything dict can do - merge, replace, update, filter and more." {
+pages {
+  {head "Building and combining" body {
+    p {Dictionaries are **values**, so every command that changes one either returns a new dict or updates a variable. `dict replace` and `dict merge` return new dicts; `dict append`, `dict lappend`, `dict incr`, `dict set` and `dict unset` update a variable.}
+    code {puts [dict replace {a 1 b 2} b 9 c 3]
+puts [dict merge {a 1 b 2} {b 20 c 3}]
+puts [dict remove {a 1 b 2 c 3} a c]
+set d {a 1}
+dict append d a 5
+puts $d
+set e {}
+dict lappend e k x y
+puts $e}
+    out {a 1 b 9 c 3
+a 1 b 20 c 3
+b 2
+a 15
+k {x y}}
+    p {`merge` lets later dicts win. `append` concatenates **text** onto a value (1 and 5 become 15); `lappend` adds items to a **list** stored under the key.}
+  }}
+  {head "Selecting and transforming" body {
+    p {Select keys by pattern, or filter by key, value or a script:}
+    code {puts [dict keys {apple 1 avocado 2 banana 3} a*]
+puts [dict filter {a 1 b 2 c 3} key {[ab]}]
+puts [dict filter {a 1 b 2 c 3} value 2]
+puts [dict get [dict create x {y {z 1}}] x y z]}
+    out {apple avocado
+a 1 b 2
+b 2
+1}
+    p {Because values can be dicts, `dict get`, `dict set`, `dict exists` and `dict unset` all accept a **path** of keys. A path into a missing key raises an error from `get`, so test with `exists` first.}
+  }}
+  {head "update and with" body {
+    p {`dict update d key var ... script` copies chosen keys into variables, runs the script, and writes the variables back (and deletes a key if you `unset` its variable). `dict with` does the same for **all** keys.}
+    code {set d {a 1 b 2}
+dict update d a v {set v 100}
+puts $d
+set rec {name Ada age 36}
+dict with rec {incr age}
+puts $rec}
+    out {a 100 b 2
+name Ada age 37}
+    tip {A handy rule: use `dict get` to read, `dict set` to change one key, and `dict with`/`update` when you need several fields of a record at once.}
+  }}
+}
+ex {
+  {kind predict code {puts [dict merge {a 1 b 2} {b 5}]} choices {{a 1 b 5} {a 1 b 2} {b 5} {a 1 b 2 b 5}} ans 0 why {The later dict wins for duplicate keys.}}
+  {kind predict code {puts [dict replace {a 1} a 2 b 3]} choices {{a 2 b 3} {a 1 b 3} {a 2} {a 1 a 2 b 3}} ans 0 why {`replace` overwrites and adds keys.}}
+  {kind predict code {puts [dict remove {a 1 b 2 c 3} b]} choices {{a 1 c 3} {a 1 b 2} {b 2} {a c}} ans 0 why {`remove` drops the named keys.}}
+  {kind predict code {set d {n 1}
+dict append d n 0
+puts $d} choices {{n 10} {n 1} {n 0} {n 1 0}} ans 0 why {`append` joins the text: "1" and "0" become "10".}}
+  {kind predict code {set d {}
+dict lappend d k 1
+dict lappend d k 2
+puts $d} choices {{k {1 2}} {k 12} {k 1 k 2} {{1 2}}} ans 0 why {`lappend` builds a list under the key.}}
+  {kind predict code {puts [dict filter {a 1 b 2 c 3} value {[23]}]} choices {{b 2 c 3} {a 1} {b 2} {c 3}} ans 0 why {Values matching the pattern `[23]`.}}
+  {kind predict code {set r {x 1 y 2}
+dict with r {set x [expr {$x + $y}]}
+puts $r} choices {{x 3 y 2} {x 1 y 2} {x 3} {x 2 y 2}} ans 0 why {`dict with` writes changed variables back into the dict.}}
+  {kind predict code {puts [dict keys {apple 1 pear 2 plum 3} p*]} choices {{pear plum} {apple} {pear} {plum pear}} ans 0 why {The pattern `p*` selects the matching keys.}}
+  {kind mc q {What is the difference between `dict append` and `dict lappend`?} choices {{`append` joins text onto a value; `lappend` adds an item to a list value} {They are the same} {`append` works on lists} {`lappend` only works on numbers}} ans 0 why {Choose by whether the stored value is text or a list.}}
+  {kind mc q {What does `dict merge a b` do for keys present in both?} choices {{The value from b wins} {The value from a wins} {It raises an error} {Both are kept}} ans 0 why {Later dicts override earlier ones.}}
+  {kind blank q {Update one key's variable inside a dict.} code {set d {n 5}
+dict ___ d n v {incr v}
+puts $d} answers {update} extra {with set get} out {n 6} why {`dict update d key var script`.}}
+  {kind code prompt {Write a proc **mergeall** taking a list of dicts and returning them merged, later ones winning.} starter {proc mergeall {dicts} {
+    return {}
+}} solution {proc mergeall {dicts} {
+    set r {}
+    foreach d $dicts {set r [dict merge $r $d]}
+    return $r
+}} tests {{mergeall {{a 1} {b 2} {a 3}}} {a 3 b 2} {mergeall {}} {}} why {Fold the dicts together with `dict merge`.}}
+  {kind code prompt {Write a proc **birthday** taking a person dict with an `age` key and returning the dict with age increased by one (use `dict incr`).} starter {proc birthday {p} {
+    return $p
+}} solution {proc birthday {p} {
+    dict incr p age
+    return $p
+}} tests {{birthday {name Ada age 36}} {name Ada age 37}} why {`dict incr` changes the local copy of `p`; return it.}}
+  {kind code prompt {Write a proc **getpath** that reads a nested dict value with a list of keys, returning a default when any key is missing: `getpath {a {b 1}} {a b} none` is 1.} starter {proc getpath {d keys default} {
+    return $default
+}} solution {proc getpath {d keys default} {
+    if {[dict exists $d {*}$keys]} {return [dict get $d {*}$keys]}
+    return $default
+}} tests {{getpath {a {b 1}} {a b} none} 1 {getpath {a {b 1}} {a x} none} none} why {`dict exists` accepts a whole path; test before getting.}}
+}
+cards {
+  {{Which dict commands return a new dict and which change a variable?} {`replace`, `merge`, `remove` return new dicts; `set`, `unset`, `incr`, `append`, `lappend`, `update`, `with` change a variable.}}
+  {{When do you use `dict append` versus `dict lappend`?} {`append` joins text; `lappend` adds an item to a list stored under the key.}}
+  {{What do `dict update` and `dict with` do?} {Make keys available as variables for a script and write changes back.}}
+  {{How do you read a deep value safely?} {`if {[dict exists $d {*}$path]} {dict get $d {*}$path}`}}
+}
+}
+
+content::lesson 15.3 15 "The twelve rules of Tcl" "The complete grammar of the language - short enough to memorise." {
+pages {
+  {head "How a script is read" body {
+    p {Tcl's entire syntax is **twelve rules** (the "Dodekalogue"). Here they are in plain language, with the ones you will use most first:}
+    p {- **Commands**: a script is commands separated by newlines or semicolons. A command is words separated by whitespace; the first word is the command name
+- **Quotes** `"..."`: group words; substitutions still happen inside
+- **Braces** `{...}`: group words **literally**; no substitutions, braces nest
+- **Variable substitution** `$name`, `$name(index)` and `${any name}`
+- **Command substitution** `[...]`: run the command and use its result
+- **Backslash substitution**: `\n`, `\t`, `\\`, `\{`, and backslash-newline (a line continuation)
+- **Comments**: `#` at the start of a command ignores the rest of the line
+- **One pass**: each word is substituted exactly once, left to right}
+    code {set a(x) 1
+set v a(x)
+puts [set $v]
+set {my var} 5
+puts ${my var}
+set x 10
+puts {$x [expr 1]}
+puts "$x [expr {1 + 1}]"}
+    out {1
+5
+$x [expr 1]
+10 2}
+    p {`${my var}` lets a variable name contain spaces. And `set $v` where `v` holds the text `a(x)` reads the array element - a first taste of **indirection**.}
+  }}
+  {head "Lists and quoting" body {
+    p {The rules explain why `list` is special: it produces a string that, **when parsed by the rules**, gives back exactly the original items. Anything needing protection gets braces or backslashes.}
+    code {puts [list a {b c} "d e" {} "f\{"]
+puts [llength [list a {b c}]]
+puts [llength "a {b c}"]
+set x 10
+set y {$x}
+puts [subst $y]
+puts [subst -nocommands {[expr 1] $x}]
+puts [subst -novariables {[expr 1] $x}]}
+    out {a {b c} {d e} {} f\{
+2
+2
+10
+[expr 1] 10
+1 $x}
+    p {The empty item became `{}`, the brace became `f\{`. `subst` applies rules 4-6 to a string on demand, and its flags switch parts off.}
+  }}
+  {head "Consequences" body {
+    p {From the rules follow all the "gotchas" - and all the power:}
+    p {- A `#` comment must start where a **command** could start (so use `;#` after a command)
+- `if {$x > 1} {...}` works because braces keep the condition **unsubstituted** until `if` evaluates it
+- A command receives words as **strings**; there are no hidden types
+- Because code is just strings, `proc`, `if`, `foreach` and your own `repeat` are all ordinary commands taking braced bodies
+- To evaluate twice you must ask for it (`eval`, `subst`, `uplevel`) - which is why Tcl is predictable}
+    tip {When a line misbehaves, apply the rules by hand: split into words, perform the substitutions once, left to right, and look at the final words the command actually receives.}
+  }}
+}
+ex {
+  {kind predict code {set {a b} 7
+puts ${a b}} choices {7 {a b} a {}} ans 0 why {`${...}` allows spaces in a variable name.}}
+  {kind predict code {set x 5
+puts {$x}
+puts "$x"} choices {{$x
+5} {5
+5} {$x
+$x} {5
+$x}} ans 0 why {Braces suppress substitution; quotes allow it.}}
+  {kind predict code {puts [llength {a {b c} d}]} choices {3 4 2 5} ans 0 why {Three items: `a`, `b c`, `d`.}}
+  {kind predict code {puts [list a {} b]} choices {{a {} b} {a b} {a  b} {a "" b}} ans 0 why {An empty item must be shown as `{}` so it survives.}}
+  {kind predict code {set x 3
+set y {$x + 1}
+puts [expr $y]} choices {4 {$x + 1} 3 {}} ans 0 why {`expr $y` substitutes y's value (`$x + 1`) as the expression, which then substitutes x again: a double substitution.}}
+  {kind predict code {set a(i) hello
+set n a(i)
+puts [set $n]} choices {hello a(i) i n} ans 0 why {`set $n` with n = `a(i)` reads that array element.}}
+  {kind predict code {puts [subst -nocommands {[expr 1] ok}]} choices {{[expr 1] ok} {1 ok} {ok} {[expr 1]}} ans 0 why {Command substitution is switched off.}}
+  {kind mc q {Why does `if {$x > 1} {...}` use braces for the condition?} choices {{So the condition is substituted when `if` evaluates it, not earlier} {Braces are required by syntax} {To make it faster only} {Quotes cannot hold >}} ans 0 why {Braces delay substitution to the command that needs it.}}
+  {kind mc q {What does "one pass" mean?} choices {{Each word is substituted exactly once, left to right} {Scripts run only once} {Only one command per line} {A variable can be set once}} ans 0 why {The single-pass rule makes Tcl predictable.}}
+  {kind mc q {Where can a `#` comment start?} choices {{Where a command could start} {Anywhere on a line} {Only at column 1} {Only after a semicolon}} ans 0 why {That is why `puts hi # note` fails but `puts hi ;# note` works.}}
+  {kind type q {Which command performs substitution on a string without running it as a command?} accept {subst} why {`subst`.}}
+}
+cards {
+  {{What are the main substitutions in Tcl?} {`$var`, `[command]` and backslash sequences - done once per word, never inside braces.}}
+  {{Why is `list` the right way to build a list or command?} {It quotes each item so that parsing the result gives back exactly the same items.}}
+  {{What does `subst` do?} {Performs variable, command and backslash substitution on a string (with flags to disable parts).}}
+  {{Where may a comment start?} {Only where a command may start; after a command use `;#`.}}
+}
+}
+
+content::lesson 15.4 15 "Namespaces in depth" "Search paths, nested namespaces, ensembles with maps, and sharing variables." {
+pages {
+  {head "Names, paths and nesting" body {
+    p {Namespaces nest (`::a::b::c`). A name starting with `::` is **absolute**; any other name is looked up from the current namespace and then the global one. `namespace path` adds extra namespaces to the **command search path**, so you can use their commands unqualified without importing.}
+    code {namespace eval a {
+    proc f {} {return a::f}
+}
+namespace eval b {
+    namespace path ::a
+    proc g {} {f}
+}
+puts [b::g]
+namespace eval q {namespace eval inner {}}
+puts [namespace children q]
+puts [namespace parent ::q::inner]
+puts [namespace eval q {namespace current}]
+puts [namespace which -command puts]}
+    out {a::f
+::q::inner
+::q
+::q
+::puts}
+    p {`namespace which` finds where a name really lives. Procs in `b` call `f` because `::a` is on its path.}
+  }}
+  {head "Sharing variables" body {
+    p {`namespace upvar ns var local ...` links local names to variables in another namespace - the namespace equivalent of `upvar`. Use it sparingly: better for namespaces to expose procs than variables.}
+    code {namespace eval q {variable v 5}
+namespace eval q2 {
+    namespace upvar ::q v lv
+    set lv 9
+}
+puts $::q::v}
+    out {9}
+    p {Setting `lv` in `q2` changed `v` in `q`. `namespace delete` removes a namespace and everything in it; `namespace exists` tests for one.}
+  }}
+  {head "Ensembles with maps" body {
+    p {`namespace ensemble create` can **map** public subcommand names to internal commands, or **limit** which subcommands exist. Unknown subcommands produce a helpful error listing the valid ones.}
+    code {namespace eval e {
+    proc a {} {return A}
+    proc b {} {return B}
+    namespace export a b
+    namespace ensemble create -map {first a second b}
+}
+puts [e first]
+namespace eval e2 {
+    proc alpha {} {return 1}
+    proc beta {} {return 2}
+    namespace export *
+    namespace ensemble create -subcommands {alpha}
+}
+catch {e2 beta} m
+puts $m}
+    out {A
+unknown or ambiguous subcommand "beta": must be alpha}
+    tip {An ensemble is the idiomatic way to give a Tcl module an object-like interface (`stack push`, `dict get`) without OO machinery.}
+  }}
+}
+ex {
+  {kind predict code {namespace eval n {proc who {} {return n}}
+namespace eval m {namespace path ::n; proc call {} {who}}
+puts [m::call]} choices {n m {} who} ans 0 why {`::n` is on m's command path, so `who` resolves.}}
+  {kind predict code {namespace eval x {namespace eval y {}}
+puts [namespace children x]} choices {::x::y y x {}} ans 0 why {`namespace children` returns fully qualified names.}}
+  {kind predict code {namespace eval ::p::q {}
+puts [namespace parent ::p::q]} choices {::p p ::q {}} ans 0 why {The parent of `::p::q` is `::p`.}}
+  {kind predict code {namespace eval s {variable total 0}
+namespace eval t {namespace upvar ::s total tt; incr tt 5}
+puts $::s::total} choices {5 0 tt {}} ans 0 why {`tt` is a link to `::s::total`.}}
+  {kind predict code {namespace eval d {proc a {} {return 1}; namespace export a; namespace ensemble create -map {one a}}
+puts [d one]} choices {1 a {} one} ans 0 why {The map sends the public name `one` to command `a`.}}
+  {kind predict code {puts [namespace which -command string]} choices {::string string {} namespace} ans 0 why {Built-in commands live in the global namespace.}}
+  {kind mc q {What does `namespace path ::a` do?} choices {{Adds ::a to the command search path of the current namespace} {Changes the current directory} {Imports every command from ::a} {Creates ::a}} ans 0 why {Unqualified commands are also looked up in the path namespaces.}}
+  {kind mc q {What does a name starting with `::` mean?} choices {{It is absolute, resolved from the global namespace} {It is private} {It is a variable} {It is a comment}} ans 0 why {Without `::` the name is relative to the current namespace.}}
+  {kind type q {Which command links local variable names to variables in another namespace?} accept {namespace upvar} why {`namespace upvar ::ns var local`.}}
+  {kind code prompt {Create namespace **geom** with an ensemble providing subcommands **area** (width times height) and **perimeter**, so `geom area 3 4` is 12 and `geom perimeter 3 4` is 14.} starter {namespace eval geom {
+}} solution {namespace eval geom {
+    proc area {w h} {expr {$w * $h}}
+    proc perimeter {w h} {expr {2 * ($w + $h)}}
+    namespace export area perimeter
+    namespace ensemble create
+}} tests {{geom area 3 4} 12 {geom perimeter 3 4} 14} why {Exported procs become subcommands of the ensemble.}}
+  {kind code prompt {Write a proc **nsdepth** returning how many `::` levels a namespace name has below the global one: `nsdepth ::a::b::c` is 3, `nsdepth ::` is 0. (Work on the text - the namespaces need not exist.)} starter {proc nsdepth {ns} {
+    return 0
+}} solution {proc nsdepth {ns} {
+    set n 0
+    foreach part [split $ns :] {
+        if {$part ne ""} {incr n}
+    }
+    return $n
+}} tests {{nsdepth ::a::b::c} 3 {nsdepth ::} 0 {nsdepth ::x} 1} why {Splitting on the colon leaves empty pieces between the `::` pairs; count only the real names.}}
+}
+cards {
+  {{What does `namespace path` do?} {Adds namespaces to the command search path so their commands can be used unqualified.}}
+  {{How do you share a variable across namespaces?} {`namespace upvar ::other var local` (or just qualify the name).}}
+  {{How can an ensemble hide or rename subcommands?} {`namespace ensemble create -map {public internal}` or `-subcommands {list}`.}}
+}
+}
+
+content::lesson 15.5 15 "Interpreters in depth" "Limits, hidden commands, aliases and bridging two interpreters." {
+pages {
+  {head "Limits and hidden commands" body {
+    p {A child interpreter can be **limited** (commands, time, recursion depth) and have commands **hidden**: a hidden command is invisible to scripts in the child but the parent can still call it with `invokehidden`. This is how a safe interpreter keeps dangerous commands out of reach.}
+    code {set i [interp create]
+$i limit command -value 100
+catch {$i eval {for {set k 0} {$k < 1000} {incr k} {}}} m
+puts $m
+set j [interp create]
+$j hide puts
+catch {$j eval {puts x}} m
+puts $m
+$j hide expr
+puts [$j invokehidden expr 1+2]}
+    out {command count limit exceeded
+invalid command name "puts"
+3}
+    p {Limits turn "an endless loop" from a hang into an ordinary error you can catch.}
+  }}
+  {head "Aliases and sharing" body {
+    p {An **alias** makes a command in the child that runs a command in the parent. Procs defined in a child run only in the child. `interp issafe` tells you whether an interpreter is safe.}
+    code {set i [interp create]
+$i eval {proc f {} {return in-child}}
+puts [$i eval f]
+interp alias $i hello {} string toupper
+puts [$i eval {hello abc}]
+puts [interp issafe [interp create -safe]]}
+    out {in-child
+ABC
+1}
+    p {Channels can be **shared** (`interp share`) or **transferred** (`interp transfer`) between interpreters; transferring moves ownership so only one interpreter can use the channel.}
+  }}
+  {head "A resource-limited evaluator" body {
+    p {Combining safe interpreters, limits and aliases gives a miniature **sandbox** - exactly the technique this app uses to run your code in the Playground.}
+    code {proc run {script} {
+    set i [interp create -safe]
+    $i limit command -value 5000
+    set r [catch {$i eval $script} out]
+    interp delete $i
+    return [list $r $out]
+}
+puts [run {expr {6 * 7}}]
+puts [run {while 1 {set x 1}}]}
+    out {0 42
+1 {command count limit exceeded}}
+    tip {Always `interp delete` an interpreter when finished; it frees everything inside it.}
+  }}
+}
+ex {
+  {kind predict code {set i [interp create]
+$i eval {set v 5}
+puts [info exists v]} choices {0 1 5 {}} ans 0 why {The variable lives in the child only.}}
+  {kind predict code {set i [interp create]
+interp alias $i up {} string toupper
+puts [$i eval {up hello}]} choices {HELLO hello up {}} ans 0 why {The alias runs `string toupper` in the parent.}}
+  {kind predict code {puts [interp issafe [interp create]]} choices {0 1 safe {}} ans 0 why {A plain interpreter is not safe.}}
+  {kind predict code {set i [interp create]
+$i limit command -value 50
+puts [catch {$i eval {while 1 {}}}]} choices {1 0 50 {}} ans 0 why {The command-count limit raises an error.}}
+  {kind predict code {set i [interp create]
+$i hide expr
+puts [catch {$i eval {expr 1}}]} choices {1 0 expr {}} ans 0 why {Scripts in the child cannot see a hidden command.}}
+  {kind mc q {What does `interp hide` do?} choices {{Makes a command invisible to the child, but callable by the parent with `invokehidden`} {Deletes the command forever} {Renames it} {Locks the interpreter}} ans 0 why {Hidden commands are how safe interpreters hold back dangerous features.}}
+  {kind mc q {Why set a command limit on a sandboxed interpreter?} choices {{So endless loops become catchable errors} {To make code faster} {To save memory} {To block variables}} ans 0 why {A limit turns a hang into an error.}}
+  {kind type q {Which command makes a command in a child run a command in its parent?} accept {interp alias} why {`interp alias child name {} parentCmd`.}}
+  {kind code prompt {Write a proc **calc** that evaluates an expression in a fresh safe interpreter with a 1000-command limit, returning the result or the text **error** if anything goes wrong.} starter {proc calc {expr} {
+    return error
+}} solution {proc calc {expr} {
+    set i [interp create -safe]
+    $i limit command -value 1000
+    if {[catch {$i eval [list expr $expr]} r]} {set r error}
+    interp delete $i
+    return $r
+}} tests {{calc {6 * 7}} 42 {calc {1 +}} error} why {Run it isolated, catch problems, always delete the interpreter.}}
+  {kind code prompt {Write a proc **sandboxed** that runs a script in a safe interpreter with an alias **emit** that appends its argument to a result list in the parent; return that list. Example: `sandboxed {emit a; emit b}` gives `a b`.} starter {proc sandboxed {script} {
+    return {}
+}} solution {proc sandboxed {script} {
+    set ::emitted {}
+    set i [interp create -safe]
+    $i alias emit apply {{x} {lappend ::emitted $x}}
+    $i eval $script
+    interp delete $i
+    return $::emitted
+}} tests {{sandboxed {emit a; emit b}} {a b}} why {The alias is the controlled doorway from the child to the parent.}}
+}
+cards {
+  {{What does `interp limit` give you?} {A cap on commands, time or recursion, so runaway code becomes a catchable error.}}
+  {{What is a hidden command?} {A command removed from the child's view but still callable by the parent via `invokehidden`.}}
+  {{What is the recipe for a sandbox?} {Safe interpreter + limits + a few aliases for the abilities you grant.}}
+}
+}
+
+content::lesson 15.6 15 "Introspection, unknown and call stacks" "Asking Tcl about itself, and handling commands that do not exist." {
+pages {
+  {head "info: commands, procs and arguments" body {
+    p {`info` reveals the running program. For procs: `info args`, `info body`, `info default proc arg var` (returns 1 and stores the default if there is one). For frames: `info level` is the current depth and `info level -1` the caller.}
+    code {proc pf {a {b 2} args} {}
+puts [info args pf]
+puts [info default pf b v]
+puts $v
+proc lv {} {info level}
+puts [lv]
+proc outer {} {inner}
+proc inner {} {info level -1}
+puts [outer]
+puts [info commands s*ing]}
+    out {a b args
+1
+2
+1
+outer
+string}
+    p {`info commands pattern` lists commands matching a glob; `info procs`, `info vars`, `info exists` and `info script` complete the family.}
+  }}
+  {head "unknown: when a command is missing" body {
+    p {Whenever Tcl meets a command it cannot find, it calls the command **`unknown`** with the words. You can replace it to implement auto-loading, abbreviations or forwarding. (Tcl's own `unknown` auto-loads libraries and lets you abbreviate commands interactively.)}
+    code {rename unknown unknown_orig
+proc unknown {args} {
+    return "no such command: [lindex $args 0]"
+}
+puts [nosuchcmd 1 2]
+rename unknown {}
+rename unknown_orig unknown}
+    out {no such command: nosuchcmd}
+    warn {Always restore the original `unknown` (as above) or save it and call it for commands you do not handle, otherwise auto-loading of libraries stops working.}
+  }}
+  {head "Tracing commands" body {
+    p {`trace add command name rename|delete handler` tells you when a command is renamed or deleted, and `trace add execution` tells you when it runs. `trace info` lists the traces on an object.}
+    code {proc work {} {return done}
+set log {}
+trace add command work rename {apply {{old new op} {lappend ::log "$old->$new"}}}
+rename work labour
+puts $log
+puts [labour]}
+    out {::work->::labour
+done}
+    tip {Together with `uplevel`, `upvar` and `info frame` (a detailed record of each stack frame), introspection is how debuggers, profilers and test frameworks are built in Tcl itself.}
+  }}
+}
+ex {
+  {kind predict code {proc p {x y} {}
+puts [info args p]} choices {{x y} p {} 2} ans 0 why {`info args` lists parameter names.}}
+  {kind predict code {proc p {a {b 5}} {}
+puts [info default p b dv]
+puts $dv} choices {{1
+5} {0
+5} {5
+5} {1
+b}} ans 0 why {`info default` returns 1 when there is a default and stores it in the variable.}}
+  {kind predict code {proc a {} {b}
+proc b {} {info level -1}
+puts [a]} choices {a b {} 0} ans 0 why {`info level -1` is the command that called us.}}
+  {kind predict code {proc lv {} {info level}
+proc wrap {} {lv}
+puts "[lv] [wrap]"} choices {{1 2} {1 1} {2 2} {0 1}} ans 0 why {Called from the top level, `lv` is at level 1; through `wrap` it is at level 2.}}
+  {kind predict code {rename unknown unknown_orig
+proc unknown {args} {return "?[lindex $args 0]"}
+set r [foo]
+rename unknown {}
+rename unknown_orig unknown
+puts $r} choices {?foo foo {} unknown} ans 0 why {The custom `unknown` handled the missing command.}}
+  {kind mc q {When does Tcl call `unknown`?} choices {{When a command name cannot be found} {When a variable is missing} {When a script ends} {When memory is low}} ans 0 why {It is the hook for auto-loading and custom dispatch.}}
+  {kind mc q {Why restore the original `unknown` after replacing it?} choices {{Auto-loading of libraries depends on it} {Tcl will not run without it} {It speeds up programs} {It is only a convention for style}} ans 0 why {Package auto-loading goes through `unknown`.}}
+  {kind type q {Which command returns the call-stack depth?} accept {info level} why {`info level`.}}
+  {kind code prompt {Write a proc **callername** returning the name of the procedure that called it (use `info level`); called from the top level it returns **toplevel**.} starter {proc callername {} {
+    return toplevel
+}} solution {proc callername {} {
+    if {[info level] < 2} {return toplevel}
+    return [lindex [info level -1] 0]
+}} tests {{callername} toplevel {proc w {} {callername}; w} w} why {`info level -1` is the caller's command line; its first word is the name.}}
+  {kind code prompt {Write a proc **argcount** taking a proc name and returning how many parameters it declares (0 for none).} starter {proc argcount {name} {
+    return 0
+}} solution {proc argcount {name} {
+    return [llength [info args $name]]
+}} tests {{proc q {a b c} {}; argcount q} 3 {proc r {} {}; argcount r} 0} why {`info args` returns the list of parameter names.}}
+}
+cards {
+  {{Which `info` commands describe a proc?} {`info args`, `info body`, `info default proc arg var`.}}
+  {{What is `unknown`?} {The command Tcl calls when it cannot find a command - the hook for auto-loading and custom dispatch.}}
+  {{How do you find your caller?} {`info level -1` gives the caller's command line.}}
+  {{How do you notice a command being renamed or deleted?} {`trace add command name rename|delete handler`.}}
+}
+}
+
+content::lesson 15.7 15 "Files, directories and the operating system" "Create, copy, move and find files - and talk to the program's environment." {
+pages {
+  {head "The file command family" body {
+    p {`file` is a whole toolbox: `mkdir`, `copy`, `rename`, `delete`, `exists`, `isdirectory`, `size`, `normalize`, `split`, `join`, `tail`. `glob` finds files by pattern. Always build paths with `file join` so they work on every operating system.}
+    code {puts [file normalize /tmp/../tmp/./x]
+puts [file split /a/b/c.txt]
+file mkdir d1/d2
+puts [file isdirectory d1/d2]
+set f [open d1/a.txt w]
+puts $f hi
+close $f
+file copy d1/a.txt d1/b.txt
+puts [lsort [glob -tails -directory d1 *.txt]]
+file rename d1/b.txt d1/c.txt
+puts [lsort [glob -tails -directory d1 *]]
+puts [file size d1/a.txt]
+file delete -force d1
+puts [file exists d1]}
+    out {/tmp/x
+/ a b c.txt
+1
+a.txt b.txt
+a.txt c.txt d2
+3
+0}
+    p {`-tails` gives names without the directory; `-directory` is cleaner than gluing paths by hand; `-nocomplain` stops `glob` complaining when nothing matches.}
+  }}
+  {head "Arguments and environment" body {
+    p {A script started from the command line sees its arguments in `argv` (a list) and `argc` (the count); `argv0` is the script name. `env` is an array of environment variables, and `exit` ends the program with a status code. Here we set `argv` ourselves to practise:}
+    code {set ::argv {-v input.txt}
+set ::argc 2
+set opts {}
+set files {}
+foreach a $::argv {
+    if {[string match -* $a]} {
+        lappend opts $a
+    } else {
+        lappend files $a
+    }
+}
+puts "options: $opts"
+puts "files: $files"}
+    out {options: -v
+files: input.txt}
+    p {Real programs parse arguments like this (or with Tcllib's `cmdline`). Use a **non-zero exit code** for failure: `exit 1`, so shell scripts and build tools can react.}
+  }}
+  {head "Running other programs" body {
+    p {`exec` runs another program and returns its output; `open |command` connects to a running process through a channel. Errors are raised if the command writes to standard error or exits with a non-zero status.}
+    show {puts [exec date +%Y]
+set pipe [open "|sort" r+]
+puts $pipe "pear\napple"
+chan close $pipe write
+puts [read $pipe]
+close $pipe
+
+if {[catch {exec ls /nonexistent} err]} {
+    puts "failed: $err"
+}}
+    warn {Never build an `exec` command by pasting user input into a string. Pass arguments as separate words so the shell cannot reinterpret them, and validate them first. (This app's sandbox switches `exec` off entirely.)}
+  }}
+}
+ex {
+  {kind predict code {puts [file split /usr/local/bin]} choices {{/ usr local bin} {usr local bin} {/usr /local /bin} {/usr/local/bin}} ans 0 why {The root is its own element.}}
+  {kind predict code {puts [file normalize /a/b/../c]} choices {/a/c /a/b/c /c /a} ans 0 why {`..` removes the previous component.}}
+  {kind predict code {file mkdir t1/t2
+puts [file isdirectory t1/t2]
+file delete -force t1
+puts [file exists t1]} choices {{1
+0} {0
+0} {1
+1} {0
+1}} ans 0 why {Created, tested, deleted, no longer exists.}}
+  {kind predict code {set f [open "z.txt" w]; puts -nonewline $f hello; close $f
+puts [file size z.txt]} choices {5 6 0 hello} ans 0 why {Five bytes with no newline.}}
+  {kind predict code {foreach n {a.txt b.log c.txt} {close [open $n w]}
+puts [lsort [glob -nocomplain *.txt]]} choices {{a.txt c.txt} {a.txt b.log c.txt} {b.log} {}} ans 0 why {The glob pattern selects names ending in .txt.}}
+  {kind mc q {Why build paths with `file join` rather than string concatenation?} choices {{It uses the right separator on every operating system} {It is faster} {It checks that the file exists} {It is required by `open`}} ans 0 why {Windows uses backslashes, others slashes.}}
+  {kind mc q {What does a non-zero exit status signal?} choices {{That the program failed, so scripts and tools can react} {That it ran twice} {That it printed output} {That it used memory}} ans 0 why {Convention: 0 means success.}}
+  {kind type q {Which command returns a list of files matching a pattern?} accept {glob} why {`glob *.txt`.}}
+  {kind code prompt {Write a proc **parseargs** that takes an argument list and returns a dict with keys **options** (arguments starting with `-`) and **files** (the rest).} starter {proc parseargs {args} {
+    return {}
+}} solution {proc parseargs {args} {
+    set opts {}
+    set files {}
+    foreach a $args {
+        if {[string match -* $a]} {lappend opts $a} else {lappend files $a}
+    }
+    return [dict create options $opts files $files]
+}} tests {{parseargs -v a.txt -q b.txt} {options {-v -q} files {a.txt b.txt}} {parseargs} {options {} files {}}} why {Classify each argument by its first character.}}
+  {kind code prompt {Write a proc **copyfile** that copies a file to a new name and returns the size of the copy.} starter {proc copyfile {from to} {
+    return 0
+}} solution {proc copyfile {from to} {
+    file copy -force $from $to
+    return [file size $to]
+}} tests {{set f [open s.txt w]; puts -nonewline $f abcd; close $f; copyfile s.txt t.txt} 4} why {`file copy` then `file size`.}}
+  {kind code prompt {Write a proc **extcount** that takes a list of file names and returns a dict counting how many files have each extension (without the dot).} starter {proc extcount {names} {
+    return {}
+}} solution {proc extcount {names} {
+    set d {}
+    foreach n $names {dict incr d [string range [file extension $n] 1 end]}
+    return $d
+}} tests {{extcount {a.txt b.txt c.log}} {txt 2 log 1}} why {`file extension` includes the dot, so drop it.}}
+}
+cards {
+  {{Which `file` subcommands make, copy, move and remove things?} {`mkdir`, `copy`, `rename`, `delete` (use `-force` for non-empty directories).}}
+  {{What are argv, argc and argv0?} {The script's argument list, its length, and the script name.}}
+  {{How do you run another program?} {`exec cmd arg ...` or `open |cmd` for a pipe; pass arguments as separate words.}}
+  {{Why use `glob -directory dir`?} {It is clearer and safer than concatenating a directory and a pattern.}}
+}
+}
+
+content::lesson 15.8 15 "Unicode, encodings and translating your program" "Characters beyond ASCII, and message catalogs." {
+pages {
+  {head "Characters and code points" body {
+    p {Tcl strings hold Unicode characters. `format %c n` makes the character with code number n, and `scan $ch %c` returns a character's code. `string length` counts characters, not bytes. Because source files here must stay plain ASCII, we make special characters from their code numbers.}
+    code {set euro [format %c 8364]
+puts [string length $euro]
+puts [scan $euro %c]
+set e [format %c 233]
+puts [string length "caf$e"]
+puts [string length [encoding convertto utf-8 "caf$e"]]
+puts [regexp {^[[:alpha:]]+$} "caf$e"]}
+    out {1
+8364
+4
+5
+1}
+    p {The euro sign is one character (code 8364) though three bytes in UTF-8. Character classes such as `[[:alpha:]]` understand accented letters, and `string toupper`, `string tolower` and `string totitle` work on them too.}
+  }}
+  {head "Translating with msgcat" body {
+    p {Software for several languages never hard-codes messages. **msgcat** keeps a catalog of translations per **locale**; `msgcat::mc key` returns the text for the current locale, falling back to the key itself when there is no translation.}
+    code {package require msgcat
+msgcat::mclocale en
+msgcat::mcset en greeting Hello
+msgcat::mcset fr greeting Bonjour
+puts [msgcat::mc greeting]
+msgcat::mclocale fr
+puts [msgcat::mc greeting]
+puts [msgcat::mc unknownkey]
+msgcat::mcset en hi "Hi %s"
+msgcat::mclocale en
+puts [msgcat::mc hi Ann]}
+    out {Hello
+Bonjour
+unknownkey
+Hi Ann}
+    p {Extra arguments are inserted with `format`-style placeholders, so word order can differ per language. Real projects store catalogs in `.msg` files and load them with `msgcat::mcload`.}
+  }}
+  {head "Pitfalls" body {
+    p {- Do not assume one **byte** per character, or one **character** per screen position
+- Sorting and case-folding are language-dependent; `lsort -dictionary` is not a full locale-aware sort
+- Always set the encoding explicitly when reading and writing files and sockets (`-encoding utf-8`)
+- Use `format` with positional arguments (`%1$s`) when a translated sentence reorders its parts
+- Keep **user-visible text out of the logic**: pass it through `mc`}
+    tip {Even if you never translate your program, routing messages through one place (`mc`) makes wording changes and later translation easy.}
+  }}
+}
+ex {
+  {kind predict code {puts [string length [format %c 8364]]} choices {1 3 2 4} ans 0 why {One character, whatever its UTF-8 size.}}
+  {kind predict code {puts [scan A %c]} choices {65 A 97 1} ans 0 why {`%c` converts a character to its code.}}
+  {kind predict code {puts [format %c 66]} choices {B 66 b {}} ans 0 why {`%c` converts a code to a character.}}
+  {kind predict code {puts [string length [encoding convertto utf-8 [format %c 233]]]} choices {2 1 3 4} ans 0 why {An accented e takes two bytes in UTF-8.}}
+  {kind predict code {package require msgcat
+msgcat::mclocale en
+msgcat::mcset en bye Goodbye
+puts [msgcat::mc bye]} choices {Goodbye bye {} en} ans 0 why {The en catalog has an entry for `bye`.}}
+  {kind predict code {package require msgcat
+msgcat::mclocale en
+puts [msgcat::mc nothere]} choices {nothere {} en error} ans 0 why {Missing keys fall back to the key text.}}
+  {kind mc q {What is msgcat for?} choices {{Looking up translated messages by key for the current locale} {Concatenating strings} {Encoding files} {Sorting lists}} ans 0 why {It separates the words from the logic.}}
+  {kind mc q {Why is it risky to assume one byte per character?} choices {{Non-ASCII characters take several bytes in UTF-8} {Bytes are slower} {Tcl forbids it} {Characters are bigger on phones}} ans 0 why {Use character commands for text and `encoding` for bytes.}}
+  {kind type q {Which format specifier converts a number to the character with that code?} accept {%c} why {`format %c 65` gives A.}}
+  {kind code prompt {Write a proc **codes** that returns the list of Unicode code numbers of the characters of a string: `codes ABC` is `65 66 67`.} starter {proc codes {s} {
+    return {}
+}} solution {proc codes {s} {
+    set r {}
+    foreach c [split $s ""] {lappend r [scan $c %c]}
+    return $r
+}} tests {{codes ABC} {65 66 67} {codes ""} {}} why {Split into characters, convert each with `scan %c`.}}
+  {kind code prompt {Write a proc **shift** that moves each letter A-Z or a-z forward in the alphabet by n places (a Caesar cipher), leaving other characters alone: `shift abc 1` is `bcd`, `shift xyz 3` is `abc`.} starter {proc shift {s n} {
+    return $s
+}} solution {proc shift {s n} {
+    set out ""
+    foreach c [split $s ""] {
+        set k [scan $c %c]
+        if {$k >= 65 && $k <= 90} {
+            append out [format %c [expr {65 + ($k - 65 + $n) % 26}]]
+        } elseif {$k >= 97 && $k <= 122} {
+            append out [format %c [expr {97 + ($k - 97 + $n) % 26}]]
+        } else {
+            append out $c
+        }
+    }
+    return $out
+}} tests {{shift abc 1} bcd {shift xyz 3} abc {shift "Hi!" 1} {Ij!}} why {Map to 0-25, add n modulo 26, map back; keep other characters.}}
+}
+cards {
+  {{How do you convert between characters and code points?} {`format %c 65` gives A; `scan A %c` gives 65.}}
+  {{What does msgcat do?} {Looks up translated messages by key for the current locale: `msgcat::mc key`.}}
+  {{Why set encodings explicitly for files and sockets?} {Bytes and characters differ; defaults vary by platform.}}
+}
+}
+
+content::lesson 15.9 15 "Writing safe and robust Tcl" "Injection, validation and defence in depth." {
+pages {
+  {head "Injection: when data becomes code" body {
+    p {Because Tcl code is text, a program that builds code from outside data can be **tricked into running it**. The dangerous commands are `eval`, `expr` (unbraced), `subst`, `uplevel`, `exec`, `source`, and any `if`/`while` whose condition is a substituted string.}
+    code {set input {[puts HACKED]}
+puts [string is integer -strict $input]
+catch {expr $input} r
+puts "unbraced -> '$r'"
+catch {expr {$input}} r2
+puts "braced -> $r2"}
+    out {0
+HACKED
+unbraced -> ''
+braced -> [puts HACKED]}
+    p {The unbraced `expr` executed the hidden command. The braced one treated the value as plain data. The cure is simple: **brace your expressions and conditions**, and build commands with `list`.}
+  }}
+  {head "Validate, then trust" body {
+    p {Check external input against a **whitelist** of what is allowed before using it - never try to list everything that is forbidden. `string is`, anchored regular expressions and `in` do the job.}
+    code {puts [string is integer -strict "12; exit"]
+puts [regexp {^[a-z]{1,8}$} "valid"]
+puts [regexp {^[a-z]{1,8}$} "no spaces"]
+puts [expr {"png" in {png jpg gif}}]
+puts [file normalize [file join /srv/data ../etc/passwd]]
+puts [string match /srv/data/* [file normalize [file join /srv/data ../etc/passwd]]]}
+    out {0
+1
+0
+1
+/srv/etc/passwd
+0}
+    p {The last lines show **path traversal**: the name `../etc/passwd` escapes the data folder. Normalise first, then check the result still starts inside the allowed directory.}
+  }}
+  {head "Defence in depth" body {
+    p {Several layers, each cheap:}
+    p {- Run untrusted code in a **safe interpreter** with a command limit and a time limit
+- Give it only the abilities it needs, through **aliases**
+- Use the **least privilege**: files opened read-only, directories restricted
+- Handle errors without leaking internal details to users
+- **Log** unexpected input; it is often the first sign of an attack
+- Keep dependencies current and read what a package does before you trust it}
+    tip {Security is a habit, not a feature. The two habits that prevent most Tcl vulnerabilities: braces around every expression, and `list` for every command you assemble.}
+  }}
+}
+ex {
+  {kind predict code {puts [string is integer -strict "12; exit"]} choices {0 1 12 {}} ans 0 why {The text contains characters other than digits.}}
+  {kind predict code {puts [regexp {^[a-z]+$} "abc1"]} choices {0 1 abc {}} ans 0 why {The digit breaks the whitelist.}}
+  {kind predict code {puts [file normalize [file join /app/data ../x]]} choices {/app/x /app/data/x /x /app} ans 0 why {`..` climbs out of `data`.}}
+  {kind predict code {set v {[error boom]}
+puts [catch {expr {$v}}]} choices {0 1 boom {}} ans 0 why {Braced: the value is data, so nothing runs and no error is raised.}}
+  {kind mc q {What is the safest way to build a command from external values?} choices {{`list`, so each value stays one word} {String concatenation} {`format` with %s} {`subst`}} ans 0 why {`list` quotes values so they cannot change the command's shape.}}
+  {kind mc q {Why prefer a whitelist to a blacklist?} choices {{You define exactly what is allowed instead of guessing every bad input} {Whitelists are shorter} {Blacklists are slower} {Tcl needs whitelists}} ans 0 why {Attackers are creative; allow only what you know is safe.}}
+  {kind mc q {What is path traversal?} choices {{Using `..` in a name to escape the intended directory} {Walking a list} {Following a symbolic link} {Searching recursively}} ans 0 why {Normalise and check the prefix.}}
+  {kind type q {Which two commands are most commonly misused to run attacker-supplied text? (name one)} accept {eval expr subst uplevel exec source} why {Any command that evaluates strings as code needs care.}}
+  {kind code prompt {Write a proc **safename** returning 1 only if its argument is 1 to 12 characters of letters, digits and underscore, else 0.} starter {proc safename {s} {
+    return 1
+}} solution {proc safename {s} {
+    return [regexp {^\w{1,12}$} $s]
+}} tests {{safename user_1} 1 {safename "a b"} 0 {safename ""} 0 {safename abcdefghijklm} 0} why {An anchored whitelist pattern.}}
+  {kind code prompt {Write a proc **insidedir** returning 1 if a path, after normalising, is inside the given directory, else 0. `insidedir /srv/data a/b.txt` is 1; `insidedir /srv/data ../x` is 0.} starter {proc insidedir {dir path} {
+    return 1
+}} solution {proc insidedir {dir path} {
+    set full [file normalize [file join $dir $path]]
+    set base [file normalize $dir]
+    return [expr {[string first "$base/" $full] == 0}]
+}} tests {{insidedir /srv/data a/b.txt} 1 {insidedir /srv/data ../x} 0} why {Normalise both, then check that the full path starts with the directory plus a slash.}}
+}
+cards {
+  {{When does data become code in Tcl?} {When it reaches eval, unbraced expr/if/while conditions, subst, uplevel, exec or source.}}
+  {{What are the two habits that prevent most injection bugs?} {Brace every expression, and build commands with `list`.}}
+  {{How do you defend against path traversal?} {Normalise the path, then check it still lies inside the allowed directory.}}
+  {{What is defence in depth?} {Layers: validation, safe interpreters with limits, least privilege, logging.}}
+}
+}
+
+content::lesson 15.10 15 "Functional programming in Tcl" "Map, filter, reduce, composition and pipelines." {
+pages {
+  {head "Map, filter and reduce" body {
+    p {Tcl has no special syntax for functional style, but `lmap`, `apply` and command prefixes give you all of it. **Map** transforms every item; **filter** keeps some; **reduce** (fold) combines all into one value.}
+    code {proc map {f l} {lmap x $l {{*}$f $x}}
+proc filter {f l} {lmap x $l {if {[{*}$f $x]} {set x} else continue}}
+proc reduce {f init l} {
+    set acc $init
+    foreach x $l {set acc [{*}$f $acc $x]}
+    return $acc
+}
+set sq {apply {{x} {expr {$x * $x}}}}
+set even {apply {{x} {expr {$x % 2 == 0}}}}
+set add {apply {{a b} {expr {$a + $b}}}}
+puts [map $sq {1 2 3 4}]
+puts [filter $even {1 2 3 4 5 6}]
+puts [reduce $add 0 {1 2 3 4}]
+puts [lmap x {1 2 3 4} {if {$x % 2} {expr {$x * 10}} else continue}]}
+    out {1 4 9 16
+2 4 6
+10
+10 30}
+    p {The last line shows how `lmap` with `continue` is itself a map-and-filter in one step.}
+  }}
+  {head "Composition and partial application" body {
+    p {**Composition** chains functions: `compose f g` applies g then f. **Partial application** fixes some arguments in advance. Both are just list-building, because a command prefix is a list.}
+    code {proc compose {f g} {
+    list apply [list x [format {%s [%s $x]} $f $g]]
+}
+set shout [compose {string toupper} {string reverse}]
+puts [{*}$shout abc]
+proc partial {cmd args} {list {*}$cmd {*}$args}
+set add10 [partial {::tcl::mathop::+} 10]
+puts [{*}$add10 5]}
+    out {CBA
+15}
+    p {`compose` returns a lambda as a value. Because functions are values, you can store them in lists and dicts and pass them around freely.}
+  }}
+  {head "Pipelines and immutability" body {
+    p {Code that returns **new values** instead of changing variables is easy to reason about and test. Chaining transformations reads like a recipe:}
+    code {set words {the quick brown fox jumps over the lazy dog}
+set result [lsort -unique [lmap w $words {
+    if {[string length $w] > 3} {string toupper $w} else continue
+}]]
+puts $result}
+    out {BROWN JUMPS LAZY OVER QUICK}
+    tip {Tcl values are immutable under the hood (copy-on-write), which is why returning a modified copy is cheap. Prefer small pure procs that take values and return values; reserve mutation for where it clearly helps.}
+  }}
+}
+ex {
+  {kind predict code {puts [lmap x {1 2 3} {expr {$x + 1}}]} choices {{2 3 4} {1 2 3} {2 4 6} {3}} ans 0 why {`lmap` collects each result.}}
+  {kind predict code {puts [lmap x {1 2 3 4} {if {$x > 2} {set x} else continue}]} choices {{3 4} {1 2} {1 2 3 4} {}} ans 0 why {`continue` drops items.}}
+  {kind predict code {set add {apply {{a b} {expr {$a + $b}}}}
+set acc 0
+foreach x {1 2 3} {set acc [{*}$add $acc $x]}
+puts $acc} choices {6 3 0 123} ans 0 why {A fold: 0+1+2+3.}}
+  {kind predict code {set f [list string repeat ab]
+puts [{*}$f 3]} choices {ababab {ab 3} 3 ab} ans 0 why {A command prefix plus the final argument.}}
+  {kind predict code {proc compose {f g} {list apply [list x [format {%s [%s $x]} $f $g]]}
+puts [{*}[compose {string length} {string trim}] "  hi  "]} choices {2 6 4 0} ans 0 why {Trim first, then take the length.}}
+  {kind mc q {What is a **reduce** (fold)?} choices {{Combining all items of a list into one value, step by step} {Removing duplicates} {Sorting} {Splitting text}} ans 0 why {Sum, product, maximum and join are all folds.}}
+  {kind mc q {Why are pure functions easy to test?} choices {{Same input always gives the same output, with no hidden state} {They run faster} {They need no arguments} {They cannot fail}} ans 0 why {No setup or cleanup is needed.}}
+  {kind type q {Which command builds a new list by applying code to each item?} accept {lmap} why {`lmap`.}}
+  {kind code prompt {Write a proc **count** taking a command prefix (a predicate) and a list, and returning how many items satisfy it.} starter {proc count {pred l} {
+    return 0
+}} solution {proc count {pred l} {
+    set n 0
+    foreach x $l {
+        if {[{*}$pred $x]} {incr n}
+    }
+    return $n
+}} tests {{count {apply {{x} {expr {$x > 2}}}} {1 2 3 4 5}} 3 {count {string is integer} {1 a 2 b}} 2} why {Call the predicate for each item.}}
+  {kind code prompt {Write a proc **pipeline** taking a value and a list of command prefixes, applying each in turn (the result of one is the last argument of the next).} starter {proc pipeline {value fs} {
+    return $value
+}} solution {proc pipeline {value fs} {
+    foreach f $fs {set value [{*}$f $value]}
+    return $value
+}} tests {{pipeline "  Hi " {{string trim} {string toupper} {string reverse}}} IH} why {Each step feeds the next.}}
+  {kind code prompt {Write a proc **groupby** taking a command prefix and a list, returning a dict from each result of the prefix to the list of items producing it (items in original order).} starter {proc groupby {f l} {
+    return {}
+}} solution {proc groupby {f l} {
+    set d {}
+    foreach x $l {dict lappend d [{*}$f $x] $x}
+    return $d
+}} tests {{groupby {string length} {a bb c dd eee}} {1 {a c} 2 {bb dd} 3 eee}} why {`dict lappend` builds each group.}}
+}
+cards {
+  {{What are map, filter and reduce?} {Transform each item, keep some items, combine all items into one value.}}
+  {{How do you write a lambda in Tcl?} {`apply {{args} {body}}`, or store `{args} {body}` in a variable and `apply $f ...`.}}
+  {{What is composition?} {Building a function that applies g then f; in Tcl just list building: `list apply [list x ...]`.}}
+  {{Why prefer returning values over mutating?} {Pure code is easier to reason about, test and reuse; Tcl's copy-on-write keeps it cheap.}}
+}
+}
+
+content::lesson 15.11 15 "Tk: text, lists, trees and images" "The widgets for editors, tables and pictures." {
+pages {
+  {head "The text widget" body {
+    p {`text` is a full rich-text editor: positions are `line.char` (`1.0` is the start, `end` the end), and **tags** style ranges. It is what powers the code boxes in this very app.}
+    show {text .t -width 50 -height 10 -wrap word
+pack .t -fill both -expand 1
+.t insert end "Hello, Tk!\nSecond line\n"
+.t tag configure big -font {Helvetica 16 bold} -foreground blue
+.t tag add big 1.0 1.5
+puts [.t get 1.0 end]            ;# all text
+puts [.t index end]              ;# 3.0
+.t delete 1.0 1.5
+.t search -nocase second 1.0     ;# position of a match
+.t see end}
+    p {`insert`, `delete`, `get`, `search`, `tag add/remove/configure/bind`, `mark set`, `edit undo` and embedded windows or images make the widget extremely versatile.}
+  }}
+  {head "Listbox, scrollbars and trees" body {
+    p {`listbox` shows a scrolling list; `ttk::treeview` shows hierarchical or tabular data. Scrollbars connect to a widget by **two commands**: the widget calls the scrollbar's `set`, the scrollbar calls the widget's `yview`.}
+    show {listbox .lb -yscrollcommand {.sb set} -height 6
+scrollbar .sb -command {.lb yview}
+pack .sb -side right -fill y
+pack .lb -side left -fill both -expand 1
+foreach item {red green blue} {.lb insert end $item}
+bind .lb <<ListboxSelect>> {puts [.lb get [.lb curselection]]}
+
+ttk::treeview .tv -columns {size} -show {tree headings}
+.tv heading #0 -text Name
+.tv heading size -text Size
+set dir [.tv insert {} end -text docs]
+.tv insert $dir end -text a.txt -values {12}}
+    tip {The pairing `-yscrollcommand {.sb set}` plus `-command {.lb yview}` is the same pattern for every scrollable widget. This app uses its own touch-friendly version because phones have no scrollbars.}
+  }}
+  {head "Images and fonts" body {
+    p {`image create photo` loads or builds bitmaps; widgets display them with `-image`. You can create pixels from data, scale with `copy -zoom`, and even generate PNG bytes yourself. `font create` defines named fonts that update everywhere when changed.}
+    show {image create photo logo -file logo.png
+label .l -image logo
+pack .l
+
+image create photo mini
+mini copy logo -subsample 2     ;# half size
+mini put #ff0000 -to 0 0 10 10  ;# a red square
+
+font create title -family Helvetica -size 20 -weight bold
+label .t -text "Hi" -font title
+font configure title -size 28   ;# every user changes at once}
+    p {This app draws its smooth icons by computing pixel coverage in Tcl, packing it into a PNG with `zlib compress` and `binary format`, and loading it with `image create photo -data`. You have now met every ingredient of that code.}
+  }}
+}
+ex {
+  {kind mc q {In a text widget, what does the index `1.0` mean?} choices {{Line 1, character 0: the very start} {Line 0, character 1} {The first word} {The whole text}} ans 0 why {Indices are `line.char`, with lines counted from 1 and characters from 0.}}
+  {kind mc q {What do tags do in a text widget?} choices {{Style or attach behaviour to ranges of text} {Create new lines} {Save the file} {Resize the widget}} ans 0 why {`tag configure` and `tag bind` apply to ranges.}}
+  {kind mc q {How are a listbox and a scrollbar connected?} choices {{Each calls the other: `-yscrollcommand {sb set}` and `-command {lb yview}`} {By packing them together} {They connect automatically} {Through a variable}} ans 0 why {Two commands, one in each direction.}}
+  {kind mc q {Which widget shows hierarchical data with columns?} choices {ttk::treeview listbox label canvas} ans 0 why {The themed treeview.}}
+  {kind mc q {What does `image create photo -data` accept?} choices {{Image data such as PNG bytes or base64} {Only a file name} {A canvas} {A widget path}} ans 0 why {This is how generated images are loaded from memory.}}
+  {kind mc q {Why use named fonts (`font create`)?} choices {{Changing the font once updates every widget that uses it} {They are faster} {They support colours} {Widgets require them}} ans 0 why {Named fonts are shared objects.}}
+  {kind type q {Which text-widget subcommand puts text into it?} accept {insert} why {`.t insert end "text"`.}}
+  {kind type q {Which widget command creates a bitmap image object?} accept {image create photo image} why {`image create photo name`.}}
+}
+cards {
+  {{How are text-widget positions written?} {`line.char`, e.g. `1.0` start, `end` the end, `2.5 + 3 chars` arithmetic.}}
+  {{How do you connect a scrollbar?} {`-yscrollcommand {sb set}` on the widget and `-command {widget yview}` on the scrollbar.}}
+  {{How do you display a picture?} {`image create photo name -file f.png`, then `label .l -image name`.}}
+}
+}
+
+content::lesson 15.12 15 "Tk: a complete small application" "From window to working app, step by step." {
+pages {
+  {head "The plan" body {
+    p {Let us assemble what you know into one application: a **notes app** with a list of notes on the left, an editor on the right, and buttons to add and delete. The design rules from the app-structure lesson apply: **data in a dict**, widgets as a view, one procedure to refresh the view.}
+    show {package require Tk
+set ::notes {}           ;# dict: id -> text
+set ::next 1
+set ::sel ""
+
+proc addNote {} {
+    dict set ::notes $::next "New note"
+    incr ::next
+    refresh
+}
+proc deleteNote {} {
+    if {$::sel ne ""} {
+        set ::notes [dict remove $::notes $::sel]
+        set ::sel ""
+        refresh
+    }
+}}
+    p {The model is three variables and two procs; neither mentions a widget. That means they can be tested on their own.}
+  }}
+  {head "The view" body {
+    p {The view is built once; `refresh` redraws it from the data. Selecting a note loads it into the editor; editing writes back.}
+    show {ttk::frame .left
+listbox .lb -exportselection 0
+ttk::button .add -text Add -command addNote
+ttk::button .del -text Delete -command deleteNote
+pack .add .del -in .left -side top -fill x
+pack .lb -in .left -fill both -expand 1
+
+text .ed -width 40 -height 15
+grid .left .ed -sticky nsew
+grid columnconfigure . 1 -weight 1
+grid rowconfigure . 0 -weight 1
+
+proc refresh {} {
+    .lb delete 0 end
+    dict for {id text} $::notes {
+        .lb insert end "$id: [string range $text 0 20]"
+    }
+}}
+    p {`-exportselection 0` stops the listbox from fighting the text widget over the system selection. `grid` with weights makes the editor stretch.}
+  }}
+  {head "Events, saving and polish" body {
+    p {Wire the widgets to the model with bindings, then persist the data (a dict is already a string, so saving is one `puts`):}
+    show {bind .lb <<ListboxSelect>> {
+    set i [.lb curselection]
+    if {$i ne ""} {
+        set ::sel [lindex [dict keys $::notes] $i]
+        .ed delete 1.0 end
+        .ed insert 1.0 [dict get $::notes $::sel]
+    }
+}
+bind .ed <KeyRelease> {
+    if {$::sel ne ""} {
+        dict set ::notes $::sel [.ed get 1.0 {end - 1 char}]
+        refresh
+    }
+}
+proc save {} {
+    set f [open notes.tcl w]
+    puts $f [list set ::notes $::notes]
+    close $f
+}
+wm protocol . WM_DELETE_WINDOW {save; exit}}
+    p {Saving a dict as `set ::notes {...}` means loading is just `source notes.tcl`. From here you could add search, tags, a menu and keyboard shortcuts - each a small extension of the same structure.}
+    tip {Notice what carried you here: dicts, procs, `foreach`, `list` quoting, files, bindings. Tk needed only a handful of new commands because the rest of the language is already the toolkit.}
+  }}
+}
+ex {
+  {kind mc q {In the notes app, where does the data live?} choices {{In a dict variable, separate from the widgets} {Inside the listbox} {In the text widget only} {In the window title}} ans 0 why {Model and view are separate.}}
+  {kind mc q {What does the `refresh` proc do?} choices {{Redraws the list from the data} {Saves the file} {Deletes notes} {Resizes the window}} ans 0 why {One procedure turns data into widgets.}}
+  {kind mc q {Why is saving the notes so easy?} choices {{A dict is a string, so `puts` can write it and `source` can load it} {Tk saves automatically} {The listbox stores it} {Files are not needed}} ans 0 why {Tcl values are strings.}}
+  {kind mc q {What does `grid columnconfigure . 1 -weight 1` accomplish here?} choices {{The editor column stretches when the window grows} {It hides the list} {It sets the editor's width to 1} {It deletes column 1}} ans 0 why {Weights decide which columns take spare space.}}
+  {kind mc q {Why bind `<<ListboxSelect>>` rather than `<Button-1>`?} choices {{It fires when the selection really changes, including from the keyboard} {It is faster} {Button-1 is not allowed} {It selects automatically}} ans 0 why {Virtual events describe meaning, not a particular input.}}
+  {kind mc q {What does `wm protocol . WM_DELETE_WINDOW {save; exit}` do?} choices {{Saves before the window closes} {Prevents closing} {Hides the window} {Deletes the file}} ans 0 why {It intercepts the close button.}}
+  {kind type q {Which Tk command arranges widgets in rows and columns?} accept {grid} why {`grid`.}}
+  {kind type q {Which option stops a listbox exporting its selection to the system?} accept {-exportselection} why {`-exportselection 0`.}}
+}
+cards {
+  {{What is the structure of a small Tk app?} {Data in plain variables or a dict, widgets as a view, a `refresh` proc, bindings that update the data and call refresh.}}
+  {{How can you persist a dict simply?} {`puts $f [list set ::data $::data]`, and later `source` the file.}}
+  {{Why use virtual events like <<ListboxSelect>>?} {They fire on the meaning (selection changed) however it happened.}}
+}
+}
+} content/u16.tcl {content::unit 16 "Algorithms and data structures" "The classic building blocks, implemented in idiomatic Tcl." "#14B8A6"
+
+content::lesson 16.1 16 "Stacks, queues and sets" "Three fundamental structures built from lists and dicts." {
+pages {
+  {head "Stacks and queues" body {
+    p {A **stack** is last-in, first-out: push and pop at the end of a list. A **queue** is first-in, first-out: add at the end, remove from the front. In Tcl both are just lists, and `lappend`, `lindex` and `lrange` are fast.}
+    code {set stack {}
+lappend stack a
+lappend stack b
+lappend stack c
+puts [lindex $stack end]
+set stack [lrange $stack 0 end-1]
+puts $stack
+set q {}
+lappend q x y z
+set front [lindex $q 0]
+set q [lrange $q 1 end]
+puts "$front $q"}
+    out {c
+a b
+x y z}
+    p {Popping the top of the stack gave `c`, leaving `a b`. Taking the front of the queue gave `x`, leaving `y z`. Stacks power undo, parsing and recursion; queues power scheduling and breadth-first search.}
+  }}
+  {head "Sets with dicts" body {
+    p {A **set** holds distinct items with fast membership tests. A dict whose values do not matter is a perfect set: keys are unique and `dict exists` is quick.}
+    code {proc toset {l} {
+    set s {}
+    foreach x $l {dict set s $x 1}
+    return $s
+}
+proc inter {a b} {
+    set r {}
+    dict for {k v} $a {
+        if {[dict exists $b $k]} {lappend r $k}
+    }
+    return $r
+}
+proc union {a b} {dict keys [dict merge $a $b]}
+set a [toset {1 2 3 4}]
+set b [toset {3 4 5}]
+puts [inter $a $b]
+puts [union $a $b]
+puts [dict exists $a 2]}
+    out {3 4
+1 2 3 4 5
+1}
+    p {For tiny lists, `lsearch` or the `in` operator is fine. For large collections searched repeatedly, convert to a dict once: each test is then constant time instead of scanning.}
+  }}
+  {head "Sorted insertion and how fast is it?" body {
+    p {`lsearch -bisect` does a **binary search** on a sorted list and returns the position of the last item that is not greater than the value. That makes it easy to keep a list sorted as you insert, which is a simple priority queue.}
+    code {set pq {}
+foreach x {5 1 4 2 3} {
+    set i [expr {[lsearch -bisect -integer $pq $x] + 1}]
+    set pq [linsert $pq $i $x]
+}
+puts $pq}
+    out {1 2 3 4 5}
+    p {Computer scientists describe cost with **Big-O**: appending to a list or reading by index is O(1); `lsearch` on an unsorted list is O(n) (grows with the length); a dict lookup is about O(1); a binary search is O(log n).}
+    tip {Choose the structure by the operation you do most: lookups by key want a dict, ordered traversal wants a sorted list, "latest first" wants a stack, "oldest first" wants a queue.}
+  }}
+}
+ex {
+  {kind predict code {set s {}
+lappend s 1 2 3
+set s [lrange $s 0 end-1]
+puts $s} choices {{1 2} {2 3} {1 2 3} {3}} ans 0 why {Popping the last item.}}
+  {kind predict code {set q {a b c}
+set q [lrange $q 1 end]
+puts $q} choices {{b c} {a b} {c} {a c}} ans 0 why {Removing the front item.}}
+  {kind predict code {set s {}
+foreach x {a b a c b} {dict set s $x 1}
+puts [dict size $s]} choices {3 5 2 1} ans 0 why {A dict keeps each key once.}}
+  {kind predict code {set pq {}
+foreach x {3 1 2} {
+    set i [expr {[lsearch -bisect -integer $pq $x] + 1}]
+    set pq [linsert $pq $i $x]
+}
+puts $pq} choices {{1 2 3} {3 1 2} {3 2 1} {1 3 2}} ans 0 why {Each value is inserted in sorted position.}}
+  {kind predict code {puts [lsearch -bisect -integer {1 3 5 7} 4]} choices {1 2 0 -1} ans 0 why {The last item not greater than 4 is 3, at index 1.}}
+  {kind mc q {Which structure undoes the most recent action first?} choices {stack queue set dict} ans 0 why {Last in, first out.}}
+  {kind mc q {Why convert a big list to a dict before many membership tests?} choices {{A dict lookup does not scan the whole collection} {Dicts are smaller} {Lists cannot be searched} {It sorts the data}} ans 0 why {O(1) versus O(n) per test.}}
+  {kind mc q {What is the cost of `lsearch` on an unsorted list of n items?} choices {{O(n)} {O(1)} {O(log n)} {O(n squared)}} ans 0 why {It may have to look at every item.}}
+  {kind code prompt {Write a proc **balanced** returning 1 if the brackets `( ) [ ] { }` in a string are properly nested and closed, else 0 (use a stack). Other characters are ignored.} starter {proc balanced {s} {
+    return 1
+}} solution {proc balanced {s} {
+    set pairs {) ( ] [ \} \{}
+    set stack {}
+    foreach c [split $s ""] {
+        if {$c in {( [ \{}} {
+            lappend stack $c
+        } elseif {[dict exists $pairs $c]} {
+            if {[llength $stack] == 0 || [lindex $stack end] ne [dict get $pairs $c]} {return 0}
+            set stack [lrange $stack 0 end-1]
+        }
+    }
+    return [expr {[llength $stack] == 0}]
+}} tests {{balanced {(a[b]{c})}} 1 {balanced {(]}} 0 {balanced {((}} 0 {balanced {}} 1} why {Push openers; each closer must match the top of the stack.}}
+  {kind code prompt {Write a proc **uniq** that removes duplicates from a list but keeps the **first-seen order** (use a dict as a set).} starter {proc uniq {l} {
+    return $l
+}} solution {proc uniq {l} {
+    set seen {}
+    set r {}
+    foreach x $l {
+        if {![dict exists $seen $x]} {
+            dict set seen $x 1
+            lappend r $x
+        }
+    }
+    return $r
+}} tests {{uniq {b a b c a}} {b a c} {uniq {}} {}} why {`lsort -unique` would reorder; the set keeps order while testing membership fast.}}
+  {kind code prompt {Write a proc **intersect** returning the items common to two lists, in the order of the first, without duplicates.} starter {proc intersect {a b} {
+    return {}
+}} solution {proc intersect {a b} {
+    set inb {}
+    foreach x $b {dict set inb $x 1}
+    set seen {}
+    set r {}
+    foreach x $a {
+        if {[dict exists $inb $x] && ![dict exists $seen $x]} {
+            dict set seen $x 1
+            lappend r $x
+        }
+    }
+    return $r
+}} tests {{intersect {a b c b} {b c d}} {b c} {intersect {x} {y}} {}} why {Put one list into a set for fast lookup, then scan the other.}}
+  {kind code prompt {Write a proc **rotate** that moves the first item of a list to the end, n times: `rotate {a b c d} 1` is `b c d a`.} starter {proc rotate {l n} {
+    return $l
+}} solution {proc rotate {l n} {
+    set len [llength $l]
+    if {$len == 0} {return $l}
+    set n [expr {$n % $len}]
+    return [concat [lrange $l $n end] [lrange $l 0 [expr {$n - 1}]]]
+}} tests {{rotate {a b c d} 1} {b c d a} {rotate {a b c d} 5} {b c d a} {rotate {} 3} {}} why {Split at position n and swap the two halves; use modulo for large n.}}
+}
+cards {
+  {{What are a stack and a queue?} {Stack: last in, first out (push/pop at the end). Queue: first in, first out (add at the end, remove from the front).}}
+  {{How do you make a set in Tcl?} {A dict with keys as members: `dict set s $x 1`; test with `dict exists`.}}
+  {{What does `lsearch -bisect` do?} {Binary search in a sorted list: the index of the last item not greater than the value.}}
+  {{What does O(n) mean?} {The cost grows in proportion to the number of items.}}
+}
+}
+
+content::lesson 16.2 16 "Searching and sorting" "Binary search and the classic sorting algorithms." {
+pages {
+  {head "Binary search" body {
+    p {A **linear search** checks every item. If the list is **sorted** you can do far better: look at the middle; if the target is smaller, search the left half; otherwise the right half. Each step halves the problem, so a million items need only about 20 steps.}
+    code {proc binsearch {l target} {
+    set lo 0
+    set hi [expr {[llength $l] - 1}]
+    while {$lo <= $hi} {
+        set mid [expr {($lo + $hi) / 2}]
+        set v [lindex $l $mid]
+        if {$v == $target} {
+            return $mid
+        } elseif {$v < $target} {
+            set lo [expr {$mid + 1}]
+        } else {
+            set hi [expr {$mid - 1}]
+        }
+    }
+    return -1
+}
+puts [binsearch {1 3 5 7 9 11} 7]
+puts [binsearch {1 3 5 7 9 11} 4]}
+    out {3
+-1}
+    p {The interval `lo .. hi` always contains the target if it is present. When it becomes empty, the target is not there.}
+  }}
+  {head "Simple sorts" body {
+    p {**Insertion sort** builds a sorted prefix by sliding each new item into place. It is simple and fast for short or nearly-sorted lists, but O(n squared) in general. (You will almost never write your own - `lsort` is fast and stable - but implementing sorts teaches how algorithms work.)}
+    code {proc insertion {l} {
+    set r {}
+    foreach x $l {
+        set i [llength $r]
+        while {$i > 0 && [lindex $r [expr {$i - 1}]] > $x} {incr i -1}
+        set r [linsert $r $i $x]
+    }
+    return $r
+}
+puts [insertion {5 2 9 1 5 6}]}
+    out {1 2 5 5 6 9}
+    p {Each item is inserted at the position where everything before it is not larger.}
+  }}
+  {head "Divide and conquer" body {
+    p {**Merge sort** splits the list in half, sorts each half recursively, then merges the two sorted halves. It is O(n log n). **Quicksort** picks a pivot and partitions the rest into smaller and larger parts.}
+    code {proc mergesort {l} {
+    if {[llength $l] <= 1} {return $l}
+    set mid [expr {[llength $l] / 2}]
+    set a [mergesort [lrange $l 0 [expr {$mid - 1}]]]
+    set b [mergesort [lrange $l $mid end]]
+    set r {}
+    while {[llength $a] && [llength $b]} {
+        if {[lindex $a 0] <= [lindex $b 0]} {
+            lappend r [lindex $a 0]; set a [lrange $a 1 end]
+        } else {
+            lappend r [lindex $b 0]; set b [lrange $b 1 end]
+        }
+    }
+    return [concat $r $a $b]
+}
+proc quicksort {l} {
+    if {[llength $l] <= 1} {return $l}
+    set p [lindex $l 0]
+    set rest [lrange $l 1 end]
+    set small [lmap x $rest {if {$x < $p} {set x} else continue}]
+    set big [lmap x $rest {if {$x >= $p} {set x} else continue}]
+    return [concat [quicksort $small] $p [quicksort $big]]
+}
+puts [mergesort {5 2 9 1 5 6}]
+puts [quicksort {5 2 9 1 5 6}]}
+    out {1 2 5 5 6 9
+1 2 5 5 6 9}
+    tip {Both rely on recursion with a base case (a list of 0 or 1 items is already sorted) and on combining smaller solutions. That pattern solves a huge range of problems.}
+  }}
+}
+ex {
+  {kind predict code {proc bs {l t} {
+    set lo 0; set hi [expr {[llength $l] - 1}]
+    while {$lo <= $hi} {
+        set m [expr {($lo + $hi) / 2}]
+        set v [lindex $l $m]
+        if {$v == $t} {return $m} elseif {$v < $t} {set lo [expr {$m + 1}]} else {set hi [expr {$m - 1}]}
+    }
+    return -1
+}
+puts [bs {2 4 6 8} 8]} choices {3 2 1 -1} ans 0 why {8 is at index 3.}}
+  {kind predict code {proc ins {l} {
+    set r {}
+    foreach x $l {
+        set i [llength $r]
+        while {$i > 0 && [lindex $r [expr {$i - 1}]] > $x} {incr i -1}
+        set r [linsert $r $i $x]
+    }
+    return $r
+}
+puts [ins {3 1 2}]} choices {{1 2 3} {3 2 1} {3 1 2} {1 3 2}} ans 0 why {Sorted ascending.}}
+  {kind predict code {puts [lsort -integer {10 9 100 1}]} choices {{1 9 10 100} {1 10 100 9} {100 10 9 1} {9 10 100 1}} ans 0 why {The built-in sort already does this, fast.}}
+  {kind mc q {Why does binary search need a sorted list?} choices {{Each comparison discards half the remaining items only if order is known} {It is faster on unsorted lists} {It sorts the list first} {Sorting is optional}} ans 0 why {Order lets us rule out a whole half.}}
+  {kind mc q {What is the typical cost of merge sort?} choices {{O(n log n)} {O(n)} {O(n squared)} {O(1)}} ans 0 why {log n levels of splitting, n work per level.}}
+  {kind mc q {What is the base case of recursive sorting?} choices {{A list with 0 or 1 items is already sorted} {A list of 100 items} {The largest item} {The first item}} ans 0 why {Without a base case recursion never stops.}}
+  {kind code prompt {Write a proc **binsearch** returning the index of a target in a sorted list, or -1.} starter {proc binsearch {l target} {
+    return -1
+}} solution {proc binsearch {l target} {
+    set lo 0
+    set hi [expr {[llength $l] - 1}]
+    while {$lo <= $hi} {
+        set mid [expr {($lo + $hi) / 2}]
+        set v [lindex $l $mid]
+        if {$v == $target} {return $mid}
+        if {$v < $target} {set lo [expr {$mid + 1}]} else {set hi [expr {$mid - 1}]}
+    }
+    return -1
+}} tests {{binsearch {1 3 5 7 9} 9} 4 {binsearch {1 3 5 7 9} 1} 0 {binsearch {1 3 5} 4} -1 {binsearch {} 1} -1} why {Halve the interval each time.}}
+  {kind code prompt {Write a proc **bubblesort** returning the list sorted ascending using repeated swaps of neighbours that are out of order.} starter {proc bubblesort {l} {
+    return $l
+}} solution {proc bubblesort {l} {
+    set n [llength $l]
+    for {set i 0} {$i < $n} {incr i} {
+        for {set j 0} {$j < $n - $i - 1} {incr j} {
+            set a [lindex $l $j]
+            set b [lindex $l [expr {$j + 1}]]
+            if {$a > $b} {
+                lset l $j $b
+                lset l [expr {$j + 1}] $a
+            }
+        }
+    }
+    return $l
+}} tests {{bubblesort {5 2 9 1}} {1 2 5 9} {bubblesort {}} {} {bubblesort {1}} 1} why {After each pass the largest remaining item has "bubbled" to its place.}}
+  {kind code prompt {Write a recursive proc **quicksort** returning the list sorted ascending (first item as the pivot).} starter {proc quicksort {l} {
+    return $l
+}} solution {proc quicksort {l} {
+    if {[llength $l] <= 1} {return $l}
+    set p [lindex $l 0]
+    set rest [lrange $l 1 end]
+    set small [lmap x $rest {if {$x < $p} {set x} else continue}]
+    set big [lmap x $rest {if {$x >= $p} {set x} else continue}]
+    return [concat [quicksort $small] $p [quicksort $big]]
+}} tests {{quicksort {3 1 4 1 5 9 2 6}} {1 1 2 3 4 5 6 9} {quicksort {}} {}} why {Partition around the pivot, recurse on each side, join.}}
+  {kind code prompt {Write a proc **mergelists** that merges two already-sorted lists into one sorted list.} starter {proc mergelists {a b} {
+    return {}
+}} solution {proc mergelists {a b} {
+    set r {}
+    while {[llength $a] && [llength $b]} {
+        if {[lindex $a 0] <= [lindex $b 0]} {
+            lappend r [lindex $a 0]
+            set a [lrange $a 1 end]
+        } else {
+            lappend r [lindex $b 0]
+            set b [lrange $b 1 end]
+        }
+    }
+    return [concat $r $a $b]
+}} tests {{mergelists {1 4 9} {2 3 10}} {1 2 3 4 9 10} {mergelists {} {5}} 5} why {Repeatedly take the smaller front item.}}
+}
+cards {
+  {{How does binary search work?} {On a sorted list, compare with the middle and discard the half that cannot contain the target; repeat. O(log n).}}
+  {{How does merge sort work?} {Split in half, sort each half recursively, merge the sorted halves. O(n log n).}}
+  {{Should you write your own sort in practice?} {No - `lsort` is fast, stable and flexible; implementing sorts is for understanding.}}
+}
+}
+
+content::lesson 16.3 16 "Recursion, memoisation and dynamic programming" "Solve big problems by solving smaller ones - once." {
+pages {
+  {head "Recursion patterns" body {
+    p {Recursion shines when a problem contains smaller copies of itself: **permutations** (fix one item, permute the rest), the **Towers of Hanoi** (move n-1 discs out of the way, move the biggest, move n-1 back), **tree walking**.}
+    code {proc perms {l} {
+    if {[llength $l] <= 1} {return [list $l]}
+    set r {}
+    for {set i 0} {$i < [llength $l]} {incr i} {
+        set x [lindex $l $i]
+        set rest [lreplace $l $i $i]
+        foreach p [perms $rest] {lappend r [linsert $p 0 $x]}
+    }
+    return $r
+}
+puts [perms {a b c}]
+proc hanoi {n} {
+    if {$n == 0} {return 0}
+    return [expr {2 * [hanoi [expr {$n - 1}]] + 1}]
+}
+puts [hanoi 5]}
+    out {{a b c} {a c b} {b a c} {b c a} {c a b} {c b a}
+31}
+    p {Hanoi needs 2^n - 1 moves: 31 for five discs.}
+  }}
+  {head "Memoisation" body {
+    p {Plain recursive Fibonacci recomputes the same values exponentially many times. **Memoisation** caches each result the first time. In Tcl a dict (or array) is the cache.}
+    code {set memo {0 0 1 1}
+proc fib {n} {
+    global memo
+    if {[dict exists $memo $n]} {return [dict get $memo $n]}
+    set v [expr {[fib [expr {$n - 1}]] + [fib [expr {$n - 2}]]}]
+    dict set memo $n $v
+    return $v
+}
+puts [fib 10]
+puts [fib 90]}
+    out {55
+2880067194370816120}
+    p {Without the cache `fib 90` would take longer than the age of the universe; with it, it is instant. Each value is computed exactly once.}
+  }}
+  {head "Dynamic programming" body {
+    p {**Dynamic programming** builds the answer from the bottom up, filling a table of sub-answers. Example: the fewest coins that make an amount. `best(a)` is 1 plus the smaller of `best(a - coin)` over the coins.}
+    code {proc mincoins {coins amount} {
+    set best [dict create 0 0]
+    for {set a 1} {$a <= $amount} {incr a} {
+        set b 1000000
+        foreach c $coins {
+            if {$c <= $a && [dict exists $best [expr {$a - $c}]]} {
+                set t [expr {[dict get $best [expr {$a - $c}]] + 1}]
+                if {$t < $b} {set b $t}
+            }
+        }
+        if {$b < 1000000} {dict set best $a $b}
+    }
+    if {[dict exists $best $amount]} {return [dict get $best $amount]}
+    return -1
+}
+puts [mincoins {1 5 10 25} 63]
+puts [mincoins {5 10} 3]}
+    out {6
+-1}
+    tip {The recipe: define the sub-problem, write the relation between a problem and its smaller ones, decide the order to fill the table, and store results so nothing is computed twice.}
+  }}
+}
+ex {
+  {kind predict code {proc hanoi {n} {
+    if {$n == 0} {return 0}
+    return [expr {2 * [hanoi [expr {$n - 1}]] + 1}]
+}
+puts [hanoi 3]} choices {7 8 6 3} ans 0 why {2^3 - 1 = 7 moves.}}
+  {kind predict code {set memo {0 0 1 1}
+proc fib {n} {
+    global memo
+    if {[dict exists $memo $n]} {return [dict get $memo $n]}
+    set v [expr {[fib [expr {$n - 1}]] + [fib [expr {$n - 2}]]}]
+    dict set memo $n $v
+    return $v
+}
+puts [fib 12]} choices {144 89 233 55} ans 0 why {The 12th Fibonacci number.}}
+  {kind predict code {proc perms {l} {
+    if {[llength $l] <= 1} {return [list $l]}
+    set r {}
+    for {set i 0} {$i < [llength $l]} {incr i} {
+        set x [lindex $l $i]
+        foreach p [perms [lreplace $l $i $i]] {lappend r [linsert $p 0 $x]}
+    }
+    return $r
+}
+puts [llength [perms {1 2 3 4}]]} choices {24 12 16 4} ans 0 why {4! = 24 permutations.}}
+  {kind mc q {What does memoisation do?} choices {{Caches results so each sub-problem is computed once} {Sorts the data} {Makes recursion iterative} {Frees memory}} ans 0 why {Trading memory for time.}}
+  {kind mc q {Why is plain recursive Fibonacci slow?} choices {{It recomputes the same sub-problems exponentially many times} {Recursion is always slow} {Tcl has no stack} {It uses floats}} ans 0 why {fib(n) calls fib(n-1) and fib(n-2), which overlap heavily.}}
+  {kind mc q {What is dynamic programming?} choices {{Building answers bottom-up from a table of smaller sub-answers} {Changing code while it runs} {A kind of loop} {Dynamic typing}} ans 0 why {Store sub-answers so nothing is recomputed.}}
+  {kind code prompt {Write a recursive proc **power** with `power base exp` for whole exponents using repeated squaring: if exp is even, power(base, exp/2) squared; if odd, base times power(base, exp-1).} starter {proc power {b e} {
+    return 1
+}} solution {proc power {b e} {
+    if {$e == 0} {return 1}
+    if {$e % 2 == 0} {
+        set h [power $b [expr {$e / 2}]]
+        return [expr {$h * $h}]
+    }
+    return [expr {$b * [power $b [expr {$e - 1}]]}]
+}} tests {{power 2 10} 1024 {power 3 0} 1 {power 5 3} 125} why {Squaring halves the exponent each step: O(log n) multiplications.}}
+  {kind code prompt {Write a proc **fibmemo** using a dict named `memo` kept in the proc's own namespace-free way: pass the memo as a variable name (upvar). `fibmemo n memoVar` returns the nth Fibonacci number and fills the dict.} starter {proc fibmemo {n memoVar} {
+    return 0
+}} solution {proc fibmemo {n memoVar} {
+    upvar 1 $memoVar memo
+    if {$n < 2} {return $n}
+    if {[dict exists $memo $n]} {return [dict get $memo $n]}
+    set v [expr {[fibmemo [expr {$n - 1}] memo] + [fibmemo [expr {$n - 2}] memo]}]
+    dict set memo $n $v
+    return $v
+}} tests {{set m {}; fibmemo 30 m} 832040 {set m {}; fibmemo 50 m} 12586269025} why {The memo dict is shared by name, so every recursive call reuses it.}}
+  {kind code prompt {Write a proc **subsets** returning all subsets of a list (as a list of lists), including the empty set; order: for `{a b}` give `{} a b {a b}`.} starter {proc subsets {l} {
+    return {}
+}} solution {proc subsets {l} {
+    set r [list {}]
+    foreach x $l {
+        foreach s $r {lappend new [concat $s $x]}
+        foreach s $new {lappend r $s}
+        unset new
+    }
+    return $r
+}} tests {{subsets {a b}} {{} a b {a b}} {subsets {}} {{}} {llength [subsets {1 2 3 4}]} 16} why {Each new item doubles the collection: keep the old subsets and add copies containing the item.}}
+  {kind code prompt {Write a proc **mincoins** (dynamic programming) returning the fewest coins from a list that make an amount, or -1 if impossible.} starter {proc mincoins {coins amount} {
+    return -1
+}} solution {proc mincoins {coins amount} {
+    set best [dict create 0 0]
+    for {set a 1} {$a <= $amount} {incr a} {
+        set b 1000000
+        foreach c $coins {
+            if {$c <= $a && [dict exists $best [expr {$a - $c}]]} {
+                set t [expr {[dict get $best [expr {$a - $c}]] + 1}]
+                if {$t < $b} {set b $t}
+            }
+        }
+        if {$b < 1000000} {dict set best $a $b}
+    }
+    if {[dict exists $best $amount]} {return [dict get $best $amount]}
+    return -1
+}} tests {{mincoins {1 5 10 25} 63} 6 {mincoins {5 10} 3} -1 {mincoins {2} 0} 0} why {Fill the table from small amounts upward.}}
+}
+cards {
+  {{What is memoisation?} {Caching a function's results (e.g. in a dict) so each sub-problem is computed only once.}}
+  {{What is the Towers of Hanoi move count?} {2^n - 1 for n discs.}}
+  {{What are the steps of dynamic programming?} {Define the sub-problem, write the recurrence, fill a table in a sensible order, read off the answer.}}
+}
+}
+
+content::lesson 16.4 16 "Trees and graphs" "Nested data, walks, and finding paths." {
+pages {
+  {head "Trees" body {
+    p {A **tree** is a value with child trees. In Tcl a natural representation is a list: `{value child child ...}` where each child is itself such a list. Recursion follows the structure exactly.}
+    code {set tree {1 {2 {4} {5}} {3 {6}}}
+proc sum {t} {
+    set total [lindex $t 0]
+    foreach child [lrange $t 1 end] {incr total [sum $child]}
+    return $total
+}
+proc depth {t} {
+    set d 0
+    foreach child [lrange $t 1 end] {
+        set cd [depth $child]
+        if {$cd > $d} {set d $cd}
+    }
+    return [expr {$d + 1}]
+}
+puts [sum $tree]
+puts [depth $tree]}
+    out {21
+3}
+    p {1 + 2 + 3 + 4 + 5 + 6 = 21; the longest path from the root has 3 levels.}
+  }}
+  {head "Graphs" body {
+    p {A **graph** is nodes joined by edges. An **adjacency dict** maps each node to its neighbours. Walking a graph needs a record of visited nodes so cycles do not trap you.}
+    code {set g {a {b c} b {d} c {d} d {}}
+proc dfs {g node} {
+    set seen {}
+    set stack [list $node]
+    while {[llength $stack]} {
+        set n [lindex $stack end]
+        set stack [lrange $stack 0 end-1]
+        if {$n in $seen} continue
+        lappend seen $n
+        foreach m [lreverse [dict get $g $n]] {lappend stack $m}
+    }
+    return $seen
+}
+puts [dfs $g a]}
+    out {a b d c}
+    p {**Depth-first search** follows one branch to the end before backing up; it uses a **stack**.}
+  }}
+  {head "Shortest paths" body {
+    p {**Breadth-first search** explores in rings around the start, using a **queue**; the first time it reaches a node is along a shortest path (counting edges).}
+    code {set g {a {b c} b {d} c {d} d {e} e {}}
+proc shortest {g from to} {
+    set queue [list [list $from]]
+    set seen [list $from]
+    while {[llength $queue]} {
+        set path [lindex $queue 0]
+        set queue [lrange $queue 1 end]
+        set n [lindex $path end]
+        if {$n eq $to} {return $path}
+        foreach m [dict get $g $n] {
+            if {$m ni $seen} {
+                lappend seen $m
+                lappend queue [concat $path $m]
+            }
+        }
+    }
+    return {}
+}
+puts [shortest $g a e]
+puts [shortest $g e a]}
+    out {a b d e}
+    tip {Route planning, dependency resolution, web crawling, social networks - all are graph problems. Learn BFS and DFS well and many hard-looking tasks become routine.}
+  }}
+}
+ex {
+  {kind predict code {set tree {5 {3} {2 {1}}}
+proc sum {t} {
+    set s [lindex $t 0]
+    foreach c [lrange $t 1 end] {incr s [sum $c]}
+    return $s
+}
+puts [sum $tree]} choices {11 10 8 5} ans 0 why {5 + 3 + 2 + 1.}}
+  {kind predict code {set g {a {b} b {c} c {}}
+set seen {}
+set n a
+while {1} {
+    lappend seen $n
+    set next [dict get $g $n]
+    if {$next eq ""} break
+    set n [lindex $next 0]
+}
+puts $seen} choices {{a b c} {c b a} {a c} {a}} ans 0 why {Following the only edge each time.}}
+  {kind mc q {Which data structure does depth-first search use?} choices {stack queue set heap} ans 0 why {A stack (or recursion) takes the most recent branch first.}}
+  {kind mc q {Which does breadth-first search use?} choices {queue stack tree dict} ans 0 why {A queue explores in rings around the start.}}
+  {kind mc q {Why keep a visited set when walking a graph?} choices {{Cycles would otherwise make the walk loop forever} {To sort the nodes} {To save memory} {Dicts require it}} ans 0 why {Seeing a node twice means a cycle.}}
+  {kind code prompt {Write a proc **treesize** counting the nodes of a tree in the `{value child...}` representation.} starter {proc treesize {t} {
+    return 0
+}} solution {proc treesize {t} {
+    set n 1
+    foreach c [lrange $t 1 end] {incr n [treesize $c]}
+    return $n
+}} tests {{treesize {1 {2 {4} {5}} {3 {6}}}} 6 {treesize {x}} 1} why {One for this node plus the sizes of the children.}}
+  {kind code prompt {Write a proc **leaves** returning the values of the leaf nodes (nodes with no children), left to right.} starter {proc leaves {t} {
+    return {}
+}} solution {proc leaves {t} {
+    set kids [lrange $t 1 end]
+    if {[llength $kids] == 0} {return [list [lindex $t 0]]}
+    set r {}
+    foreach c $kids {lappend r {*}[leaves $c]}
+    return $r
+}} tests {{leaves {1 {2 {4} {5}} {3 {6}}}} {4 5 6} {leaves {x}} x} why {A node with no children is a leaf; otherwise collect from each child.}}
+  {kind code prompt {Write a proc **reachable** taking an adjacency dict and a start node, returning the sorted list of all nodes reachable from it (including itself).} starter {proc reachable {g start} {
+    return {}
+}} solution {proc reachable {g start} {
+    set seen {}
+    set todo [list $start]
+    while {[llength $todo]} {
+        set n [lindex $todo 0]
+        set todo [lrange $todo 1 end]
+        if {$n in $seen} continue
+        lappend seen $n
+        if {[dict exists $g $n]} {
+            foreach m [dict get $g $n] {lappend todo $m}
+        }
+    }
+    return [lsort $seen]
+}} tests {{reachable {a {b c} b {d} c {} d {} e {a}} a} {a b c d} {reachable {a {b} b {a}} a} {a b}} why {Walk with a visited list so cycles terminate.}}
+  {kind code prompt {Write a proc **hasPath** returning 1 if there is a path from one node to another in an adjacency dict, else 0.} starter {proc hasPath {g from to} {
+    return 0
+}} solution {proc hasPath {g from to} {
+    set seen {}
+    set todo [list $from]
+    while {[llength $todo]} {
+        set n [lindex $todo 0]
+        set todo [lrange $todo 1 end]
+        if {$n eq $to} {return 1}
+        if {$n in $seen} continue
+        lappend seen $n
+        if {[dict exists $g $n]} {lappend todo {*}[dict get $g $n]}
+    }
+    return 0
+}} tests {{hasPath {a {b} b {c} c {}} a c} 1 {hasPath {a {b} b {c} c {}} c a} 0 {hasPath {a {a}} a a} 1} why {Search until the target is found or nothing is left to visit.}}
+}
+cards {
+  {{How can you represent a tree in Tcl?} {A nested list: `{value child child ...}`; recursion follows the structure.}}
+  {{How do DFS and BFS differ?} {DFS uses a stack and goes deep first; BFS uses a queue and finds shortest paths by edge count.}}
+  {{Why track visited nodes?} {To avoid looping forever in graphs with cycles.}}
+}
+}
+} content/u17.tcl {content::unit 17 "Practice katas" "Small problems, big skill: solve them from a blank editor." "#A3E635"
+
+content::lesson 17.1 17 "Katas: warm-ups" "Quick problems to build fluency." {
+pages {
+  {head "How to practise katas" body {
+    p {A **kata** is a small problem you solve repeatedly to build skill, the way a musician plays scales. The routine that works:}
+    p {- **Read** the spec twice and restate it in your own words
+- Work out the answer **by hand** for a tiny example
+- Write the simplest code that passes; then check **edge cases** (empty, one item, negative, huge)
+- Only then tidy it. Later, solve it again a different way (loop versus recursion, list versus dict)}
+    code {proc fizz {n} {
+    set r {}
+    for {set i 1} {$i <= $n} {incr i} {
+        if {$i % 15 == 0} {
+            lappend r FizzBuzz
+        } elseif {$i % 3 == 0} {
+            lappend r Fizz
+        } elseif {$i % 5 == 0} {
+            lappend r Buzz
+        } else {
+            lappend r $i
+        }
+    }
+    return $r
+}
+puts [fizz 15]}
+    out {1 2 Fizz 4 Buzz Fizz 7 8 Fizz Buzz 11 Fizz 13 14 FizzBuzz}
+    tip {Test the most specific case first (15 before 3 and 5). Order of conditions is the classic source of bugs in this problem.}
+  }}
+}
+ex {
+  {kind code prompt {**fizzbuzz n**: return the list 1..n where multiples of 3 are `Fizz`, of 5 are `Buzz`, of both `FizzBuzz`.} starter {proc fizzbuzz {n} {
+    return {}
+}} solution {proc fizzbuzz {n} {
+    set r {}
+    for {set i 1} {$i <= $n} {incr i} {
+        if {$i % 15 == 0} {lappend r FizzBuzz} elseif {$i % 3 == 0} {lappend r Fizz} elseif {$i % 5 == 0} {lappend r Buzz} else {lappend r $i}
+    }
+    return $r
+}} tests {{fizzbuzz 5} {1 2 Fizz 4 Buzz} {fizzbuzz 0} {}} why {Check the combined case first.}}
+  {kind code prompt {**isprime n**: return 1 if n is prime, else 0 (n below 2 is not prime).} starter {proc isprime {n} {
+    return 0
+}} solution {proc isprime {n} {
+    if {$n < 2} {return 0}
+    for {set i 2} {$i * $i <= $n} {incr i} {
+        if {$n % $i == 0} {return 0}
+    }
+    return 1
+}} tests {{isprime 2} 1 {isprime 17} 1 {isprime 18} 0 {isprime 1} 0 {isprime 97} 1} why {Only test divisors up to the square root.}}
+  {kind code prompt {**factorial n** for n 0 or more (use big integers: `factorial 20` is 2432902008176640000).} starter {proc factorial {n} {
+    return 1
+}} solution {proc factorial {n} {
+    set r 1
+    for {set i 2} {$i <= $n} {incr i} {set r [expr {$r * $i}]}
+    return $r
+}} tests {{factorial 0} 1 {factorial 5} 120 {factorial 20} 2432902008176640000} why {Multiply 1 * 2 * ... * n.}}
+  {kind code prompt {**reversewords s**: reverse the order of the words in a sentence: `reversewords "one two three"` is `three two one`.} starter {proc reversewords {s} {
+    return $s
+}} solution {proc reversewords {s} {
+    return [join [lreverse [split $s " "]] " "]
+}} tests {{reversewords "one two three"} {three two one} {reversewords hi} hi} why {Split, `lreverse`, join.}}
+  {kind code prompt {**countvowels s**: count the vowels a e i o u (any case) in a string.} starter {proc countvowels {s} {
+    return 0
+}} solution {proc countvowels {s} {
+    return [llength [regexp -all -inline -nocase {[aeiou]} $s]]
+}} tests {{countvowels Hello} 2 {countvowels "RHYTHM"} 0 {countvowels AEIOU} 5} why {Collect every vowel match and count them.}}
+  {kind code prompt {**digitsum n**: the sum of the digits of a whole number: `digitsum 1234` is 10.} starter {proc digitsum {n} {
+    return 0
+}} solution {proc digitsum {n} {
+    set s 0
+    foreach d [split $n ""] {incr s $d}
+    return $s
+}} tests {{digitsum 1234} 10 {digitsum 0} 0 {digitsum 999} 27} why {Split the number into characters and add them.}}
+  {kind code prompt {**collatz n**: the number of steps for n to reach 1, where even n becomes n/2 and odd n becomes 3n+1: `collatz 6` is 8.} starter {proc collatz {n} {
+    return 0
+}} solution {proc collatz {n} {
+    set steps 0
+    while {$n != 1} {
+        if {$n % 2 == 0} {set n [expr {$n / 2}]} else {set n [expr {3 * $n + 1}]}
+        incr steps
+    }
+    return $steps
+}} tests {{collatz 1} 0 {collatz 6} 8 {collatz 27} 111} why {Loop until 1, counting steps.}}
+  {kind code prompt {**isleap year**: 1 if a year is a leap year (divisible by 4, except centuries unless divisible by 400), else 0.} starter {proc isleap {y} {
+    return 0
+}} solution {proc isleap {y} {
+    return [expr {($y % 4 == 0 && $y % 100 != 0) || $y % 400 == 0}]
+}} tests {{isleap 2024} 1 {isleap 1900} 0 {isleap 2000} 1 {isleap 2023} 0} why {The rule has two exceptions; encode them exactly.}}
+  {kind code prompt {**sumsquares n**: the sum of the squares 1 + 4 + 9 + ... up to n squared.} starter {proc sumsquares {n} {
+    return 0
+}} solution {proc sumsquares {n} {
+    set s 0
+    for {set i 1} {$i <= $n} {incr i} {incr s [expr {$i * $i}]}
+    return $s
+}} tests {{sumsquares 3} 14 {sumsquares 0} 0 {sumsquares 10} 385} why {Accumulate in a loop (or use the formula n(n+1)(2n+1)/6).}}
+}
+cards {
+  {{What is a kata?} {A small problem you solve repeatedly to build fluency, like practising scales.}}
+  {{What is a good kata routine?} {Restate the spec, work a tiny example by hand, write the simplest passing code, check edge cases, then tidy and re-solve differently.}}
+  {{What is the usual bug in FizzBuzz?} {Testing 3 and 5 before 15, so FizzBuzz is never produced.}}
+}
+}
+
+content::lesson 17.2 17 "Katas: strings and lists" "Transformations you will meet constantly." {
+pages {
+  {head "Think in pipelines" body {
+    p {Most string and list problems are a **pipeline**: break the input into pieces (`split`, `regexp -all -inline`), transform each piece (`lmap`, `string map`), then combine (`join`, `concat`, `dict`). Sketch the pipeline before writing code.}
+    code {proc anagrams {words} {
+    set groups {}
+    foreach w $words {
+        set key [join [lsort [split $w ""]] ""]
+        dict lappend groups $key $w
+    }
+    return [dict values $groups]
+}
+puts [anagrams {listen silent enlist google gogole cat act}]}
+    out {{listen silent enlist} {google gogole} {cat act}}
+    p {The trick: two words are anagrams exactly when their sorted letters match, so the sorted letters make a perfect dictionary key.}
+  }}
+}
+ex {
+  {kind code prompt {**anagrams words**: group words that are anagrams of each other, returning a list of groups in first-seen order.} starter {proc anagrams {words} {
+    return {}
+}} solution {proc anagrams {words} {
+    set groups {}
+    foreach w $words {
+        set key [join [lsort [split $w ""]] ""]
+        dict lappend groups $key $w
+    }
+    return [dict values $groups]
+}} tests {{anagrams {listen silent enlist cat act dog}} {{listen silent enlist} {cat act} dog}} why {Use the sorted letters as a dict key.}}
+  {kind code prompt {**roman n**: convert a whole number 1-3999 to a Roman numeral: `roman 1994` is `MCMXCIV`.} starter {proc roman {n} {
+    return $n
+}} solution {proc roman {n} {
+    set r ""
+    foreach {v s} {1000 M 900 CM 500 D 400 CD 100 C 90 XC 50 L 40 XL 10 X 9 IX 5 V 4 IV 1 I} {
+        while {$n >= $v} {
+            append r $s
+            incr n -$v
+        }
+    }
+    return $r
+}} tests {{roman 4} IV {roman 9} IX {roman 58} LVIII {roman 1994} MCMXCIV} why {Greedy: subtract the largest value that fits, including the subtractive pairs.}}
+  {kind code prompt {**fromroman s**: convert a Roman numeral to a number: `fromroman MCMXCIV` is 1994.} starter {proc fromroman {s} {
+    return 0
+}} solution {proc fromroman {s} {
+    set v {I 1 V 5 X 10 L 50 C 100 D 500 M 1000}
+    set total 0
+    set chars [split $s ""]
+    for {set i 0} {$i < [llength $chars]} {incr i} {
+        set cur [dict get $v [lindex $chars $i]]
+        set next 0
+        if {$i + 1 < [llength $chars]} {set next [dict get $v [lindex $chars [expr {$i + 1}]]]}
+        if {$cur < $next} {incr total -$cur} else {incr total $cur}
+    }
+    return $total
+}} tests {{fromroman IV} 4 {fromroman LVIII} 58 {fromroman MCMXCIV} 1994} why {A smaller numeral before a larger one is subtracted.}}
+  {kind code prompt {**rle s**: run-length encode a string: `rle aaabccdd` is `a3b1c2d2`.} starter {proc rle {s} {
+    return $s
+}} solution {proc rle {s} {
+    set out ""
+    set prev ""
+    set n 0
+    foreach c [split $s ""] {
+        if {$c eq $prev} {
+            incr n
+        } else {
+            if {$prev ne ""} {append out $prev $n}
+            set prev $c
+            set n 1
+        }
+    }
+    if {$prev ne ""} {append out $prev $n}
+    return $out
+}} tests {{rle aaabccdd} a3b1c2d2 {rle ""} {} {rle z} z1} why {Count consecutive repeats; flush the last run at the end.}}
+  {kind code prompt {**unrle s**: decode run-length text (single-digit counts): `unrle a3b1` is `aaab`.} starter {proc unrle {s} {
+    return $s
+}} solution {proc unrle {s} {
+    set out ""
+    foreach {all c n} [regexp -all -inline {(.)(\d)} $s] {
+        append out [string repeat $c $n]
+    }
+    return $out
+}} tests {{unrle a3b1} aaab {unrle ""} {} {unrle x2y3} xxyyy} why {Capture each letter-and-count pair and repeat the letter.}}
+  {kind code prompt {**chunk list n**: split a list into sublists of at most n items: `chunk {1 2 3 4 5} 2` is `{1 2} {3 4} 5`.} starter {proc chunk {l n} {
+    return $l
+}} solution {proc chunk {l n} {
+    set r {}
+    for {set i 0} {$i < [llength $l]} {incr i $n} {
+        lappend r [lrange $l $i [expr {$i + $n - 1}]]
+    }
+    return $r
+}} tests {{chunk {1 2 3 4 5} 2} {{1 2} {3 4} 5} {chunk {} 3} {}} why {Step through the list n at a time with `lrange`.}}
+  {kind code prompt {**transpose m**: transpose a matrix given as a list of equal-length rows: `transpose {{1 2 3} {4 5 6}}` is `{1 4} {2 5} {3 6}`.} starter {proc transpose {m} {
+    return $m
+}} solution {proc transpose {m} {
+    set r {}
+    set cols [llength [lindex $m 0]]
+    for {set c 0} {$c < $cols} {incr c} {
+        set row {}
+        foreach line $m {lappend row [lindex $line $c]}
+        lappend r $row
+    }
+    return $r
+}} tests {{transpose {{1 2 3} {4 5 6}}} {{1 4} {2 5} {3 6}} {transpose {{1}}} 1} why {Collect column c from every row.}}
+  {kind code prompt {**ispangram s**: 1 if a sentence uses every letter a-z at least once (any case), else 0.} starter {proc ispangram {s} {
+    return 0
+}} solution {proc ispangram {s} {
+    set seen {}
+    foreach c [split [string tolower $s] ""] {
+        if {[string is alpha $c]} {dict set seen $c 1}
+    }
+    return [expr {[dict size $seen] == 26}]
+}} tests {{ispangram "The quick brown fox jumps over the lazy dog"} 1 {ispangram "Hello world"} 0} why {Count the distinct letters.}}
+  {kind code prompt {**longestword s**: return the longest word in a sentence (the first one if tied).} starter {proc longestword {s} {
+    return {}
+}} solution {proc longestword {s} {
+    set best ""
+    foreach w [split $s " "] {
+        if {[string length $w] > [string length $best]} {set best $w}
+    }
+    return $best
+}} tests {{longestword "a quick brownish fox"} brownish {longestword "ab cd"} ab {longestword ""} {}} why {Keep the best so far; replace it only when strictly longer.}}
+}
+cards {
+  {{How do you detect anagrams?} {Sort the letters of each word; equal sorted strings mean anagrams - use that as a dict key.}}
+  {{What is greedy conversion?} {Repeatedly take the largest value that fits (Roman numerals, coin change with canonical coins).}}
+  {{How do you write a string/list kata?} {Sketch a pipeline: split into pieces, transform each, combine.}}
+}
+}
+
+content::lesson 17.3 17 "Katas: data wrangling" "Realistic tasks: grouping, joining, parsing and dates." {
+pages {
+  {head "Everyday data tasks" body {
+    p {Real programs mostly **reshape data**: group records, join two sources on a key, parse a slightly awkward format, compute dates. These katas practise exactly that. The tool kit: `dict` (grouping and lookup), `lmap`/`foreach` (reshaping), `regexp` (parsing), `clock` (dates).}
+    code {set people {{name ann dept ops} {name bob dept dev} {name cy dept ops}}
+set by {}
+foreach p $people {dict lappend by [dict get $p dept] [dict get $p name]}
+puts $by}
+    out {ops {ann cy} dev bob}
+    p {Grouping is `dict lappend` keyed by the field you group on. Joining is the same idea in reverse: put one side in a dict, then look each row of the other side up in it.}
+  }}
+}
+ex {
+  {kind code prompt {**groupby field records**: records are dicts. Return a dict mapping each value of `field` to the list of records having it (in order).} starter {proc groupby {field records} {
+    return {}
+}} solution {proc groupby {field records} {
+    set d {}
+    foreach r $records {dict lappend d [dict get $r $field] $r}
+    return $d
+}} tests {{groupby k {{k a v 1} {k b v 2} {k a v 3}}} {a {{k a v 1} {k a v 3}} b {{k b v 2}}}} why {`dict lappend` builds each group.}}
+  {kind code prompt {**join left right key**: both lists of dicts; return a list of merged dicts for every pair with equal `key` values (inner join), left order.} starter {proc join_on {left right key} {
+    return {}
+}} solution {proc join_on {left right key} {
+    set idx {}
+    foreach r $right {dict lappend idx [dict get $r $key] $r}
+    set out {}
+    foreach l $left {
+        set k [dict get $l $key]
+        if {[dict exists $idx $k]} {
+            foreach r [dict get $idx $k] {lappend out [dict merge $l $r]}
+        }
+    }
+    return $out
+}} tests {{join_on {{id 1 a x} {id 2 a y}} {{id 2 b p} {id 3 b q}} id} {{id 2 a y b p}}} why {Index one side by the key, then look up each row of the other.}}
+  {kind code prompt {**csvsplit line**: split a CSV line into fields, honouring double-quoted fields that contain commas: `csvsplit {a,"b,c",d}` is `a b,c d`.} starter {proc csvsplit {line} {
+    return [split $line ,]
+}} solution {proc csvsplit {line} {
+    set fields {}
+    set cur ""
+    set inq 0
+    foreach c [split $line ""] {
+        if {$c eq "\""} {
+            set inq [expr {!$inq}]
+        } elseif {$c eq "," && !$inq} {
+            lappend fields $cur
+            set cur ""
+        } else {
+            append cur $c
+        }
+    }
+    lappend fields $cur
+    return $fields
+}} tests {{csvsplit {a,"b,c",d}} {a b,c d} {csvsplit x} x {csvsplit {,}} {{} {}}} why {Track whether we are inside quotes; only commas outside quotes separate fields.}}
+  {kind code prompt {**matmul a b**: multiply two matrices (lists of rows): `matmul {{1 2} {3 4}} {{5 6} {7 8}}` is `{19 22} {43 50}`.} starter {proc matmul {a b} {
+    return {}
+}} solution {proc matmul {a b} {
+    set r {}
+    set cols [llength [lindex $b 0]]
+    foreach row $a {
+        set out {}
+        for {set c 0} {$c < $cols} {incr c} {
+            set s 0
+            set k 0
+            foreach x $row {
+                incr s [expr {$x * [lindex $b $k $c]}]
+                incr k
+            }
+            lappend out $s
+        }
+        lappend r $out
+    }
+    return $r
+}} tests {{matmul {{1 2} {3 4}} {{5 6} {7 8}}} {{19 22} {43 50}}} why {Each result cell is the dot product of a row of a with a column of b.}}
+  {kind code prompt {**tobinary n**: convert a non-negative whole number to a binary string without using `format %b`: `tobinary 10` is `1010`, `tobinary 0` is `0`.} starter {proc tobinary {n} {
+    return $n
+}} solution {proc tobinary {n} {
+    if {$n == 0} {return 0}
+    set s ""
+    while {$n > 0} {
+        set s [expr {$n % 2}]$s
+        set n [expr {$n / 2}]
+    }
+    return $s
+}} tests {{tobinary 10} 1010 {tobinary 0} 0 {tobinary 255} 11111111} why {Repeatedly divide by two, prepending each remainder.}}
+  {kind code prompt {**compound principal rate years**: the amount after compounding annually, formatted to 2 decimals: `compound 1000 0.05 2` is `1102.50`.} starter {proc compound {p r y} {
+    return $p
+}} solution {proc compound {p r y} {
+    return [format %.2f [expr {$p * (1 + $r) ** $y}]]
+}} tests {{compound 1000 0.05 2} 1102.50 {compound 100 0 5} 100.00} why {Multiply by (1 + rate) once per year; format at the end.}}
+  {kind code prompt {**daysbetween a b**: whole days between two dates given as YYYY-MM-DD (use `clock scan` with `-timezone :UTC`).} starter {proc daysbetween {a b} {
+    return 0
+}} solution {proc daysbetween {a b} {
+    set ta [clock scan $a -format %Y-%m-%d -timezone :UTC]
+    set tb [clock scan $b -format %Y-%m-%d -timezone :UTC]
+    return [expr {($tb - $ta) / 86400}]
+}} tests {{daysbetween 2024-01-01 2024-03-01} 60 {daysbetween 2024-05-10 2024-05-10} 0} why {Convert both to seconds and divide the difference by a day.}}
+  {kind code prompt {**wordwrapcount text width**: how many lines a text needs when greedily wrapped at the given width (words are never split).} starter {proc wordwrapcount {text width} {
+    return 0
+}} solution {proc wordwrapcount {text width} {
+    set lines 0
+    set cur ""
+    foreach w [split $text " "] {
+        if {$w eq ""} continue
+        if {$cur eq ""} {
+            set cur $w
+            set lines 1
+        } elseif {[string length $cur] + 1 + [string length $w] <= $width} {
+            append cur " " $w
+        } else {
+            incr lines
+            set cur $w
+        }
+    }
+    return $lines
+}} tests {{wordwrapcount "the quick brown fox" 10} 2 {wordwrapcount "" 10} 0 {wordwrapcount "aaaa bbbb" 4} 2} why {Fill each line greedily; start a new one when the next word does not fit.}}
+  {kind code prompt {**histogram counts**: given a dict of label to count, return a list of lines like `ann ###` (one `#` per count), sorted by label.} starter {proc histogram {counts} {
+    return {}
+}} solution {proc histogram {counts} {
+    set r {}
+    foreach k [lsort [dict keys $counts]] {
+        lappend r "$k [string repeat # [dict get $counts $k]]"
+    }
+    return $r
+}} tests {{histogram {bob 2 ann 3}} {{ann ###} {bob ##}}} why {`string repeat` draws each bar.}}
+}
+cards {
+  {{How do you group records by a field?} {`dict lappend groups [dict get $rec $field] $rec` for each record.}}
+  {{How do you join two lists of records on a key?} {Index one list in a dict by key, then look up each row of the other and `dict merge`.}}
+  {{How do you handle quoted CSV fields?} {Scan characters with an in-quotes flag; only commas outside quotes separate fields.}}
+}
+}
+} content/x01.tcl #\ Extra\ write-the-code\ exercises\ appended\ to\ existing\ lessons\ (ids\ continue\ each\ lesson's\ list).\n\n#\ ----------------------------------------------------------------\ unit\ 1\ncontent::addEx\ 1.1\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ program\ that\ prints\ **Hello,\ Tcl!**\}\ starter\ \{#\ write\ your\ program\ here\n\}\ solution\ \{puts\ \"Hello,\ Tcl!\"\}\ out\ \{Hello,\ Tcl!\}\ why\ \{One\ `puts`\ with\ the\ text\ in\ double\ quotes.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Print\ three\ lines:\ **Tcl**,\ then\ **is**,\ then\ **fun**.\}\ starter\ \{puts\ \"Tcl\"\n\}\ solution\ \{puts\ \"Tcl\"\nputs\ \"is\"\nputs\ \"fun\"\}\ out\ \{Tcl\nis\nfun\}\ why\ \{One\ `puts`\ per\ line,\ in\ order.\}\}\n\ncontent::addEx\ 1.2\ \\\n\ \ \{kind\ code\ prompt\ \{The\ line\ below\ fails.\ Fix\ it\ so\ it\ prints\ **Good\ morning,\ Tcl**\ (hint:\ quotes).\}\ starter\ \{puts\ Good\ morning,\ Tcl\}\ solution\ \{puts\ \"Good\ morning,\ Tcl\"\}\ out\ \{Good\ morning,\ Tcl\}\ why\ \{Without\ quotes\ `puts`\ receives\ three\ words.\ Quotes\ make\ them\ one\ argument.\}\}\n\ncontent::addEx\ 1.3\ \\\n\ \ \{kind\ code\ prompt\ \{Print\ exactly:\ **She\ said\ \"hi\"**\ (the\ quote\ marks\ are\ part\ of\ the\ output).\}\ starter\ \{puts\ \"She\ said\ hi\"\}\ solution\ \{puts\ \"She\ said\ \\\"hi\\\"\"\}\ out\ \{She\ said\ \"hi\"\}\ why\ \{A\ backslash\ before\ a\ quote\ mark\ prints\ it\ instead\ of\ ending\ the\ text.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Print\ **Loading...**\ on\ ONE\ line\ using\ two\ `puts`\ commands\ (use\ -nonewline).\}\ starter\ \{puts\ \"Loading\"\nputs\ \"...\"\}\ solution\ \{puts\ -nonewline\ \"Loading\"\nputs\ \"...\"\}\ out\ \{Loading...\}\ why\ \{`-nonewline`\ keeps\ the\ cursor\ on\ the\ same\ line.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 2\ncontent::addEx\ 2.1\ \\\n\ \ \{kind\ code\ prompt\ \{Set\ a\ variable\ called\ **city**\ to\ **Paris**,\ then\ print\ it.\}\ starter\ \{#\ set\ city,\ then\ print\ it\n\}\ solution\ \{set\ city\ Paris\nputs\ \$city\}\ out\ \{Paris\}\ why\ \{`set\ city\ Paris`\ stores\ the\ value\;\ `\$city`\ reads\ it.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Set\ **a**\ to\ 3\ and\ **b**\ to\ 4,\ then\ print\ them\ as:\ **3\ and\ 4**\}\ starter\ \{set\ a\ 3\nset\ b\ 4\}\ solution\ \{set\ a\ 3\nset\ b\ 4\nputs\ \"\$a\ and\ \$b\"\}\ out\ \{3\ and\ 4\}\ why\ \{Inside\ double\ quotes\ each\ variable\ is\ replaced\ by\ its\ value.\}\}\n\ncontent::addEx\ 2.2\ \\\n\ \ \{kind\ code\ prompt\ \{Print\ how\ many\ letters\ are\ in\ the\ word\ **programming**.\}\ starter\ \{puts\ \[string\ length\ programming\]x\}\ solution\ \{puts\ \[string\ length\ programming\]\}\ out\ \{11\}\ why\ \{`string\ length`\ returns\ the\ number\ of\ characters.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Set\ **word**\ to\ **tcl**\ and\ print\ it\ in\ capitals.\}\ starter\ \{set\ word\ tcl\nputs\ \$word\}\ solution\ \{set\ word\ tcl\nputs\ \[string\ toupper\ \$word\]\}\ out\ \{TCL\}\ why\ \{Wrap\ the\ variable\ in\ `\[string\ toupper\ ...\]`.\}\}\n\ncontent::addEx\ 2.3\ \\\n\ \ \{kind\ code\ prompt\ \{Use\ `append`\ to\ build\ **Hello,\ World**\ from\ the\ pieces\ and\ print\ it.\}\ starter\ \{set\ s\ Hello\nputs\ \$s\}\ solution\ \{set\ s\ Hello\nappend\ s\ \",\ World\"\nputs\ \$s\}\ out\ \{Hello,\ World\}\ why\ \{`append\ s\ text`\ adds\ to\ the\ end\ of\ the\ variable.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 3\ncontent::addEx\ 3.1\ \\\n\ \ \{kind\ code\ prompt\ \{Print\ the\ area\ of\ a\ circle\ with\ radius\ 2,\ using\ 3.14159\ for\ pi\ (area\ =\ pi\ *\ r\ squared).\}\ starter\ \{set\ r\ 2\nputs\ \$r\}\ solution\ \{set\ r\ 2\nputs\ \[expr\ \{3.14159\ *\ \$r\ **\ 2\}\]\}\ out\ \{12.56636\}\ why\ \{`**`\ is\ \"to\ the\ power\ of\".\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **fahrenheit**\ that\ converts\ Celsius\ to\ Fahrenheit:\ F\ =\ C\ *\ 9\ /\ 5\ +\ 32.\ Use\ `9.0`\ so\ the\ maths\ is\ not\ whole-number.\}\ starter\ \{proc\ fahrenheit\ \{c\}\ \{\n\ \ \ \ return\ \$c\n\}\}\ solution\ \{proc\ fahrenheit\ \{c\}\ \{\n\ \ \ \ return\ \[expr\ \{\$c\ *\ 9.0\ /\ 5\ +\ 32\}\]\n\}\}\ tests\ \{\{fahrenheit\ 100\}\ 212.0\ \{fahrenheit\ 0\}\ 32.0\}\ why\ \{Multiply,\ divide,\ then\ add\ -\ using\ a\ decimal\ 9.0\ avoids\ dropping\ the\ remainder.\}\}\n\ncontent::addEx\ 3.2\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **grade**\ taking\ a\ score:\ return\ **A**\ for\ 90\ or\ more,\ **B**\ for\ 80\ or\ more,\ otherwise\ **C**.\}\ starter\ \{proc\ grade\ \{score\}\ \{\n\ \ \ \ return\ C\n\}\}\ solution\ \{proc\ grade\ \{score\}\ \{\n\ \ \ \ if\ \{\$score\ >=\ 90\}\ \{return\ A\}\n\ \ \ \ if\ \{\$score\ >=\ 80\}\ \{return\ B\}\n\ \ \ \ return\ C\n\}\}\ tests\ \{\{grade\ 95\}\ A\ \{grade\ 85\}\ B\ \{grade\ 40\}\ C\}\ why\ \{Test\ the\ highest\ threshold\ first.\}\}\n\ncontent::addEx\ 3.3\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **daytype**\ that\ returns\ **weekend**\ for\ Sat\ or\ Sun\ and\ **weekday**\ otherwise,\ using\ `switch`.\}\ starter\ \{proc\ daytype\ \{d\}\ \{\n\ \ \ \ return\ weekday\n\}\}\ solution\ \{proc\ daytype\ \{d\}\ \{\n\ \ \ \ switch\ \$d\ \{\n\ \ \ \ \ \ \ \ Sat\ -\ Sun\ \{return\ weekend\}\n\ \ \ \ \ \ \ \ default\ \ \ \{return\ weekday\}\n\ \ \ \ \}\n\}\}\ tests\ \{\{daytype\ Sat\}\ weekend\ \{daytype\ Sun\}\ weekend\ \{daytype\ Mon\}\ weekday\}\ why\ \{`Sat\ -\ Sun`\ shares\ one\ body\ between\ two\ patterns.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 4\ncontent::addEx\ 4.1\ \\\n\ \ \{kind\ code\ prompt\ \{Use\ a\ **while**\ loop\ to\ print\ the\ numbers\ 1\ to\ 5,\ one\ per\ line.\}\ starter\ \{set\ i\ 1\}\ solution\ \{set\ i\ 1\nwhile\ \{\$i\ <=\ 5\}\ \{\n\ \ \ \ puts\ \$i\n\ \ \ \ incr\ i\n\}\}\ out\ \{1\n2\n3\n4\n5\}\ why\ \{Print,\ then\ `incr\ i`,\ until\ the\ condition\ is\ false.\}\}\n\ncontent::addEx\ 4.2\ \\\n\ \ \{kind\ code\ prompt\ \{Use\ a\ **for**\ loop\ to\ print\ the\ 3\ times\ table\ from\ 3\ x\ 1\ =\ 3\ up\ to\ 3\ x\ 4\ =\ 12.\}\ starter\ \{for\ \{set\ i\ 1\}\ \{\$i\ <=\ 4\}\ \{incr\ i\}\ \{\n\ \ \ \ puts\ \$i\n\}\}\ solution\ \{for\ \{set\ i\ 1\}\ \{\$i\ <=\ 4\}\ \{incr\ i\}\ \{\n\ \ \ \ puts\ \"3\ x\ \$i\ =\ \[expr\ \{3\ *\ \$i\}\]\"\n\}\}\ out\ \{3\ x\ 1\ =\ 3\n3\ x\ 2\ =\ 6\n3\ x\ 3\ =\ 9\n3\ x\ 4\ =\ 12\}\ why\ \{A\ command\ in\ brackets\ inside\ the\ quotes\ calculates\ each\ product.\}\}\n\ncontent::addEx\ 4.3\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **countbig**\ returning\ how\ many\ numbers\ in\ a\ list\ are\ greater\ than\ 10.\}\ starter\ \{proc\ countbig\ \{nums\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ countbig\ \{nums\}\ \{\n\ \ \ \ set\ n\ 0\n\ \ \ \ foreach\ x\ \$nums\ \{\n\ \ \ \ \ \ \ \ if\ \{\$x\ >\ 10\}\ \{incr\ n\}\n\ \ \ \ \}\n\ \ \ \ return\ \$n\n\}\}\ tests\ \{\{countbig\ \{5\ 12\ 30\ 7\ 11\}\}\ 3\ \{countbig\ \{\}\}\ 0\}\ why\ \{Keep\ a\ counter\ and\ increment\ it\ for\ each\ match.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Print\ the\ multiples\ of\ 3\ from\ 1\ to\ 12\ using\ `foreach`\ and\ `continue`\ (3,\ 6,\ 9,\ 12\ -\ one\ per\ line).\}\ starter\ \{foreach\ n\ \{1\ 2\ 3\ 4\ 5\ 6\ 7\ 8\ 9\ 10\ 11\ 12\}\ \{\n\ \ \ \ puts\ \$n\n\}\}\ solution\ \{foreach\ n\ \{1\ 2\ 3\ 4\ 5\ 6\ 7\ 8\ 9\ 10\ 11\ 12\}\ \{\n\ \ \ \ if\ \{\$n\ %\ 3\ !=\ 0\}\ \{continue\}\n\ \ \ \ puts\ \$n\n\}\}\ out\ \{3\n6\n9\n12\}\ why\ \{`continue`\ skips\ the\ numbers\ that\ are\ not\ multiples\ of\ 3.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 5\ncontent::addEx\ 5.1\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **maxof**\ that\ returns\ the\ larger\ of\ two\ numbers\ (do\ not\ use\ `max`).\}\ starter\ \{proc\ maxof\ \{a\ b\}\ \{\n\ \ \ \ return\ \$a\n\}\}\ solution\ \{proc\ maxof\ \{a\ b\}\ \{\n\ \ \ \ if\ \{\$a\ >\ \$b\}\ \{return\ \$a\}\n\ \ \ \ return\ \$b\n\}\}\ tests\ \{\{maxof\ 3\ 9\}\ 9\ \{maxof\ 9\ 3\}\ 9\ \{maxof\ 4\ 4\}\ 4\}\ why\ \{Compare\ the\ two\ and\ return\ the\ larger.\}\}\n\ncontent::addEx\ 5.2\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **joinwords**\ that\ joins\ its\ arguments\ with\ a\ single\ space:\ `joinwords\ a\ b\ c`\ gives\ `a\ b\ c`.\ Any\ number\ of\ arguments\ (use\ `args`).\}\ starter\ \{proc\ joinwords\ \{args\}\ \{\n\ \ \ \ return\ \"\"\n\}\}\ solution\ \{proc\ joinwords\ \{args\}\ \{\n\ \ \ \ return\ \[join\ \$args\ \"\ \"\]\n\}\}\ tests\ \{\{joinwords\ a\ b\ c\}\ \{a\ b\ c\}\ \{joinwords\ x\}\ x\}\ why\ \{`args`\ is\ a\ list,\ and\ `join`\ glues\ it\ back\ together.\}\}\n\ncontent::addEx\ 5.3\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ recursive\ proc\ **fib**\ returning\ the\ nth\ Fibonacci\ number:\ fib\ 0\ =\ 0,\ fib\ 1\ =\ 1,\ fib\ n\ =\ fib(n-1)\ +\ fib(n-2).\}\ starter\ \{proc\ fib\ \{n\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ fib\ \{n\}\ \{\n\ \ \ \ if\ \{\$n\ <\ 2\}\ \{return\ \$n\}\n\ \ \ \ return\ \[expr\ \{\[fib\ \[expr\ \{\$n\ -\ 1\}\]\]\ +\ \[fib\ \[expr\ \{\$n\ -\ 2\}\]\]\}\]\n\}\}\ tests\ \{\{fib\ 0\}\ 0\ \{fib\ 1\}\ 1\ \{fib\ 10\}\ 55\}\ why\ \{Two\ base\ cases\ (0\ and\ 1),\ then\ the\ sum\ of\ the\ two\ previous.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **gcd**\ using\ recursion\ (Euclid):\ gcd\ a\ 0\ is\ a,\ otherwise\ gcd\ b\ (a\ mod\ b).\}\ starter\ \{proc\ gcd\ \{a\ b\}\ \{\n\ \ \ \ return\ 1\n\}\}\ solution\ \{proc\ gcd\ \{a\ b\}\ \{\n\ \ \ \ if\ \{\$b\ ==\ 0\}\ \{return\ \$a\}\n\ \ \ \ return\ \[gcd\ \$b\ \[expr\ \{\$a\ %\ \$b\}\]\]\n\}\}\ tests\ \{\{gcd\ 12\ 18\}\ 6\ \{gcd\ 17\ 5\}\ 1\ \{gcd\ 9\ 0\}\ 9\}\ why\ \{Euclid's\ algorithm\ shrinks\ the\ problem\ each\ step.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 6\ncontent::addEx\ 6.1\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **lastitem**\ that\ returns\ the\ last\ item\ of\ a\ list.\}\ starter\ \{proc\ lastitem\ \{l\}\ \{\n\ \ \ \ return\ \[lindex\ \$l\ 0\]\n\}\}\ solution\ \{proc\ lastitem\ \{l\}\ \{\n\ \ \ \ return\ \[lindex\ \$l\ end\]\n\}\}\ tests\ \{\{lastitem\ \{a\ b\ c\}\}\ c\ \{lastitem\ \{x\}\}\ x\}\ why\ \{`end`\ means\ the\ last\ index.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **middle**\ that\ returns\ the\ list\ without\ its\ first\ and\ last\ items.\}\ starter\ \{proc\ middle\ \{l\}\ \{\n\ \ \ \ return\ \$l\n\}\}\ solution\ \{proc\ middle\ \{l\}\ \{\n\ \ \ \ return\ \[lrange\ \$l\ 1\ end-1\]\n\}\}\ tests\ \{\{middle\ \{1\ 2\ 3\ 4\ 5\}\}\ \{2\ 3\ 4\}\ \{middle\ \{a\ b\}\}\ \{\}\}\ why\ \{`end-1`\ is\ the\ second\ to\ last\ index.\}\}\n\ncontent::addEx\ 6.2\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **uniqsorted**\ that\ returns\ a\ list\ sorted\ alphabetically\ with\ duplicates\ removed.\}\ starter\ \{proc\ uniqsorted\ \{l\}\ \{\n\ \ \ \ return\ \$l\n\}\}\ solution\ \{proc\ uniqsorted\ \{l\}\ \{\n\ \ \ \ return\ \[lsort\ -unique\ \$l\]\n\}\}\ tests\ \{\{uniqsorted\ \{pear\ apple\ pear\ fig\ apple\}\}\ \{apple\ fig\ pear\}\}\ why\ \{`lsort\ -unique`\ sorts\ and\ drops\ duplicates\ in\ one\ go.\}\}\n\ncontent::addEx\ 6.3\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **zip**\ taking\ two\ lists\ of\ the\ same\ length\ and\ returning\ a\ list\ of\ pairs:\ `zip\ \{a\ b\}\ \{1\ 2\}`\ gives\ `\{a\ 1\}\ \{b\ 2\}`.\}\ starter\ \{proc\ zip\ \{a\ b\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ zip\ \{a\ b\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ foreach\ x\ \$a\ y\ \$b\ \{lappend\ r\ \[list\ \$x\ \$y\]\}\n\ \ \ \ return\ \$r\n\}\}\ tests\ \{\{zip\ \{a\ b\ c\}\ \{1\ 2\ 3\}\}\ \{\{a\ 1\}\ \{b\ 2\}\ \{c\ 3\}\}\}\ why\ \{`foreach`\ can\ walk\ two\ lists\ in\ step.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 7\ncontent::addEx\ 7.1\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **ispalin**\ returning\ 1\ if\ a\ word\ reads\ the\ same\ backwards,\ else\ 0.\}\ starter\ \{proc\ ispalin\ \{w\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ ispalin\ \{w\}\ \{\n\ \ \ \ return\ \[string\ equal\ \$w\ \[string\ reverse\ \$w\]\]\n\}\}\ tests\ \{\{ispalin\ level\}\ 1\ \{ispalin\ tcl\}\ 0\}\ why\ \{Compare\ the\ word\ with\ its\ reverse.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **capitalize**\ that\ upper-cases\ the\ first\ letter\ and\ lower-cases\ the\ rest:\ `capitalize\ tCL`\ gives\ `Tcl`.\}\ starter\ \{proc\ capitalize\ \{w\}\ \{\n\ \ \ \ return\ \$w\n\}\}\ solution\ \{proc\ capitalize\ \{w\}\ \{\n\ \ \ \ return\ \[string\ totitle\ \$w\]\n\}\}\ tests\ \{\{capitalize\ tCL\}\ Tcl\ \{capitalize\ ADA\}\ Ada\}\ why\ \{`string\ totitle`\ does\ exactly\ this.\}\}\n\ncontent::addEx\ 7.2\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **zeropad**\ that\ formats\ a\ number\ as\ 5\ digits\ with\ leading\ zeros:\ `zeropad\ 42`\ gives\ `00042`.\}\ starter\ \{proc\ zeropad\ \{n\}\ \{\n\ \ \ \ return\ \$n\n\}\}\ solution\ \{proc\ zeropad\ \{n\}\ \{\n\ \ \ \ return\ \[format\ %05d\ \$n\]\n\}\}\ tests\ \{\{zeropad\ 42\}\ 00042\ \{zeropad\ 7\}\ 00007\}\ why\ \{`%05d`\ pads\ with\ zeros\ to\ width\ 5.\}\}\n\ncontent::addEx\ 7.3\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **numbers**\ returning\ the\ list\ of\ all\ whole\ numbers\ found\ in\ a\ text:\ `numbers\ \{a1\ b22\ c333\}`\ gives\ `1\ 22\ 333`.\}\ starter\ \{proc\ numbers\ \{s\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ numbers\ \{s\}\ \{\n\ \ \ \ return\ \[regexp\ -all\ -inline\ \{\\d+\}\ \$s\]\n\}\}\ tests\ \{\{numbers\ \{a1\ b22\ c333\}\}\ \{1\ 22\ 333\}\ \{numbers\ none\}\ \{\}\}\ why\ \{`-all\ -inline`\ returns\ every\ match\ as\ a\ list.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **isdate**\ returning\ 1\ if\ a\ string\ looks\ like\ YYYY-MM-DD\ (four\ digits,\ dash,\ two\ digits,\ dash,\ two\ digits),\ else\ 0.\}\ starter\ \{proc\ isdate\ \{s\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ isdate\ \{s\}\ \{\n\ \ \ \ return\ \[regexp\ \{^\\d\{4\}-\\d\{2\}-\\d\{2\}\$\}\ \$s\]\n\}\}\ tests\ \{\{isdate\ 2024-05-17\}\ 1\ \{isdate\ 2024-5-17\}\ 0\ \{isdate\ x2024-05-17\}\ 0\}\ why\ \{Anchors\ `^`/`\$`\ make\ the\ whole\ string\ match,\ and\ `\\d\{4\}`\ means\ four\ digits.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 8\ncontent::addEx\ 8.1\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **invert**\ that\ swaps\ keys\ and\ values\ of\ a\ dict:\ `invert\ \{a\ 1\ b\ 2\}`\ gives\ `1\ a\ 2\ b`.\}\ starter\ \{proc\ invert\ \{d\}\ \{\n\ \ \ \ return\ \$d\n\}\}\ solution\ \{proc\ invert\ \{d\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ dict\ for\ \{k\ v\}\ \$d\ \{dict\ set\ r\ \$v\ \$k\}\n\ \ \ \ return\ \$r\n\}\}\ tests\ \{\{invert\ \{a\ 1\ b\ 2\}\}\ \{1\ a\ 2\ b\}\}\ why\ \{Loop\ with\ `dict\ for`\ and\ set\ each\ value\ as\ a\ key.\}\}\n\ncontent::addEx\ 8.2\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **total**\ that\ adds\ up\ the\ values\ of\ a\ dict\ of\ numbers.\}\ starter\ \{proc\ total\ \{d\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ total\ \{d\}\ \{\n\ \ \ \ set\ t\ 0\n\ \ \ \ dict\ for\ \{k\ v\}\ \$d\ \{incr\ t\ \$v\}\n\ \ \ \ return\ \$t\n\}\}\ tests\ \{\{total\ \{a\ 3\ b\ 4\ c\ 5\}\}\ 12\ \{total\ \{\}\}\ 0\}\ why\ \{Walk\ the\ values\ and\ keep\ a\ running\ sum.\}\}\n\ncontent::addEx\ 8.3\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **letters**\ that\ counts\ each\ letter\ of\ a\ word\ into\ a\ dict:\ `letters\ banana`\ gives\ `b\ 1\ a\ 3\ n\ 2`.\}\ starter\ \{proc\ letters\ \{w\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ letters\ \{w\}\ \{\n\ \ \ \ set\ d\ \{\}\n\ \ \ \ foreach\ c\ \[split\ \$w\ \"\"\]\ \{dict\ incr\ d\ \$c\}\n\ \ \ \ return\ \$d\n\}\}\ tests\ \{\{letters\ banana\}\ \{b\ 1\ a\ 3\ n\ 2\}\}\ why\ \{`split\ \$w\ \"\"`\ gives\ a\ list\ of\ characters\;\ `dict\ incr`\ counts\ them.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 9\ncontent::addEx\ 9.1\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **toint**\ that\ returns\ the\ number\ if\ its\ argument\ is\ a\ whole\ number,\ or\ the\ text\ **invalid**\ if\ not\ -\ without\ crashing.\}\ starter\ \{proc\ toint\ \{x\}\ \{\n\ \ \ \ return\ \[expr\ \{\$x\ +\ 0\}\]\n\}\}\ solution\ \{proc\ toint\ \{x\}\ \{\n\ \ \ \ if\ \{\[string\ is\ integer\ -strict\ \$x\]\}\ \{return\ \$x\}\n\ \ \ \ return\ invalid\n\}\}\ tests\ \{\{toint\ 42\}\ 42\ \{toint\ abc\}\ invalid\ \{toint\ \{\}\}\ invalid\}\ why\ \{`string\ is\ integer\ -strict`\ checks\ safely\ before\ using\ the\ value.\}\}\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **mustpositive**\ that\ returns\ its\ argument,\ but\ raises\ the\ error\ **must\ be\ positive**\ when\ the\ number\ is\ 0\ or\ less.\}\ starter\ \{proc\ mustpositive\ \{n\}\ \{\n\ \ \ \ return\ \$n\n\}\}\ solution\ \{proc\ mustpositive\ \{n\}\ \{\n\ \ \ \ if\ \{\$n\ <=\ 0\}\ \{error\ \"must\ be\ positive\"\}\n\ \ \ \ return\ \$n\n\}\}\ tests\ \{\{mustpositive\ 5\}\ 5\ \{catch\ \{mustpositive\ -1\}\ m\;\ set\ m\}\ \{must\ be\ positive\}\}\ why\ \{`error\ \"message\"`\ raises\ the\ error\ that\ `catch`\ reports.\}\}\n\ncontent::addEx\ 9.2\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **linecount**\ that\ returns\ how\ many\ lines\ a\ file\ has.\}\ starter\ \{proc\ linecount\ \{name\}\ \{\n\ \ \ \ return\ 0\n\}\}\ solution\ \{proc\ linecount\ \{name\}\ \{\n\ \ \ \ set\ f\ \[open\ \$name\ r\]\n\ \ \ \ set\ n\ 0\n\ \ \ \ while\ \{\[gets\ \$f\ line\]\ >=\ 0\}\ \{incr\ n\}\n\ \ \ \ close\ \$f\n\ \ \ \ return\ \$n\n\}\}\ tests\ \{\{set\ f\ \[open\ t.txt\ w\]\;\ puts\ \$f\ a\;\ puts\ \$f\ b\;\ puts\ \$f\ c\;\ close\ \$f\;\ linecount\ t.txt\}\ 3\}\ why\ \{Read\ with\ `gets`\ until\ it\ returns\ -1,\ counting.\}\}\n\ncontent::addEx\ 9.3\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **parserow**\ that\ turns\ `ann,31,paris`\ into\ a\ dict\ with\ keys\ name,\ age,\ city.\}\ starter\ \{proc\ parserow\ \{line\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ parserow\ \{line\}\ \{\n\ \ \ \ lassign\ \[split\ \$line\ ,\]\ name\ age\ city\n\ \ \ \ return\ \[dict\ create\ name\ \$name\ age\ \$age\ city\ \$city\]\n\}\}\ tests\ \{\{parserow\ ann,31,paris\}\ \{name\ ann\ age\ 31\ city\ paris\}\}\ why\ \{Split\ on\ commas,\ unpack\ with\ `lassign`,\ build\ a\ dict.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 10\ncontent::addEx\ 10.1\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **callit**\ that\ runs\ a\ command\ given\ as\ its\ first\ argument\ with\ the\ remaining\ arguments,\ safely:\ `callit\ string\ toupper\ abc`\ gives\ `ABC`.\}\ starter\ \{proc\ callit\ \{cmd\ args\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ callit\ \{cmd\ args\}\ \{\n\ \ \ \ return\ \[\$cmd\ \{*\}\$args\]\n\}\}\ tests\ \{\{callit\ string\ toupper\ abc\}\ ABC\ \{callit\ expr\ 2\ +\ 3\}\ 5\}\ why\ \{`\{*\}\$args`\ spreads\ the\ arguments\ as\ separate\ words.\}\}\n\ncontent::addEx\ 10.2\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **appendto**\ taking\ a\ variable\ NAME\ and\ a\ value,\ adding\ the\ value\ to\ that\ list\ variable\ in\ the\ caller\ (use\ `upvar`).\}\ starter\ \{proc\ appendto\ \{name\ val\}\ \{\n\}\}\ solution\ \{proc\ appendto\ \{name\ val\}\ \{\n\ \ \ \ upvar\ 1\ \$name\ l\n\ \ \ \ lappend\ l\ \$val\n\}\}\ tests\ \{\{set\ x\ \{\}\;\ appendto\ x\ a\;\ appendto\ x\ b\;\ set\ x\}\ \{a\ b\}\}\ why\ \{`upvar\ 1\ \$name\ l`\ makes\ `l`\ the\ caller's\ variable.\}\}\n\ncontent::addEx\ 10.3\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **partial**\ taking\ a\ command\ prefix\ and\ some\ leading\ arguments\ and\ returning\ a\ new\ prefix\ with\ them\ added:\ `\{*\}\[partial\ \{string\ repeat\}\ ab\]\ 3`\ gives\ `ababab`.\}\ starter\ \{proc\ partial\ \{cmd\ args\}\ \{\n\ \ \ \ return\ \$cmd\n\}\}\ solution\ \{proc\ partial\ \{cmd\ args\}\ \{\n\ \ \ \ return\ \[list\ \{*\}\$cmd\ \{*\}\$args\]\n\}\}\ tests\ \{\{\{*\}\[partial\ \{string\ repeat\}\ ab\]\ 3\}\ ababab\}\ why\ \{A\ command\ prefix\ is\ just\ a\ list,\ so\ extend\ it\ with\ `list\ \{*\}...`.\}\}\n\ncontent::addEx\ 10.4\ \\\n\ \ \{kind\ code\ prompt\ \{Create\ a\ namespace\ **ticker**\ with\ a\ variable\ and\ a\ proc\ **next**\ that\ returns\ 1,\ 2,\ 3...\ on\ successive\ calls.\}\ starter\ \{namespace\ eval\ ticker\ \{\n\}\}\ solution\ \{namespace\ eval\ ticker\ \{\n\ \ \ \ variable\ n\ 0\n\ \ \ \ proc\ next\ \{\}\ \{\n\ \ \ \ \ \ \ \ variable\ n\n\ \ \ \ \ \ \ \ return\ \[incr\ n\]\n\ \ \ \ \}\n\}\}\ tests\ \{\{ticker::next\;\ ticker::next\;\ ticker::next\}\ 3\}\ why\ \{The\ namespace\ variable\ keeps\ its\ value\ between\ calls.\}\}\n\n#\ ----------------------------------------------------------------\ unit\ 11\ncontent::addEx\ 11.1\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **take**\ that\ calls\ a\ coroutine\ command\ n\ times\ and\ returns\ the\ list\ of\ results:\ `take\ gen\ 3`.\}\ starter\ \{proc\ take\ \{gen\ n\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ take\ \{gen\ n\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ for\ \{set\ i\ 0\}\ \{\$i\ <\ \$n\}\ \{incr\ i\}\ \{lappend\ r\ \[\$gen\]\}\n\ \ \ \ return\ \$r\n\}\}\ tests\ \{\{proc\ g\ \{\}\ \{yield\;\ set\ i\ 0\;\ while\ 1\ \{yield\ \[incr\ i\]\}\}\;\ coroutine\ cg\ g\;\ take\ cg\ 4\}\ \{1\ 2\ 3\ 4\}\}\ why\ \{Each\ call\ to\ the\ coroutine\ produces\ the\ next\ value.\}\}\n\ncontent::addEx\ 11.2\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ TclOO\ class\ **Stack**\ with\ methods\ **push**,\ **pop**\ and\ **size**.\}\ starter\ \{oo::class\ create\ Stack\ \{\n\}\}\ solution\ \{oo::class\ create\ Stack\ \{\n\ \ \ \ variable\ items\n\ \ \ \ constructor\ \{\}\ \{set\ items\ \{\}\}\n\ \ \ \ method\ push\ \{x\}\ \{lappend\ items\ \$x\}\n\ \ \ \ method\ pop\ \{\}\ \{\n\ \ \ \ \ \ \ \ set\ x\ \[lindex\ \$items\ end\]\n\ \ \ \ \ \ \ \ set\ items\ \[lrange\ \$items\ 0\ end-1\]\n\ \ \ \ \ \ \ \ return\ \$x\n\ \ \ \ \}\n\ \ \ \ method\ size\ \{\}\ \{return\ \[llength\ \$items\]\}\n\}\}\ tests\ \{\{set\ s\ \[Stack\ new\]\;\ \$s\ push\ a\;\ \$s\ push\ b\;\ list\ \[\$s\ pop\]\ \[\$s\ size\]\}\ \{b\ 1\}\}\ why\ \{The\ object's\ own\ variable\ keeps\ the\ list\ between\ method\ calls.\}\}\n\ncontent::addEx\ 11.3\ \\\n\ \ \{kind\ code\ prompt\ \{Make\ every\ write\ to\ the\ variable\ **v**\ increase\ the\ global\ counter\ **writes**.\ Define\ a\ handler\ proc\ **bump**\ and\ attach\ it\ with\ a\ write\ trace.\}\ starter\ \{set\ ::writes\ 0\nproc\ bump\ \{args\}\ \{\}\nset\ v\ 0\}\ solution\ \{set\ ::writes\ 0\nproc\ bump\ \{args\}\ \{incr\ ::writes\}\nset\ v\ 0\ntrace\ add\ variable\ v\ write\ bump\}\ tests\ \{\{set\ v\ 1\;\ set\ v\ 2\;\ set\ v\ 3\;\ set\ ::writes\}\ 3\}\ why\ \{A\ write\ trace\ runs\ the\ handler\ on\ every\ `set`.\}\}\n\ncontent::addEx\ 11.4\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **later**\ that\ waits\ 10\ ms\ (without\ blocking\ events)\ and\ then\ returns\ the\ text\ **done**,\ using\ `after`\ and\ `vwait`.\}\ starter\ \{proc\ later\ \{\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ later\ \{\}\ \{\n\ \ \ \ after\ 10\ \{set\ ::fin\ done\}\n\ \ \ \ vwait\ ::fin\n\ \ \ \ return\ \$::fin\n\}\}\ tests\ \{\{later\}\ done\}\ why\ \{`after`\ schedules,\ `vwait`\ runs\ the\ event\ loop\ until\ the\ variable\ is\ set.\}\}\n\ncontent::addEx\ 11.5\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **evalsafe**\ that\ evaluates\ a\ Tcl\ script\ in\ a\ brand\ new\ SAFE\ interpreter\ and\ returns\ the\ result\ (then\ deletes\ the\ interpreter).\}\ starter\ \{proc\ evalsafe\ \{script\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ evalsafe\ \{script\}\ \{\n\ \ \ \ set\ i\ \[interp\ create\ -safe\]\n\ \ \ \ set\ r\ \[\$i\ eval\ \$script\]\n\ \ \ \ interp\ delete\ \$i\n\ \ \ \ return\ \$r\n\}\}\ tests\ \{\{evalsafe\ \{expr\ \{6\ *\ 7\}\}\}\ 42\ \{evalsafe\ \{set\ x\ 5\;\ incr\ x\}\}\ 6\}\ why\ \{`interp\ create\ -safe`\ plus\ `eval`\ gives\ an\ isolated\ world.\}\}\n\ncontent::addEx\ 11.6\ \\\n\ \ \{kind\ code\ prompt\ \{Write\ a\ proc\ **squares**\ that\ returns\ the\ list\ of\ squares\ 1..n\ efficiently,\ building\ the\ list\ with\ `lappend`.\}\ starter\ \{proc\ squares\ \{n\}\ \{\n\ \ \ \ return\ \{\}\n\}\}\ solution\ \{proc\ squares\ \{n\}\ \{\n\ \ \ \ set\ r\ \{\}\n\ \ \ \ for\ \{set\ i\ 1\}\ \{\$i\ <=\ \$n\}\ \{incr\ i\}\ \{lappend\ r\ \[expr\ \{\$i\ *\ \$i\}\]\}\n\ \ \ \ return\ \$r\n\}\}\ tests\ \{\{squares\ 5\}\ \{1\ 4\ 9\ 16\ 25\}\ \{squares\ 0\}\ \{\}\}\ why\ \{`lappend`\ appends\ in\ place,\ so\ the\ loop\ stays\ fast\ even\ for\ large\ n.\}\}\n}
 #!/usr/bin/env wish
 # Learn Tcl - a spaced-repetition course in Tcl, written in Tcl/Tk.
 # Run with:  wish main.tcl        (desktop)   or open in AndroWish (Android)
 package require Tk
 
 set ::app_lib {util theme store srs sandbox content aa ui flat exercises runner screens}
-set ::app_content {u01 u02 u03 u04 u05 u06 u07 u08 u09 u10 u11 u12 u13 u14 x01}
+set ::app_content {u01 u02 u03 u04 u05 u06 u07 u08 u09 u10 u11 u12 u13 u14 u15 u16 u17 x01}
 
 namespace eval boot {
     variable root [file dirname [file normalize [info script]]]

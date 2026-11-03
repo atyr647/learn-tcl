@@ -4,7 +4,7 @@
 package require Tk
 
 set ::app_lib {util theme store srs sandbox content aa ui flat exercises runner screens}
-set ::app_content {u01 u02 u03 u04 u05 u06 u07 u08 u09 u10 u11 u12 u13 u14 x01}
+set ::app_content {u01 u02 u03 u04 u05 u06 u07 u08 u09 u10 u11 u12 u13 u14 u15 u16 u17 x01}
 
 namespace eval boot {
     variable root [file dirname [file normalize [info script]]]

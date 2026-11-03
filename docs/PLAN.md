@@ -22,7 +22,7 @@ Recall *and* recognition are both covered on purpose: multiple choice builds
 recognition and catches misconceptions cheaply; flashcards and typed answers
 force true recall.
 
-## 2. Curriculum (zero -> expert): 14 units, 59 lessons, 572 questions, 228 flashcards
+## 2. Curriculum (zero -> expert): 17 units, 78 lessons, 770 questions, 293 flashcards
 
 | Unit | Lessons |
 |---|---|
@@ -39,6 +39,9 @@ force true recall.
 | 11 Expert Tcl | coroutines - TclOO - traces - events and timers - safe interpreters and packages - performance and style - Tk |
 | 12 Data, channels and testing | bytes, encodings and binary data - channels, pipes and sockets - testing your code |
 | 13 The advanced toolbox | regex in depth - text-processing toolbox - TclOO in depth - metaprogramming and DSLs - errors by design - Tcllib and the ecosystem - three Tk lessons (layout, events/canvas, structuring an app) |
+| 15 Language deep-dives | numbers in depth - the dict toolbox - the twelve rules - namespaces in depth - interpreters in depth - introspection and `unknown` - files, directories and the OS - Unicode and msgcat - safe and robust Tcl - functional programming - Tk text/lists/images - a complete Tk app |
+| 16 Algorithms and data structures | stacks, queues, sets - searching and sorting - recursion, memoisation, dynamic programming - trees and graphs |
+| 17 Practice katas | warm-ups - strings and lists - data wrangling (30 small problems with tests) |
 | 14 Read, debug and build | reading and debugging real code - capstone projects: to-do manager, word-frequency analyser, RPN calculator, config parser, TclOO bank, coroutine scheduler, state machine, tested string library |
 
 Each lesson: ~3 short teaching pages (worked examples first), a 2-question
