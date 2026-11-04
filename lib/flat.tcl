@@ -63,7 +63,7 @@ proc flat::freeze {sc} {
     if {$fresh} {
         place $F -in $sc.c -x 0 -y 0 -relwidth 1 -relheight 1
         raise $F
-        set ui::scrollers($F) 1
+        set ::ui::scrollers($F) 1
         bindtags $F [list $F Drag . all]
         bind $F <ButtonRelease-1> [list flat::tap $sc $F %x %y]
         bind $F <MouseWheel> [list $F yview scroll -60 units]

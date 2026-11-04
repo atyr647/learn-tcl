@@ -7,15 +7,15 @@ namespace eval app {
 proc app::init {} {
     variable view
     store::init
-    sfx::init [expr {$store::dir ne "" ? $store::dir : "/tmp"}]
+    sfx::init [expr {$::store::dir ne "" ? $::store::dir : "/tmp"}]
     after 1500 sfx::warm
-    aa::init [expr {$store::dir ne "" ? $store::dir : "/tmp"}]
+    aa::init [expr {$::store::dir ne "" ? $::store::dir : "/tmp"}]
     theme::apply [store::setting theme dark]
     . configure -bg $::T(bg)
     wm title . "Learn Tcl"
     frame $view -bg $::T(bg)
     place $view -relx .5 -y 0 -anchor n -relwidth 1 -relheight 1
-    set ui::fscale [store::setting textScale 1.0]
+    set ::ui::fscale [store::setting textScale 1.0]
     ui::fonts
     bind . <Configure> {if {"%W" eq "."} app::fit}
 }
@@ -23,7 +23,7 @@ proc app::init {} {
 # Keep the app in a phone-width column, centred, on tablets / landscape / desktop.
 proc app::fit {} {
     variable view
-    set cw [expr {int(112 * $ui::U)}]
+    set cw [expr {int(112 * $::ui::U)}]
     if {[winfo width .] > $cw} {
         place configure $view -relwidth 0 -width $cw
     } else {
@@ -68,7 +68,7 @@ proc app::go {where args} {
 # Tab screens are built once and kept; switching tabs just shows another one.
 # A screen is rebuilt only when saved state changed since it was built.
 variable app::tabver
-array set app::tabver {}
+array set ::app::tabver {}
 proc app::invalidate {tab} { unset -nocomplain ::app::tabver($tab) }
 proc app::curScroll {} { return $::app::view.s_$::app::tab }
 proc app::tabScreen {active} {
@@ -140,8 +140,8 @@ proc app::sectionTitle {parent text} {
     label $parent.[incr ::app::uid] -text $text -font f.h2 -fg $::T(text) -bg $::T(bg) -anchor w
     pack $parent.$::app::uid -fill x -padx [ui::px 4] -pady [list [ui::px 4] [ui::px 1.5]]
 }
-set app::uid 0
-set app::confettiJob ""
+set ::app::uid 0
+set ::app::confettiJob ""
 
 # ============================================================== HOME
 proc app::screenHome {} {
@@ -226,7 +226,7 @@ proc app::screenHome {} {
     }
 
     # units
-    foreach u $content::units {
+    foreach u $::content::units {
         set n [dict get $u n]
         set ids [content::lessonsOf $n]
         if {![llength $ids]} continue
@@ -262,7 +262,7 @@ proc app::screenHome {} {
 }
 
 # Only one unit's lessons are drawn at a time - far fewer widgets to render.
-set app::expanded 0
+set ::app::expanded 0
 proc app::toggleUnit {n} {
     if {$::ui::drag(moved)} return
     set c [curScroll].c
@@ -720,7 +720,7 @@ proc app::screenPlay {} {
     ui::flow $body.fl
     pack $body.fl -fill x -padx $pad
     set ei 0
-    foreach {name code} $app::examples {
+    foreach {name code} $::app::examples {
         set c $body.fl.e[incr ei]
         ui::option $c $name [list app::playLoad $code] -fit 1 -font f.small -align center
         ui::flowAdd $body.fl $c
@@ -743,7 +743,7 @@ proc app::playRun {} {
 }
 proc app::playClear {} { $::app::pgText delete 1.0 end; focus $::app::pgText }
 proc app::playLoad {code} { $::app::pgText delete 1.0 end; $::app::pgText insert 1.0 $code; ui::_editorColor $::app::pgText }
-set app::examples [list \
+set ::app::examples [list \
     "Hello"   "puts \"Hello, Tcl!\"\n" \
     "Math"    "set r 6\nputs \"Area: \[expr {3.14159 * \$r ** 2}\]\"\n" \
     "Loop"    "for {set i 1} {\$i <= 5} {incr i} {\n    puts \"\$i squared is \[expr {\$i * \$i}\]\"\n}\n" \
@@ -877,7 +877,7 @@ proc app::screenProfile {} {
     ui::button $body.diag "Run performance test" app::diag -style secondary -height [ui::px 11]
     pack $body.diag -fill x -padx $pad -pady [list [ui::px 3] 0]
     sectionTitle $body "About"
-    ui::rich $body.ab "Learn Tcl is written entirely in Tcl/Tk. Every code example in the course is executed by an automated test, so what you learn is what really runs.\n\nYour progress is saved on this device, in the app's private storage, after every answer. It survives restarts and app updates, and is only removed if you uninstall the app or clear its data.\n\nBuild: [expr {[info exists ::LEARNTCL_BUILD] ? $::LEARNTCL_BUILD : {development}}]\nSaved at: [expr {$store::path eq {} ? {nowhere - storage is not writable!} : $store::path}]" -fg $::T(muted) -font f.small
+    ui::rich $body.ab "Learn Tcl is written entirely in Tcl/Tk. Every code example in the course is executed by an automated test, so what you learn is what really runs.\n\nYour progress is saved on this device, in the app's private storage, after every answer. It survives restarts and app updates, and is only removed if you uninstall the app or clear its data.\n\nBuild: [expr {[info exists ::LEARNTCL_BUILD] ? $::LEARNTCL_BUILD : {development}}]\nSaved at: [expr {$::store::path eq {} ? {nowhere - storage is not writable!} : $::store::path}]" -fg $::T(muted) -font f.small
     pack $body.ab -fill x -padx $pad
     frame $body.pad -bg $::T(bg) -height [ui::px 10]
     pack $body.pad
@@ -906,7 +906,7 @@ proc app::drawWeek {c W H} {
         $c create text $cx [expr {$H - [ui::px 3]}] -text [util::dayName $d] -font f.small -fill [expr {$i == 0 ? $::T(text) : $::T(muted)}]
     }
 }
-proc app::setScale {v} { store::setSetting textScale $v; set ui::fscale $v; ui::fonts; screenProfile }
+proc app::setScale {v} { store::setSetting textScale $v; set ::ui::fscale $v; ui::fonts; screenProfile }
 proc app::setSound {v} { store::setSetting sound $v; if {$v} { sfx::play correct }; screenProfile }
 proc app::setHaptics {v} { store::setSetting haptics $v; if {$v} { sfx::play correct }; screenProfile }
 proc app::testSounds {} {
@@ -939,7 +939,7 @@ proc app::diag {} {
     set lines {}
     set cw [winfo width $c]; set ch [winfo height $c]
     lappend lines "Tk [info patchlevel]   window [winfo width .]x[winfo height .]   canvas ${cw}x${ch}"
-    lappend lines "tk scaling [tk scaling]   U [format %.2f $ui::U]   fscale $ui::fscale"
+    lappend lines "tk scaling [tk scaling]   U [format %.2f $::ui::U]   fscale $::ui::fscale"
     lappend lines [sfx::describe]
     foreach q {{sdltk size} {sdltk root} {sdltk viewport} {sdltk hasgl} {sdltk framebuffer} {sdltk accelbuffer 0}} {
         if {![catch {{*}$q} v]} { lappend lines "[lindex $q 1]: $v" }
@@ -981,11 +981,11 @@ proc app::diag {} {
     lappend lines [format "20 idle updates:     %6.1f ms each" [expr {([clock milliseconds]-$t0)/20.0}]]
     set t0 [clock milliseconds]
     catch {destroy .diag.tmp}
-    set before [array size aa::cache]
+    set before [array size ::aa::cache]
     foreach col {#ff0000 #00ff00 #0000ff} { aa::icon user [ui::px 6] $col }
     lappend lines [format "3 icon renders:      %6.1f ms each (uncached)" [expr {([clock milliseconds]-$t0)/3.0}]]
     # the real home page, flattened vs not
-    set flat::enabled 1
+    set ::flat::enabled 1
     app::invalidate home
     destroy .diag
     set tab home

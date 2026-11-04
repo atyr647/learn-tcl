@@ -494,7 +494,7 @@ pages {
     code {puts [package vcompare 8.6.10 8.6.9]
 puts [package vsatisfies 8.6.10 8.6]
 puts [package vsatisfies 8.5 8.6-]
-package require Tcl 8.6
+package require Tcl 8.6-
 puts "ok"}
     out {1
 1

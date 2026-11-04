@@ -12,7 +12,7 @@ namespace eval ui {
     array set flowKids {}
 }
 
-proc ui::px {k} { expr {int(round($ui::U * $k))} }
+proc ui::px {k} { expr {int(round($::ui::U * $k))} }
 
 # Parent window path computed from the name (the widget may not exist yet).
 proc ui::par {w} { string range $w 0 [expr {[string last . $w] - 1}] }

@@ -41,7 +41,7 @@ proc boot::main {} {
     }
     set ::ui::U [expr {$W / 100.0}]
     app::init
-    sandbox::init [expr {$store::dir ne "" ? $store::dir : [pwd]}]
+    sandbox::init [expr {$::store::dir ne "" ? $::store::dir : [pwd]}]
     app::go home
     foreach k {<Escape> <Cancel> <XF86Back> <Key-Escape>} { catch {bind . $k app::back} }
     app::fit

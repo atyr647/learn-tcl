@@ -6,12 +6,12 @@ pages {
     p {A Tcl string is a sequence of **characters**. A file, a socket or a network packet is a sequence of **bytes**. An **encoding** is the rule that turns one into the other. The most common is **UTF-8**, where an ordinary letter is one byte but an accented letter takes two.}
     code {set s "caf[format %c 233]"
 puts [string length $s]
-puts [string bytelength $s]
+puts [string length [encoding convertto utf-8 $s]]
 puts [binary encode hex [encoding convertto utf-8 $s]]}
     out {4
 5
 636166c3a9}
-    p {Four characters, five bytes: the accented e (character 233) became the two bytes `c3 a9`. `encoding convertto` turns text into bytes; `encoding convertfrom` turns bytes back into text.}
+    p {Four characters, five bytes (the byte count is the length of the UTF-8 encoded text): the accented e (character 233) became the two bytes `c3 a9`. `encoding convertto` turns text into bytes; `encoding convertfrom` turns bytes back into text.}
     code {set s "caf[format %c 233]"
 set bytes [encoding convertto utf-8 $s]
 puts [string length [encoding convertfrom utf-8 $bytes]]}
@@ -55,7 +55,7 @@ Hello, Tcl!
   }}
 }
 ex {
-  {kind predict code {puts [string bytelength "abc"]} choices {3 4 6 abc} ans 0 why {Plain ASCII letters are one byte each in UTF-8.}}
+  {kind predict code {puts [string length [encoding convertto utf-8 "abc"]]} choices {3 4 6 abc} ans 0 why {Plain ASCII letters are one byte each in UTF-8.}}
   {kind predict code {puts [binary encode hex "abc"]} choices {616263 abc 636261 {61 62 63}} ans 0 why {`a`, `b`, `c` are bytes 0x61, 0x62, 0x63.}}
   {kind predict code {puts [format %x 255]} choices {ff 255 FF 0xff} ans 0 why {`%x` prints lower-case hexadecimal.}}
   {kind predict code {puts [expr {5 << 2}]} choices {20 10 7 52} ans 0 why {Shifting left by 2 multiplies by 4.}}
@@ -64,7 +64,7 @@ ex {
   {kind predict code {puts [format %08b 5]} choices {00000101 101 00000011 {5}} ans 0 why {`%08b` is binary, zero padded to 8 digits.}}
   {kind predict code {puts [string length [binary format I 1]]} choices {4 1 2 8} ans 0 why {`I` is a 32-bit integer: 4 bytes.}}
   {kind predict code {puts [binary encode base64 hello]} choices {aGVsbG8= hello 68656c6c6f aGVsbG8} ans 0 why {Base64 of "hello" - the `=` is padding.}}
-  {kind mc q {Why is `string bytelength` larger than `string length` for "caf" plus an accented e?} choices {{UTF-8 stores the accented letter in two bytes} {Tcl adds a hidden byte at the end} {The two commands count different letters} {bytelength counts spaces}} ans 0 why {Characters and bytes are different things; UTF-8 uses 1 to 4 bytes per character.}}
+  {kind mc q {Why is the byte count (`string length` of the `encoding convertto utf-8` result) larger than `string length` for "caf" plus an accented e?} choices {{UTF-8 stores the accented letter in two bytes} {Tcl adds a hidden byte at the end} {The two commands count different letters} {bytelength counts spaces}} ans 0 why {Characters and bytes are different things; UTF-8 uses 1 to 4 bytes per character.}}
   {kind blank q {Show the bytes of the text as hexadecimal.} code {puts [binary ___ hex "Hi"]} answers {encode} extra {decode format scan} out {4869} why {`binary encode hex` converts bytes to hex text.}}
   {kind type q {Which command packs numbers into binary bytes?} accept {binary format} why {`binary format`.}}
   {kind code prompt {Write a proc **tohex** that returns the hexadecimal form of a string's bytes: `tohex hi` gives `6869`.} starter {proc tohex {s} {
