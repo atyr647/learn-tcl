@@ -42,6 +42,19 @@ proc app::back {} {
     if {$tab ne "home"} { go home }
 }
 
+# The Android Back button (tcldroid runs WM_DELETE_WINDOW): step back inside the app, and only
+# leave from the home screen.
+proc app::onBack {} {
+    variable tab
+    if {[winfo exists .dlg] || [winfo exists $::app::view.top.x] || $tab ne "home"} {
+        back
+    } else {
+        store::save
+        aa::flush
+        exit
+    }
+}
+
 proc app::clear {} {
     variable view
     array unset ::app::tabver

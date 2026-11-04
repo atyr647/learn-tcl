@@ -9,7 +9,8 @@
 #     have it)
 #   * an external player on desktop (paplay / aplay / afplay)
 #   * on Android, `borg beep` for the big fanfares if Snack is unavailable
-# Haptics use `borg vibrate`. Both can be switched off in Profile.
+#   * tcldroid: ::tkdroid::sound plays the generated files through SoundPool
+# Haptics use `borg vibrate` (AndroWish) or `::tkdroid::vibrate` (tcldroid). Both can be switched off in Profile.
 namespace eval sfx {
     variable rate 16000
     variable dir ""
@@ -142,8 +143,10 @@ proc sfx::init {d} {
     if {[info exists ::env(LEARNTCL_NOSOUND)]} { return }
     variable errors
     set errors {}
-    # On Android the built-in MIDI synthesizer is the first choice
-    if {[llength [info commands borg]] || [info exists ::env(LEARNTCL_FORCE_MUZIC)]} {
+    # tcldroid (native Tcl/Tk for Android): SoundPool plays the generated WAV files
+    if {[llength [info commands ::tkdroid::sound]]} { set backend tkdroid }
+    # On AndroWish the built-in MIDI synthesizer is the first choice
+    if {$backend eq "none" && ([llength [info commands borg]] || [info exists ::env(LEARNTCL_FORCE_MUZIC)])} {
         if {[catch {
             package require Muzic
             muzic::init
@@ -185,7 +188,8 @@ proc sfx::warm {} {
     if {$backend eq "none" || ![llength $warmList]} return
     set name [lindex $warmList 0]
     set warmList [lrange $warmList 1 end]
-    ensure $name
+    set f [ensure $name]
+    if {$backend eq "tkdroid" && $f ne ""} { catch {::tkdroid::sound preload $f} }
     if {[llength $warmList]} { after 250 sfx::warm }
 }
 
@@ -237,6 +241,8 @@ proc sfx::play {name} {
         }
         catch {$snd($name) stop}
         if {[catch {$snd($name) play -blocking 0} err]} { fail snack $err }
+    } elseif {$backend eq "tkdroid"} {
+        if {[catch {::tkdroid::sound play $f} err]} { fail tkdroid $err }
     } elseif {$backend eq "external"} {
         catch {exec $player $f > /dev/null 2>@1 &}
     }
@@ -244,7 +250,8 @@ proc sfx::play {name} {
 
 # short vibration pattern for important feedback (Android only)
 proc sfx::haptic {name} {
-    if {![llength [info commands borg]] || ![hapticsOn]} return
+    set tkdroid [llength [info commands ::tkdroid::vibrate]]
+    if {!($tkdroid || [llength [info commands borg]]) || ![hapticsOn]} return
     switch $name {
         correct  { set ms 18 }
         good     { set ms 12 }
@@ -253,7 +260,7 @@ proc sfx::haptic {name} {
         complete - perfect - levelup - goal { set ms 45 }
         default  { return }
     }
-    catch {borg vibrate $ms}
+    if {$tkdroid} { catch {::tkdroid::vibrate $ms} } else { catch {borg vibrate $ms} }
 }
 
 # A backend failed while playing: remember why and fall back to the next one.

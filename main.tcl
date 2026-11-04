@@ -23,7 +23,9 @@ foreach f $::app_lib     { boot::load lib/$f.tcl }
 foreach f $::app_content { boot::load content/$f.tcl }
 
 proc boot::main {} {
-    set android [llength [info commands borg]]
+    # AndroWish has borg; tcldroid (native Tcl/Tk for Android) has ::tkdroid::*
+    set tkdroid [llength [info commands ::tkdroid::vibrate]]
+    set android [expr {[llength [info commands borg]] || $tkdroid}]
     if {$android} {
         catch {wm attributes . -fullscreen 1}
         # AndroWish normally runs touches through a state machine that delays
@@ -45,5 +47,10 @@ proc boot::main {} {
     app::go home
     foreach k {<Escape> <Cancel> <XF86Back> <Key-Escape>} { catch {bind . $k app::back} }
     app::fit
+    if {$tkdroid} {
+        # Back goes up a level and exits from Home; save when leaving the foreground
+        wm protocol . WM_DELETE_WINDOW app::onBack
+        bind . <<AndroidSaveState>> {catch {store::save}; catch {aa::flush}}
+    }
 }
 if {![info exists ::LEARNTCL_NO_MAIN]} { boot::main }
