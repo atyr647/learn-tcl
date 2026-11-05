@@ -1,5 +1,7 @@
 # Running Learn Tcl on Android
 
+> **Retired.** The production app is now the tcldroid build, see [TCLDROID.md](TCLDROID.md). This page documents running Learn Tcl under AndroWish, for reference.
+
 Android does not run Tcl/Tk by itself. **AndroWish** is a port of Tcl/Tk (with a
 touch-capable Tk) to Android, and this app is a plain Tcl/Tk program, so AndroWish
 is the way to run it with no changes.

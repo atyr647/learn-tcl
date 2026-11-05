@@ -26,9 +26,9 @@ How the design follows learning science: [docs/PLAN.md](docs/PLAN.md).
 wish main.tcl
 ```
 
-**On an Android phone**: **install the APK** [`dist/LearnTcl-arm64-debug.apk`](docs/APK.md) (self-contained), or use AndroWish ([docs/ANDROID.md](docs/ANDROID.md)). Short version: install
-**AndroWish** (the Tcl/Tk runtime for Android) and open the single file
-[`dist/learn-tcl.tcl`](dist/learn-tcl.tcl).
+**On an Android phone**: install [`dist/LearnTcl.apk`](docs/TCLDROID.md), a self-contained native app
+(Tcl/Tk 9 on [tcldroid](https://github.com/atyr647/tcldroid)); it updates over earlier installs and keeps
+your progress. The older AndroWish route ([docs/ANDROID.md](docs/ANDROID.md), [docs/APK.md](docs/APK.md)) is retired.
 
 ## Tests
 
