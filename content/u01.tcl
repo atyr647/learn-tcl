@@ -47,43 +47,57 @@ cards {
 
 content::lesson 1.2 1 "Commands and words" "The one rule that all of Tcl is built on." {
 pages {
-  {head "Commands are made of words" body {
-    p {Every Tcl instruction is a **command**: a list of **words** separated by spaces. The first word is the name of the command. The remaining words are its **arguments** - the information you hand to it.}
+  {head "A command is a row of words" body {
+    p {Every Tcl instruction is called a **command**. A command is just a row of **words** with spaces between them.}
+    p {The **first word** is the name of the command: it says what to do. Every word after it is an **argument**: extra information for the command.}
     code {puts "Hello"}
-    p {Here `puts` is the command and `"Hello"` is its one argument.}
-    p {Tcl has almost no hidden grammar. If you can see where each word starts and ends, you understand the line. This simplicity is Tcl's big idea, and it gets easier from here.}
+    p {That line has **two words**: `puts` (the command: "print this") and `"Hello"` (the argument: what to print).}
+    p {Here is a line with **three words**. You will learn what `set` does in the next unit. For now, just count the words.}
+    code {set name Tcl}
+    p {The words are `set`, `name` and `Tcl`. The first word is always the command, and the spaces are what cut the line into words.}
+    tip {To read any Tcl line: find the spaces, split it into words, and the first word is the command.}
   }}
-  {head "Quotes make one word" body {
-    p {Spaces split words. Double quotes glue several words into **one** word.}
+  {head "Quotes keep words together" body {
+    p {A message such as Hello, world! has a space in it. Spaces cut words apart, so Tcl needs help to know the message is **one** thing.}
+    p {**Double quotes** are that help. Everything between the quotes counts as **one word**.}
     code {puts "Hello, world!"}
-    p {Without the quotes Tcl sees two words, and `puts` gets confused:}
+    out {Hello, world!}
+    p {Count the words: `puts` and `"Hello, world!"`. That is two words, even though the message contains a space. The quote marks only tell Tcl where the word starts and ends, so they are not printed.}
+    p {What if you forget the quotes? The space then cuts the message in two, so Tcl sees **three** words: `puts`, `Hello` and `world`. That is too many for `puts`, and it complains:}
     code {puts Hello world}
     out {can not find channel named "Hello"}
-    p {`puts` can take an optional extra first argument (a "channel" such as `stdout`). Given two arguments, it assumes the first one names a channel. That is why it complains about `Hello`.}
-    tip {Error messages are your friend. They usually tell you exactly what went wrong - read them slowly.}
+    p {Do not worry about the word "channel" yet. (`puts` can be told *where* to print, such as the screen or a file, and with two things after it, it reads the first as that place.) The lesson is simple: **if your text has a space, put it in quotes.**}
+    tip {Error messages are your friend. They usually point straight at the problem, so read them slowly.}
   }}
-  {head "One line, one command" body {
-    p {A command ends where the line ends. To put two commands on a single line, separate them with a semicolon.}
+  {head "Two commands on one line" body {
+    p {Normally each command goes on its own line: the end of the line ends the command.}
+    code {puts "A"
+puts "B"}
+    out {A
+B}
+    p {If you want two commands on **one** line, put a **semicolon** `;` between them. The semicolon means "this command is finished, a new one starts here".}
     code {puts "A"; puts "B"}
     out {A
 B}
-    p {Most of the time you will write one command per line - it is easier to read.}
+    p {Both versions do exactly the same thing: print A, then print B, each on its own line, in the order you wrote them. Most of the time one command per line is easier to read, so use `;` sparingly.}
   }}
 }
 ex {
   {kind mc q {In the line `puts "Hi"`, which word is the command?} choices {puts {"Hi"} {Hi} {The quote marks}} ans 0 why {The first word of a line is always the command name. Everything after it is an argument.}}
-  {kind mc q {How many words are in the line `puts Hello World`?} choices {1 2 3 4} ans 2 why {Spaces separate words: `puts`, `Hello` and `World` - three words.}}
-  {kind predict code {puts one; puts two} choices {"one\ntwo" "two\none" "one two" onetwo} ans 0 why {A semicolon separates two commands on one line. They run left to right.}}
-  {kind mc q {What do double quotes do in Tcl?} choices {{Group several words into one word} {Make text appear in bold} {Start a comment} {Mark a number}} ans 0 why {Inside quotes, spaces no longer split words, so the whole thing is a single argument.}}
-  {kind mc q {What happens when you run `puts Hello world`?} choices {{It prints Hello world} {It fails - puts is given two arguments and thinks Hello is a channel} {It prints Hello only} {It prints nothing at all and succeeds}} ans 1 why {Two arguments means "channel, then text". Fix it with quotes: `puts "Hello world"`.}}
-  {kind blank q {Fill in the blanks to print two words as one argument.} code {puts ___Good morning___} answers {{"} {"}} extra {{'} {(}} out {Good morning} why {Double quotes make `Good morning` a single word.}}
-  {kind type q {Which character can separate two commands written on the same line?} accept {; semicolon} hint {It is also used at the end of lines in many other languages.} why {The semicolon: `puts "A"; puts "B"`.}}
+  {kind mc q {How many words are in the line `set name Tcl`?} choices {1 2 3 4} ans 2 why {Spaces cut the line into words: `set`, `name` and `Tcl`. That is three.}}
+  {kind mc q {How many words are in the line `puts "Hello, world!"`?} choices {1 2 3 4} ans 1 why {Two: `puts`, and the quoted message. The quotes make the message ONE word, even though it contains a space.}}
+  {kind mc q {What do double quotes do in Tcl?} choices {{Group several words into one word} {Make text appear in bold} {Start a comment} {Mark a number}} ans 0 why {Inside quotes, spaces no longer cut the text into words, so the whole message is a single word.}}
+  {kind mc q {What happens when you run `puts Hello world` (no quotes)?} choices {{It prints Hello world} {It fails: Tcl sees too many words after puts} {It prints Hello only} {It prints nothing at all and succeeds}} ans 1 why {The space cuts the message into two words, which is one too many for `puts`. Fix it with quotes: `puts "Hello world"`.}}
+  {kind blank q {Fill in the blanks so that Tcl sees the message as one word.} code {puts ___Good morning___} answers {{"} {"}} extra {{'} {(}} out {Good morning} why {Double quotes make `Good morning` a single word.}}
+  {kind mc q {What does the semicolon do in `puts "A"; puts "B"`?} choices {{It ends the first command so a second one can start on the same line} {It joins the two messages into one} {It starts a comment} {It is printed on the screen}} ans 0 why {A semicolon says "this command is finished". The next command then starts straight after it.}}
+  {kind predict code {puts "one"; puts "two"} choices {"one\ntwo" "two\none" "one two" onetwo} ans 0 why {Two commands, so two lines of output, running left to right: one, then two.}}
+  {kind type q {Which character can separate two commands written on the same line?} accept {; semicolon} hint {It looks like a comma with a dot above it.} why {The semicolon: `puts "A"; puts "B"`.}}
 }
 cards {
   {{What is a Tcl command made of?} {Words separated by spaces. The first word is the command name; the rest are its arguments.}}
   {{What do double quotes do?} {They group several words into one word (one argument).}}
   {{How can two commands share one line?} {Separate them with a semicolon, for example `puts "A"; puts "B"`.}}
-  {{Why does `puts Hello world` fail?} {It has two arguments, so Tcl treats Hello as a channel name. Quote the text: `puts "Hello world"`.}}
+  {{Why does `puts Hello world` fail?} {The space cuts the message into two words, which is too many. Quote the text: `puts "Hello world"`.}}
 }
 }
 

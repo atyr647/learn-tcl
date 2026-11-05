@@ -22,7 +22,7 @@ Recall *and* recognition are both covered on purpose: multiple choice builds
 recognition and catches misconceptions cheaply; flashcards and typed answers
 force true recall.
 
-## 2. Curriculum (zero -> expert): 17 units, 78 lessons, 770 questions, 293 flashcards
+## 2. Curriculum (zero -> expert): 17 units, 78 lessons, 772 questions, 293 flashcards
 
 | Unit | Lessons |
 |---|---|
