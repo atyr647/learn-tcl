@@ -11,6 +11,7 @@ AndroWish-based build is retired; see "Going back" below.
 | ABIs | arm64-v8a |
 | Versioning | `versionCode` = build number (minutes since 2026-01-01), `versionName` = `1.1.<build>`; shown under Profile > About |
 | Icon | adaptive icon: white `[ ]` brackets (Tcl's command substitution) around a mint terminal prompt on the brand purple `#6B58EC`; launch screen is the app's dark background `#0B0F1A` |
+| Backup | Android cloud backup of the app's data is on, so progress follows you to a new phone |
 | Sources | `assets/icon/` (made by `tools/make-icon.py`) |
 
 ## Updating over the old app keeps your progress

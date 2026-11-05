@@ -42,7 +42,7 @@ mode=--release
 echo "Learn Tcl $name  (code $build, id $id, abis $abis, tcldroid $(git -C "$TCLDROID_DIR" rev-parse --short HEAD 2>/dev/null || echo '?'))"
 "$TCLDROID_DIR/tools/pack-app.sh" "$stage" \
     --name "Learn Tcl" --id "$id" --version "$name" --code "$build" \
-    --abis "$abis" --orientation auto \
+    --abis "$abis" --orientation auto --backup \
     --icon-bg '#6B58EC' --splash '#0B0F1A' \
     --keystore "$LEARNTCL_KEYSTORE" --key-alias "$alias" $mode
 

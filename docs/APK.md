@@ -2,7 +2,7 @@
 
 > **Retired.** The production app is now the tcldroid build, see [TCLDROID.md](TCLDROID.md). This page documents the old AndroWish-based APK for reference.
 
-`dist/LearnTcl-arm64-debug.apk` is a self-contained app: AndroWish's Tcl/Tk 8.6 runtime
+The retired AndroWish build (removed from `dist/`; see git history) was a self-contained app: AndroWish's Tcl/Tk 8.6 runtime
 (SDL-based Tk for Android) with this course embedded, so nothing else needs installing.
 
 * Package `tk.tcl.wish`, app name **Learn Tcl**, 64-bit ARM only (virtually all phones since ~2017).
